@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mindforge</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Bilateral stimulation layers */
+        #stim-left, #stim-right {
+            position: fixed;
+            top: 0;
+            width: 14px;
+            height: 100vh;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+        }
+        #stim-left  { left: 0; }
+        #stim-right { right: 0; }
+        #stim-left.active, #stim-right.active { opacity: 1; }
+
+        /* Subliminal flash overlay */
+        #subliminal-flash {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(112,96,208,0.9);
+            max-width: 80vw;
+            line-height: 1.4;
+            letter-spacing: 0.05em;
+        }
+        #subliminal-flash.visible { opacity: 1; }
+
+        .app {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-bottom: 60px;
+        }
+
+        header {
+            text-align: center;
+            padding: 24px 0 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 22px;
+            letter-spacing: 0.35em;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+        header p {
+            color: var(--text-dim);
+            font-size: 11px;
+            margin-top: 6px;
+            letter-spacing: 0.1em;
+        }
+
+        .section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent2);
+            margin-bottom: 14px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .control-row label {
+            flex: 0 0 130px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .control-row input[type=range] {
+            flex: 1;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .control-row .value {
+            flex: 0 0 56px;
+            text-align: right;
+            font-size: 12px;
+            color: var(--text);
+        }
+        .control-row select {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 5px 8px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .toggle-row label:first-child {
+            flex: 0 0 130px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .toggle input { display: none; }
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: var(--off);
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .toggle input:checked + .toggle-track { background: var(--accent); }
+        .toggle-thumb {
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.2s;
+            pointer-events: none;
+        }
+        .toggle input:checked ~ .toggle-thumb { left: 22px; }
+
+        textarea {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 2px;
+            font-family: inherit;
+            font-size: 12px;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 110px;
+        }
+        textarea::placeholder { color: var(--text-dim); }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        #status-display {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #status-text { font-size: 12px; color: var(--text-dim); }
+        #timer-display {
+            font-size: 22px;
+            letter-spacing: 0.12em;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .main-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 13px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        button:hover { background: var(--surface2); border-color: var(--accent); }
+        button.start { border-color: var(--accent); color: var(--accent); }
+        button.start:hover { background: var(--accent); color: #fff; }
+        button.running { border-color: var(--on); color: var(--on); }
+        button.running:hover { background: #a03030; border-color: #c04040; color: #fff; }
+        button.secondary { flex: 0 0 auto; font-size: 11px; padding: 13px 14px; }
+
+        .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+        .preset-btn { flex: 0 0 auto; padding: 6px 12px; font-size: 11px; letter-spacing: 0.05em; }
+
+        .module-status {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--off);
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .module-status.on { background: var(--on); box-shadow: 0 0 6px var(--on); }
+
+        hr { border: none; border-top: 1px solid var(--border); margin: 4px 0 10px; }
+
+        .freq-guide {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .freq-tag {
+            font-size: 10px;
+            padding: 3px 8px;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text-dim);
+            cursor: pointer;
+            letter-spacing: 0.05em;
+        }
+        .freq-tag:hover { border-color: var(--accent2); color: var(--accent2); }
+    </style>
+</head>
+<body>
+
+<div id="stim-left"></div>
+<div id="stim-right"></div>
+<div id="subliminal-flash"></div>
+
+<div class="app">
+    <header>
+        <h1>Mindforge</h1>
+        <p>binaural beats &nbsp;·&nbsp; bilateral stimulation &nbsp;·&nbsp; subliminal suggestion</p>
+    </header>
+
+    <!-- Status bar -->
+    <div id="status-display">
+        <span id="status-text">ready</span>
+        <span id="timer-display">20:00</span>
+    </div>
+
+    <!-- Main controls -->
+    <div class="main-controls">
+        <button id="start-btn" class="start" onclick="toggleSession()">Begin Session</button>
+        <button class="secondary" onclick="savePreset()">Save</button>
+        <button class="secondary" onclick="showPresets()">Presets</button>
+    </div>
+
+    <!-- Presets panel -->
+    <div id="presets-panel" class="section" style="display:none">
+        <div class="section-title">Saved Presets</div>
+        <div class="presets" id="presets-list"></div>
+    </div>
+
+    <!-- Binaural Beats -->
+    <div class="section">
+        <div class="section-title">
+            <span class="module-status" id="binaural-status"></span>Binaural Beats
+        </div>
+        <div class="toggle-row">
+            <label>Enable</label>
+            <label class="toggle">
+                <input type="checkbox" id="binaural-enabled" checked onchange="updateBinaural()">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        </div>
+        <div class="control-row">
+            <label>Beat frequency</label>
+            <input type="range" id="beat-freq" min="0.5" max="40" step="0.5" value="6"
+                   oninput="updateBinaural(); syncVal('beat-freq','beat-freq-val','Hz')">
+            <span class="value" id="beat-freq-val">6 Hz</span>
+        </div>
+        <div class="control-row">
+            <label>Carrier tone</label>
+            <input type="range" id="carrier-freq" min="80" max="400" step="5" value="200"
+                   oninput="updateBinaural(); syncVal('carrier-freq','carrier-freq-val','Hz')">
+            <span class="value" id="carrier-freq-val">200 Hz</span>
+        </div>
+        <div class="control-row">
+            <label>Volume</label>
+            <input type="range" id="binaural-vol" min="0" max="1" step="0.02" value="0.3"
+                   oninput="updateBinaural(); syncVal('binaural-vol','binaural-vol-val','',2)">
+            <span class="value" id="binaural-vol-val">0.30</span>
+        </div>
+        <div class="control-row">
+            <label>Waveform</label>
+            <select id="binaural-wave" onchange="updateBinaural()">
+                <option value="sine" selected>Sine (smoothest)</option>
+                <option value="triangle">Triangle (mild)</option>
+                <option value="sawtooth">Sawtooth (bright)</option>
+            </select>
+        </div>
+        <hr>
+        <div class="hint">Use headphones. Left ear = carrier, right ear = carrier + beat. Brain entrains to the difference frequency.</div>
+        <div class="freq-guide">
+            <span class="freq-tag" onclick="setFreq(2,'δ Delta 0.5–4Hz sleep')">δ 2Hz</span>
+            <span class="freq-tag" onclick="setFreq(6,'θ Theta 4–8Hz deep trance / censor recedes')">θ 6Hz</span>
+            <span class="freq-tag" onclick="setFreq(10,'α Alpha 8–13Hz relaxed / receptive')">α 10Hz</span>
+            <span class="freq-tag" onclick="setFreq(18,'β Beta 13–30Hz alert / focused')">β 18Hz</span>
+            <span class="freq-tag" onclick="setFreq(40,'γ Gamma 30–100Hz binding / integration')">γ 40Hz</span>
+        </div>
+    </div>
+
+    <!-- Bilateral Stimulation -->
+    <div class="section">
+        <div class="section-title">
+            <span class="module-status" id="bilateral-status"></span>Bilateral Visual Stimulation
+        </div>
+        <div class="toggle-row">
+            <label>Enable</label>
+            <label class="toggle">
+                <input type="checkbox" id="bilateral-enabled" checked onchange="updateBilateral()">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        </div>
+        <div class="control-row">
+            <label>Rate</label>
+            <input type="range" id="bilateral-rate" min="0.2" max="4" step="0.1" value="1"
+                   oninput="syncVal('bilateral-rate','bilateral-rate-val','/s'); restartBilateral()">
+            <span class="value" id="bilateral-rate-val">1/s</span>
+        </div>
+        <div class="control-row">
+            <label>Pulse width</label>
+            <input type="range" id="bilateral-width" min="20" max="500" step="10" value="80"
+                   oninput="syncVal('bilateral-width','bilateral-width-val','ms')">
+            <span class="value" id="bilateral-width-val">80 ms</span>
+        </div>
+        <div class="control-row">
+            <label>Intensity</label>
+            <input type="range" id="bilateral-intensity" min="0.1" max="1" step="0.05" value="0.7"
+                   oninput="syncVal('bilateral-intensity','bilateral-intensity-val','',2); updateStimStyle()">
+            <span class="value" id="bilateral-intensity-val">0.70</span>
+        </div>
+        <div class="control-row">
+            <label>Color</label>
+            <select id="bilateral-color" onchange="updateStimStyle()">
+                <option value="purple" selected>Violet</option>
+                <option value="blue">Blue</option>
+                <option value="cyan">Cyan</option>
+                <option value="white">White</option>
+                <option value="amber">Amber</option>
+                <option value="red">Red</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Subliminal Suggestions -->
+    <div class="section">
+        <div class="section-title">
+            <span class="module-status" id="subliminal-status"></span>Subliminal Suggestions
+        </div>
+        <div class="toggle-row">
+            <label>Enable</label>
+            <label class="toggle">
+                <input type="checkbox" id="subliminal-enabled" checked onchange="updateSubliminal()">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        </div>
+        <div class="control-row">
+            <label>Flash duration</label>
+            <input type="range" id="flash-duration" min="16" max="2000" step="8" value="33"
+                   oninput="syncVal('flash-duration','flash-duration-val','ms')">
+            <span class="value" id="flash-duration-val">33 ms</span>
+        </div>
+        <div class="control-row">
+            <label>Interval</label>
+            <input type="range" id="flash-interval" min="1" max="60" step="0.5" value="5"
+                   oninput="syncVal('flash-interval','flash-interval-val','s')">
+            <span class="value" id="flash-interval-val">5 s</span>
+        </div>
+        <div class="control-row">
+            <label>Delivery</label>
+            <select id="flash-order">
+                <option value="random" selected>Random</option>
+                <option value="sequential">Sequential</option>
+            </select>
+        </div>
+        <div class="control-row">
+            <label>Font size</label>
+            <input type="range" id="flash-size" min="10" max="52" step="2" value="18"
+                   oninput="syncVal('flash-size','flash-size-val','px'); document.getElementById('subliminal-flash').style.fontSize=this.value+'px'">
+            <span class="value" id="flash-size-val">18 px</span>
+        </div>
+        <hr>
+        <textarea id="suggestions" placeholder="Enter suggestions, one per line.
+
+I think in pure images and sensation.
+My subconscious receives and transforms.
+I release the need to narrate experience.
+Thought flows without a speaker.
+The image is the meaning.
+I am whole without an address."></textarea>
+        <div class="hint">
+            One suggestion per line &nbsp;·&nbsp;
+            16ms = true subliminal threshold &nbsp;·&nbsp;
+            33–100ms = liminal &nbsp;·&nbsp;
+            200ms+ = readable
+        </div>
+    </div>
+
+    <!-- Session -->
+    <div class="section">
+        <div class="section-title">Session</div>
+        <div class="control-row">
+            <label>Duration</label>
+            <input type="range" id="session-duration" min="1" max="60" step="1" value="20"
+                   oninput="syncVal('session-duration','session-duration-val',' min'); updateTimerIdle()">
+            <span class="value" id="session-duration-val">20 min</span>
+        </div>
+        <div class="toggle-row">
+            <label>Fade in / out</label>
+            <label class="toggle">
+                <input type="checkbox" id="fade-enabled" checked>
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        </div>
+        <div class="toggle-row">
+            <label>End chime</label>
+            <label class="toggle">
+                <input type="checkbox" id="chime-enabled" checked>
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+            </label>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let ctx = null;
+let leftOsc = null, rightOsc = null;
+let leftGain = null, rightGain = null;
+let masterGain = null;
+let isRunning = false;
+let sessionTimer = null;
+let bilateralTimer = null;
+let subliminalTimer = null;
+let sessionSeconds = 0;
+let sessionTotal = 0;
+let bilateralSide = 'left';
+let suggestionIndex = 0;
+
+const COLORS = {
+    purple: '#7060d0',
+    blue:   '#3060d0',
+    cyan:   '#30a0c0',
+    white:  '#c0c0d0',
+    amber:  '#c08030',
+    red:    '#c03030',
+};
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Stereo panner approach: route left osc to left channel, right osc to right
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(ctx.destination);
+
+    const merger = ctx.createChannelMerger(2);
+    merger.connect(masterGain);
+
+    leftGain  = ctx.createGain();
+    rightGain = ctx.createGain();
+    leftGain.connect(merger, 0, 0);   // left channel
+    rightGain.connect(merger, 0, 1);  // right channel
+
+    leftOsc  = ctx.createOscillator();
+    rightOsc = ctx.createOscillator();
+    leftOsc.connect(leftGain);
+    rightOsc.connect(rightGain);
+
+    applyBinauralParams();
+    leftOsc.start();
+    rightOsc.start();
+}
+
+function applyBinauralParams() {
+    if (!leftOsc) return;
+    const carrier = parseFloat(document.getElementById('carrier-freq').value);
+    const beat    = parseFloat(document.getElementById('beat-freq').value);
+    const vol     = parseFloat(document.getElementById('binaural-vol').value);
+    const wave    = document.getElementById('binaural-wave').value;
+    const enabled = document.getElementById('binaural-enabled').checked;
+
+    leftOsc.type  = wave;
+    rightOsc.type = wave;
+    leftOsc.frequency.value  = carrier;
+    rightOsc.frequency.value = carrier + beat;
+
+    const target = (isRunning && enabled) ? vol : 0;
+    const ramp = ctx.currentTime + 0.08;
+    leftGain.gain.linearRampToValueAtTime(target, ramp);
+    rightGain.gain.linearRampToValueAtTime(target, ramp);
+}
+
+function updateBinaural() {
+    applyBinauralParams();
+    setStatus('binaural-status', isRunning && document.getElementById('binaural-enabled').checked);
+}
+
+function playChime() {
+    if (!ctx) return;
+    const g = ctx.createGain();
+    g.connect(ctx.destination);
+    [396, 528, 660].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        o.connect(g);
+        const t = ctx.currentTime + i * 0.5;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.25, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+        o.start(t);
+        o.stop(t + 1.8);
+    });
+}
+
+// ── Bilateral stimulation ──────────────────────────────────────────────────
+function bilateralCycle() {
+    if (!isRunning || !document.getElementById('bilateral-enabled').checked) return;
+
+    const rate      = parseFloat(document.getElementById('bilateral-rate').value);
+    const width     = parseInt(document.getElementById('bilateral-width').value);
+    const halfPeriod = Math.round(500 / rate);
+
+    const activeId   = bilateralSide === 'left' ? 'stim-left'  : 'stim-right';
+    const inactiveId = bilateralSide === 'left' ? 'stim-right' : 'stim-left';
+
+    document.getElementById(activeId).classList.add('active');
+    document.getElementById(inactiveId).classList.remove('active');
+    bilateralSide = (bilateralSide === 'left') ? 'right' : 'left';
+
+    bilateralTimer = setTimeout(() => {
+        document.getElementById('stim-left').classList.remove('active');
+        document.getElementById('stim-right').classList.remove('active');
+        bilateralTimer = setTimeout(bilateralCycle, Math.max(10, halfPeriod - width));
+    }, Math.min(width, halfPeriod - 10));
+}
+
+function stopBilateral() {
+    clearTimeout(bilateralTimer);
+    bilateralTimer = null;
+    document.getElementById('stim-left').classList.remove('active');
+    document.getElementById('stim-right').classList.remove('active');
+}
+
+function restartBilateral() {
+    if (!isRunning) return;
+    stopBilateral();
+    bilateralCycle();
+}
+
+function updateBilateral() {
+    const on = isRunning && document.getElementById('bilateral-enabled').checked;
+    setStatus('bilateral-status', on);
+    if (!isRunning) return;
+    if (on) bilateralCycle(); else stopBilateral();
+}
+
+function updateStimStyle() {
+    const color     = document.getElementById('bilateral-color').value;
+    const intensity = parseFloat(document.getElementById('bilateral-intensity').value);
+    const hex       = COLORS[color] || COLORS.purple;
+    const alpha     = Math.round(intensity * 255).toString(16).padStart(2, '0');
+    document.getElementById('stim-left').style.background
+        = `linear-gradient(to right, ${hex}${alpha}, transparent)`;
+    document.getElementById('stim-right').style.background
+        = `linear-gradient(to left, ${hex}${alpha}, transparent)`;
+}
+
+// ── Subliminal flash ───────────────────────────────────────────────────────
+function getSuggestions() {
+    return document.getElementById('suggestions').value
+        .split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function flashSuggestion() {
+    const suggestions = getSuggestions();
+    if (!suggestions.length) return;
+
+    let text;
+    if (document.getElementById('flash-order').value === 'sequential') {
+        text = suggestions[suggestionIndex % suggestions.length];
+        suggestionIndex++;
+    } else {
+        text = suggestions[Math.floor(Math.random() * suggestions.length)];
+    }
+
+    const el       = document.getElementById('subliminal-flash');
+    const duration = parseInt(document.getElementById('flash-duration').value);
+    el.textContent = text;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), duration);
+}
+
+function scheduleSubliminal() {
+    if (!isRunning || !document.getElementById('subliminal-enabled').checked) return;
+    flashSuggestion();
+    subliminalTimer = setTimeout(scheduleSubliminal,
+        parseFloat(document.getElementById('flash-interval').value) * 1000);
+}
+
+function stopSubliminal() {
+    clearTimeout(subliminalTimer);
+    subliminalTimer = null;
+    document.getElementById('subliminal-flash').classList.remove('visible');
+}
+
+function updateSubliminal() {
+    const on = isRunning && document.getElementById('subliminal-enabled').checked;
+    setStatus('subliminal-status', on);
+    if (!isRunning) return;
+    if (on) scheduleSubliminal(); else stopSubliminal();
+}
+
+// ── Session ────────────────────────────────────────────────────────────────
+function toggleSession() {
+    isRunning ? endSession() : startSession();
+}
+
+function startSession() {
+    initAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    isRunning      = true;
+    sessionTotal   = parseInt(document.getElementById('session-duration').value) * 60;
+    sessionSeconds = 0;
+    suggestionIndex = 0;
+
+    const btn = document.getElementById('start-btn');
+    btn.textContent = 'End Session';
+    btn.className   = 'running';
+    document.getElementById('status-text').textContent = 'active';
+    renderTimer();
+
+    const fade = document.getElementById('fade-enabled').checked;
+    if (fade) {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(0, ctx.currentTime);
+        masterGain.gain.linearRampToValueAtTime(1, ctx.currentTime + 4);
+    } else {
+        masterGain.gain.setValueAtTime(1, ctx.currentTime);
+    }
+
+    updateBinaural();
+    if (document.getElementById('bilateral-enabled').checked) bilateralCycle();
+    if (document.getElementById('subliminal-enabled').checked) scheduleSubliminal();
+
+    sessionTimer = setInterval(() => {
+        sessionSeconds++;
+        renderTimer();
+        if (sessionSeconds >= sessionTotal) endSession(true);
+    }, 1000);
+}
+
+function endSession(natural = false) {
+    isRunning = false;
+    clearInterval(sessionTimer);
+    stopBilateral();
+    stopSubliminal();
+
+    const btn = document.getElementById('start-btn');
+    btn.textContent = 'Begin Session';
+    btn.className   = 'start';
+    document.getElementById('status-text').textContent = natural ? 'complete' : 'stopped';
+
+    if (ctx) {
+        const fade = document.getElementById('fade-enabled').checked;
+        const t = ctx.currentTime;
+        masterGain.gain.cancelScheduledValues(t);
+        if (fade) {
+            masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+            masterGain.gain.linearRampToValueAtTime(0, t + 3);
+        } else {
+            masterGain.gain.setValueAtTime(0, t);
+        }
+    }
+
+    if (natural && document.getElementById('chime-enabled').checked) {
+        setTimeout(playChime, 2800);
+    }
+
+    setStatus('binaural-status', false);
+    setStatus('bilateral-status', false);
+    setStatus('subliminal-status', false);
+    updateTimerIdle();
+}
+
+function renderTimer() {
+    const remaining = sessionTotal - sessionSeconds;
+    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const s = (remaining % 60).toString().padStart(2, '0');
+    document.getElementById('timer-display').textContent = `${m}:${s}`;
+}
+
+function updateTimerIdle() {
+    if (isRunning) return;
+    const mins = document.getElementById('session-duration').value.toString().padStart(2, '0');
+    document.getElementById('timer-display').textContent = `${mins}:00`;
+}
+
+// ── Presets ────────────────────────────────────────────────────────────────
+function getConfig() {
+    const ids = ['beat-freq','carrier-freq','binaural-vol','binaural-wave',
+                 'bilateral-rate','bilateral-width','bilateral-intensity','bilateral-color',
+                 'flash-duration','flash-interval','flash-order','flash-size',
+                 'session-duration','suggestions'];
+    const toggles = ['binaural-enabled','bilateral-enabled','subliminal-enabled',
+                     'fade-enabled','chime-enabled'];
+    const cfg = {};
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        cfg[id] = el.value;
+    });
+    toggles.forEach(id => {
+        cfg[id] = document.getElementById(id).checked;
+    });
+    return cfg;
+}
+
+function applyConfig(cfg) {
+    Object.entries(cfg).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.type === 'checkbox') el.checked = val;
+        else el.value = val;
+    });
+    refreshDisplayValues();
+    updateStimStyle();
+}
+
+function refreshDisplayValues() {
+    const pairs = [
+        ['beat-freq','beat-freq-val','Hz'],
+        ['carrier-freq','carrier-freq-val','Hz'],
+        ['binaural-vol','binaural-vol-val','',2],
+        ['bilateral-rate','bilateral-rate-val','/s'],
+        ['bilateral-width','bilateral-width-val','ms'],
+        ['bilateral-intensity','bilateral-intensity-val','',2],
+        ['flash-duration','flash-duration-val','ms'],
+        ['flash-interval','flash-interval-val','s'],
+        ['flash-size','flash-size-val','px'],
+        ['session-duration','session-duration-val',' min'],
+    ];
+    pairs.forEach(([sid, did, unit, dec]) => syncVal(sid, did, unit, dec));
+    updateTimerIdle();
+}
+
+function savePreset() {
+    const name = prompt('Preset name:');
+    if (!name || !name.trim()) return;
+    const presets = JSON.parse(localStorage.getItem('mindforge-presets') || '{}');
+    presets[name.trim()] = getConfig();
+    localStorage.setItem('mindforge-presets', JSON.stringify(presets));
+    document.getElementById('status-text').textContent = `saved: ${name.trim()}`;
+    renderPresetList();
+}
+
+function renderPresetList() {
+    const presets = JSON.parse(localStorage.getItem('mindforge-presets') || '{}');
+    const list = document.getElementById('presets-list');
+    list.innerHTML = '';
+    const names = Object.keys(presets);
+    if (!names.length) {
+        list.innerHTML = '<span style="font-size:11px;color:var(--text-dim)">No saved presets yet.</span>';
+        return;
+    }
+    names.forEach(name => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:4px;align-items:center;width:100%';
+
+        const load = document.createElement('button');
+        load.className = 'preset-btn';
+        load.textContent = name;
+        load.onclick = () => {
+            applyConfig(presets[name]);
+            document.getElementById('status-text').textContent = `loaded: ${name}`;
+        };
+
+        const del = document.createElement('button');
+        del.className = 'preset-btn';
+        del.textContent = '×';
+        del.style.cssText = 'flex:0 0 auto;padding:6px 9px;color:var(--warn)';
+        del.onclick = () => {
+            const p = JSON.parse(localStorage.getItem('mindforge-presets') || '{}');
+            delete p[name];
+            localStorage.setItem('mindforge-presets', JSON.stringify(p));
+            renderPresetList();
+        };
+
+        row.appendChild(load);
+        row.appendChild(del);
+        list.appendChild(row);
+    });
+}
+
+function showPresets() {
+    const panel = document.getElementById('presets-panel');
+    panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+    if (panel.style.display === 'block') renderPresetList();
+}
+
+// ── Frequency quick-set ────────────────────────────────────────────────────
+function setFreq(hz, label) {
+    const sl = document.getElementById('beat-freq');
+    sl.value = hz;
+    sl.dispatchEvent(new Event('input'));
+    document.getElementById('status-text').textContent = label;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function syncVal(sliderId, displayId, unit = '', decimals = 0) {
+    const val = parseFloat(document.getElementById(sliderId).value);
+    document.getElementById(displayId).textContent =
+        decimals > 0 ? val.toFixed(decimals) + unit : val + unit;
+}
+
+function setStatus(id, on) {
+    document.getElementById(id).classList.toggle('on', on);
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    updateStimStyle();
+    refreshDisplayValues();
+
+    // Persist settings on any change
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('change', () => {
+            localStorage.setItem('mindforge-last', JSON.stringify(getConfig()));
+        });
+    });
+
+    // Restore last session config
+    const last = localStorage.getItem('mindforge-last');
+    if (last) {
+        try { applyConfig(JSON.parse(last)); } catch (e) {}
+    }
+});
+</script>
+</body>
+</html>
