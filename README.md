@@ -1,14 +1,36 @@
 # Mindforge
 
+A suite of single-file browser tools for consciousness research and subconscious work. No installation, no account, no data sent anywhere.
+
+---
+
+## Tools
+
+### Mindforge — Self-Directed Entrainment
 **Brainwave entrainment · Bilateral stimulation · Subliminal suggestion · Session protocol**
 
-A single-file web tool for self-directed subconscious reprogramming. Runs entirely in your phone or desktop browser — no installation, no account, no data sent anywhere.
+A single-file web tool for self-directed subconscious reprogramming. Runs entirely in your phone or desktop browser.
 
 **Live tool:** https://dezirae-stark.github.io/mindforge/
 
 ---
 
-## Table of Contents
+### Telehypnosis Pro — Remote Mental Suggestion Research
+**Vasiliev protocol · Operator console · Blinded research grade**
+
+Companion operator console for two-person mental suggestion experiments with consenting adults. Based on Dr. L.L. Vasiliev's hypnagogic receptivity research and IONS remote influence protocols (Braud, Schlitz). The operator focuses intention through this tool while the receiver enters a receptive state independently using Mindforge.
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/telehypnosis-pro.html
+
+Features:
+- Three focus modes: animated Sri Yantra, target photo with pulsing aura, void field
+- Blinded protocol — intention sealed during session, receiver records impressions before reveal
+- Alpha binaural audio (8–14 Hz) for sender focus state per Braud/Schlitz research
+- Post-session correspondence rating and persistent session log with JSON export
+
+---
+
+## Mindforge — Table of Contents
 
 1. [What This Does](#what-this-does)
 2. [The Science](#the-science)
