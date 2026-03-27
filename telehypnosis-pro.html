@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Telehypnosis Pro</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+            --focus: #a060e0;
+            --pulse: rgba(112,96,208,0.15);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        header {
+            text-align: center; padding: 24px 0 18px;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        header h1 { font-size: 20px; letter-spacing: 0.12em; color: var(--focus); }
+        header .sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; letter-spacing: 0.06em; }
+        header .rec-note { font-size: 11px; color: var(--text-dim); margin-top: 10px; }
+        header .rec-note a { color: var(--accent2); text-decoration: none; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 14px;
+            padding: 14px 16px;
+        }
+        .panel-title {
+            font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 14px;
+            border-bottom: 1px solid var(--border); padding-bottom: 8px;
+        }
+        .panel-title .dim { color: var(--off); font-size: 10px; }
+
+        .hidden { display: none !important; }
+
+        /* Controls */
+        .ctrl { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .ctrl label { width: 120px; min-width: 120px; font-size: 12px; color: var(--text-dim); }
+        .ctrl input[type=range] { flex: 1; accent-color: var(--accent); }
+        .ctrl input[type=text], .ctrl select {
+            flex: 1; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 8px; border-radius: 3px; font-family: inherit;
+            font-size: 12px;
+        }
+        .ctrl .val { width: 50px; text-align: right; font-size: 11px; color: var(--accent); }
+
+        textarea {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 3px; font-family: inherit;
+            font-size: 13px; resize: vertical; min-height: 72px; line-height: 1.5;
+        }
+        textarea:focus, input[type=text]:focus, select:focus {
+            outline: none; border-color: var(--accent);
+        }
+
+        /* Toggle */
+        .tog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .tog-row label { font-size: 12px; color: var(--text-dim); flex: 1; }
+        .tog { position: relative; width: 40px; height: 20px; flex-shrink: 0; }
+        .tog input { opacity: 0; width: 0; height: 0; }
+        .tog-sl {
+            position: absolute; inset: 0; background: var(--off);
+            border-radius: 20px; cursor: pointer; transition: 0.2s;
+        }
+        .tog-sl::before {
+            content: ''; position: absolute; width: 14px; height: 14px;
+            left: 3px; top: 3px; background: var(--text); border-radius: 50%;
+            transition: 0.2s;
+        }
+        .tog input:checked + .tog-sl { background: var(--accent); }
+        .tog input:checked + .tog-sl::before { transform: translateX(20px); }
+
+        /* Buttons */
+        button {
+            font-family: inherit; font-size: 12px; cursor: pointer;
+            border-radius: 3px; transition: 0.15s; letter-spacing: 0.04em;
+        }
+        .btn-main {
+            width: 100%; padding: 12px; background: transparent;
+            border: 1px solid var(--accent); color: var(--accent);
+            font-size: 13px; margin-top: 6px;
+        }
+        .btn-main:hover { background: var(--accent); color: var(--bg); }
+        .btn-main.running { border-color: #b04040; color: #b04040; }
+        .btn-main.running:hover { background: #b04040; color: var(--bg); }
+        .btn-sm {
+            padding: 6px 12px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.active { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.12); }
+        .btn-danger { border-color: #604040; color: #806060; }
+        .btn-danger:hover { border-color: #b04040; color: #c06060; background: rgba(176,64,64,0.1); }
+
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* Status / phase display */
+        #phase-display {
+            text-align: center; padding: 10px; font-size: 12px;
+            color: var(--text-dim); letter-spacing: 0.06em; min-height: 36px;
+        }
+        #phase-display.active { color: var(--focus); }
+        #timer-display {
+            text-align: center; font-size: 32px; letter-spacing: 0.1em;
+            color: var(--text); padding: 8px 0; font-variant-numeric: tabular-nums;
+        }
+
+        /* Focus panel */
+        #focus-views { margin-top: 14px; min-height: 320px; position: relative; }
+
+        .focus-view {
+            display: none; width: 100%; min-height: 300px;
+            align-items: center; justify-content: center;
+            border: 1px solid var(--border); border-radius: 4px;
+            background: #0d0d16; position: relative; overflow: hidden;
+        }
+        .focus-view.active { display: flex; }
+
+        /* Yantra */
+        #yantra-svg {
+            width: 280px; height: 280px; max-width: 90%;
+        }
+        @keyframes rot-cw  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes rot-ccw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes rot-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes bindu-pulse {
+            0%, 100% { r: 4; opacity: 0.9; }
+            50% { r: 7; opacity: 0.5; }
+        }
+        @keyframes aura-pulse {
+            0%, 100% { opacity: 0.12; transform: scale(1); }
+            50% { opacity: 0.28; transform: scale(1.08); }
+        }
+        @keyframes void-pulse {
+            0%, 100% { opacity: 0.05; transform: scale(1); }
+            50% { opacity: 0.18; transform: scale(1.4); }
+        }
+        @keyframes photo-glow {
+            0%, 100% { box-shadow: 0 0 20px 4px rgba(160,96,224,0.3), 0 0 60px 12px rgba(112,96,208,0.1); }
+            50% { box-shadow: 0 0 35px 10px rgba(160,96,224,0.55), 0 0 90px 24px rgba(112,96,208,0.2); }
+        }
+
+        .yantra-outer { animation: rot-cw 70s linear infinite; transform-origin: center; }
+        .yantra-inner { animation: rot-ccw 50s linear infinite; transform-origin: center; }
+        .yantra-mid   { animation: rot-cw 120s linear infinite; transform-origin: center; }
+        .yantra-bindu { animation: bindu-pulse 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+        /* Photo view */
+        #photo-frame {
+            display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px;
+        }
+        #target-photo {
+            width: 200px; height: 200px; border-radius: 50%; object-fit: cover;
+            animation: photo-glow 5s ease-in-out infinite;
+            border: 2px solid rgba(160,96,224,0.4);
+        }
+        #photo-target-name {
+            font-size: 15px; letter-spacing: 0.12em; color: var(--text-dim);
+            text-align: center;
+        }
+        #photo-placeholder {
+            width: 200px; height: 200px; border-radius: 50%;
+            background: var(--surface2); border: 1px dashed var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-dim); font-size: 11px; text-align: center;
+            padding: 20px;
+        }
+
+        /* Void view */
+        #void-center {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%; height: 100%; min-height: 300px; padding: 40px;
+        }
+        #void-aura {
+            width: 180px; height: 180px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(160,96,224,0.15) 0%, transparent 70%);
+            position: absolute; animation: void-pulse 6s ease-in-out infinite;
+        }
+        #void-name {
+            font-size: 18px; letter-spacing: 0.18em; color: rgba(160,96,224,0.35);
+            text-align: center; position: relative; z-index: 1;
+        }
+        #void-instruction {
+            font-size: 10px; color: rgba(96,96,160,0.4); text-align: center;
+            margin-top: 16px; position: relative; z-index: 1; letter-spacing: 0.06em;
+            max-width: 200px; line-height: 1.6;
+        }
+
+        /* Intention reveal */
+        #intention-locked {
+            font-size: 11px; color: var(--text-dim); font-style: italic;
+            padding: 10px 0; line-height: 1.6;
+        }
+        #intention-reveal-btn {
+            font-size: 11px; color: var(--off); background: none; border: none;
+            cursor: pointer; padding: 0; text-decoration: underline; letter-spacing: 0.04em;
+        }
+        #intention-reveal-btn:hover { color: var(--warn); }
+
+        /* Session log */
+        #log-table-wrap { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { text-align: left; color: var(--text-dim); font-weight: normal;
+             padding: 4px 6px; border-bottom: 1px solid var(--border); letter-spacing: 0.06em; }
+        td { padding: 6px 6px; border-bottom: 1px solid rgba(42,42,64,0.5); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        .match-0 { color: var(--off); }
+        .match-1 { color: var(--text-dim); }
+        .match-2 { color: var(--warn); }
+        .match-3 { color: var(--accent2); }
+        .match-4 { color: var(--accent); }
+        .match-5 { color: var(--on); }
+
+        /* Photo upload */
+        #photo-upload-btn {
+            font-size: 11px; color: var(--text-dim); background: var(--surface2);
+            border: 1px dashed var(--border); padding: 6px 12px; cursor: pointer;
+            border-radius: 3px; width: 100%; text-align: center; display: block;
+        }
+        #photo-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+        #photo-file-input { display: none; }
+
+        .hint { font-size: 10px; color: var(--off); line-height: 1.5; margin-top: 6px; }
+
+        /* Match rating */
+        .match-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .match-btn {
+            padding: 5px 10px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim); font-size: 11px;
+        }
+        .match-btn.sel { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.15); }
+
+        /* Post-session */
+        #post-intention-display {
+            background: var(--surface2); border: 1px solid var(--border);
+            padding: 10px; border-radius: 3px; font-size: 13px; line-height: 1.5;
+            color: var(--text); min-height: 40px; margin-bottom: 12px;
+        }
+        .field-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
+                       text-transform: uppercase; margin-bottom: 6px; display: block; }
+
+        /* Separator */
+        .sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header>
+        <h1>Telehypnosis Pro</h1>
+        <div class="sub">Remote mental suggestion &middot; Vasiliev protocol &middot; Research grade</div>
+        <div class="rec-note">Receiver: open <a href="index.html">Mindforge</a> &rarr; Gateway or Sleep Onset preset &middot; same duration &middot; begin simultaneously</div>
+    </header>
+
+    <!-- Target Setup -->
+    <div class="panel" id="target-panel">
+        <div class="panel-title">Target</div>
+        <div class="ctrl">
+            <label>Receiver name</label>
+            <input type="text" id="target-name" placeholder="name" autocomplete="off">
+        </div>
+        <div class="ctrl">
+            <label>Location note</label>
+            <input type="text" id="target-location" placeholder="city, distance, conditions…" autocomplete="off">
+        </div>
+        <label id="photo-upload-btn" for="photo-file-input">&#43; Upload target photo (optional)</label>
+        <input type="file" id="photo-file-input" accept="image/*">
+        <div class="hint">Photo stays on your device. Not saved to localStorage. Displayed in Photo focus mode.</div>
+    </div>
+
+    <!-- Intention (blinded) -->
+    <div class="panel" id="intention-panel">
+        <div class="panel-title">Intention <span class="dim">— blinded</span></div>
+        <div id="intention-locked">
+            Write your intention before the session begins. It will be hidden during the active session
+            — hold it in mind, do not display it to the receiver.
+        </div>
+        <textarea id="intention-text" rows="3" placeholder="What are you transmitting? One clear image, impression, or concept."></textarea>
+        <div class="hint">Keep it simple and concrete. Abstract concepts transmit poorly. A colour, a shape, an emotion, a scene.</div>
+    </div>
+
+    <!-- Operator Audio -->
+    <div class="panel" id="audio-panel">
+        <div class="panel-title">Operator Audio</div>
+        <div class="tog-row">
+            <label>Binaural (alpha focus)</label>
+            <div class="tog"><input type="checkbox" id="bin-on" checked><span class="tog-sl"></span></div>
+        </div>
+        <div class="ctrl">
+            <label>Beat frequency</label>
+            <input type="range" id="beat-hz" min="7" max="14" step="0.5" value="9">
+            <span class="val" id="beat-hz-v">9 Hz</span>
+        </div>
+        <div class="ctrl">
+            <label>Carrier</label>
+            <input type="range" id="carrier-hz" min="100" max="400" step="10" value="300">
+            <span class="val" id="carrier-hz-v">300 Hz</span>
+        </div>
+        <div class="ctrl">
+            <label>Volume</label>
+            <input type="range" id="bin-vol" min="0" max="0.5" step="0.02" value="0.18">
+            <span class="val" id="bin-vol-v">0.18</span>
+        </div>
+        <hr class="sep">
+        <div class="tog-row">
+            <label>Pink noise</label>
+            <div class="tog"><input type="checkbox" id="noise-on"><span class="tog-sl"></span></div>
+        </div>
+        <div class="ctrl">
+            <label>Noise volume</label>
+            <input type="range" id="noise-vol" min="0" max="0.3" step="0.01" value="0.06">
+            <span class="val" id="noise-vol-v">0.06</span>
+        </div>
+        <div class="hint">Alpha (8–14 Hz) is the optimal sender state per Braud/Schlitz IONS research — relaxed, calm attention. Not theta; the operator needs alert focus.</div>
+    </div>
+
+    <!-- Focus Interface -->
+    <div class="panel" id="focus-panel">
+        <div class="panel-title">Focus Mode</div>
+        <div class="btn-row" id="focus-mode-btns">
+            <button class="btn-sm active" id="mode-yantra" onclick="setFocusMode('yantra')">Yantra</button>
+            <button class="btn-sm" id="mode-photo" onclick="setFocusMode('photo')">Target Photo</button>
+            <button class="btn-sm" id="mode-void" onclick="setFocusMode('void')">Void</button>
+        </div>
+
+        <div id="focus-views">
+
+            <!-- Yantra View -->
+            <div class="focus-view active" id="view-yantra">
+                <svg id="yantra-svg" viewBox="-100 -100 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                        <filter id="bglow" x="-100%" y="-100%" width="300%" height="300%">
+                            <feGaussianBlur stdDeviation="7" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- Outer boundary rings -->
+                    <circle r="96" fill="none" stroke="rgba(112,96,208,0.2)" stroke-width="0.5"/>
+                    <circle r="92" fill="none" stroke="rgba(112,96,208,0.55)" stroke-width="1"/>
+                    <circle r="88" fill="none" stroke="rgba(112,96,208,0.15)" stroke-width="0.5"/>
+
+                    <!-- Aura background glow -->
+                    <circle r="92" fill="radial-gradient" opacity="0" style="animation: aura-pulse 8s ease-in-out infinite;"/>
+
+                    <!-- Outer slowly rotating ring — 16 petals -->
+                    <g class="yantra-outer">
+                        <circle r="78" fill="none" stroke="rgba(64,160,192,0.25)" stroke-width="0.5"/>
+                        <!-- 16 lotus petals -->
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(22.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(45)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(67.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(90)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(112.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(135)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(157.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(180)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(202.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(225)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(247.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(270)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(292.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(315)" fill="rgba(112,96,208,0.25)" filter="url(#glow)"/>
+                        <ellipse cx="0" cy="-78" rx="4" ry="9" transform="rotate(337.5)" fill="rgba(112,96,208,0.22)" filter="url(#glow)"/>
+                    </g>
+
+                    <!-- Counter-rotating geometry — large triangles -->
+                    <g class="yantra-inner">
+                        <circle r="60" fill="none" stroke="rgba(112,96,208,0.3)" stroke-width="0.6"/>
+                        <!-- Upward triangle (Shiva) -->
+                        <polygon points="0,-65 56.3,32.5 -56.3,32.5"
+                                 fill="none" stroke="rgba(64,160,192,0.7)" stroke-width="1.2" filter="url(#glow)"/>
+                        <!-- Downward triangle (Shakti) -->
+                        <polygon points="0,65 56.3,-32.5 -56.3,-32.5"
+                                 fill="none" stroke="rgba(160,96,224,0.7)" stroke-width="1.2" filter="url(#glow)"/>
+                        <!-- Second upward triangle -->
+                        <polygon points="0,-48 41.6,24 -41.6,24"
+                                 fill="none" stroke="rgba(64,160,192,0.45)" stroke-width="0.9"/>
+                        <!-- Second downward triangle -->
+                        <polygon points="0,48 41.6,-24 -41.6,-24"
+                                 fill="none" stroke="rgba(160,96,224,0.45)" stroke-width="0.9"/>
+                    </g>
+
+                    <!-- Inner circle and triangles — medium rotation -->
+                    <g class="yantra-mid">
+                        <circle r="32" fill="none" stroke="rgba(112,96,208,0.4)" stroke-width="0.8"/>
+                        <!-- Inner upward -->
+                        <polygon points="0,-28 24.2,14 -24.2,14"
+                                 fill="rgba(64,160,192,0.06)" stroke="rgba(64,160,192,0.6)" stroke-width="1" filter="url(#glow)"/>
+                        <!-- Inner downward -->
+                        <polygon points="0,28 24.2,-14 -24.2,-14"
+                                 fill="rgba(160,96,224,0.06)" stroke="rgba(160,96,224,0.6)" stroke-width="1" filter="url(#glow)"/>
+                    </g>
+
+                    <!-- Static central ring -->
+                    <circle r="16" fill="none" stroke="rgba(160,96,224,0.5)" stroke-width="0.8"/>
+
+                    <!-- Bindu — pulsing central point -->
+                    <circle class="yantra-bindu" r="5" cx="0" cy="0"
+                            fill="rgba(160,96,224,0.9)" filter="url(#bglow)"/>
+                    <circle r="2.5" cx="0" cy="0" fill="white" opacity="0.95"/>
+                </svg>
+            </div>
+
+            <!-- Photo View -->
+            <div class="focus-view" id="view-photo">
+                <div id="photo-frame">
+                    <div id="photo-placeholder">Upload a photo of the receiver in Target Setup</div>
+                    <img id="target-photo" src="" alt="" style="display:none;">
+                    <div id="photo-target-name"></div>
+                </div>
+            </div>
+
+            <!-- Void View -->
+            <div class="focus-view" id="view-void">
+                <div id="void-center">
+                    <div id="void-aura"></div>
+                    <div id="void-name"></div>
+                    <div id="void-instruction">Hold the intention.<br>Empty the mind of everything else.<br>Transmit without effort.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Session Controls -->
+    <div class="panel" id="session-panel">
+        <div class="panel-title">Session</div>
+        <div class="ctrl">
+            <label>Duration</label>
+            <select id="sess-dur">
+                <option value="15">15 min</option>
+                <option value="20">20 min</option>
+                <option value="25" selected>25 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+            </select>
+        </div>
+        <div id="timer-display">00:00</div>
+        <div id="phase-display">Ready — agree a start time with receiver, then begin simultaneously</div>
+        <button class="btn-main" id="begin-btn" onclick="toggleSession()">Begin Session</button>
+    </div>
+
+    <!-- Post-Session Record (hidden until session ends) -->
+    <div class="panel hidden" id="post-panel">
+        <div class="panel-title">Post-Session Record</div>
+        <span class="field-label">What you transmitted</span>
+        <div id="post-intention-display"></div>
+        <span class="field-label">Receiver's report <span style="color:var(--off)">(fill in after comparing)</span></span>
+        <textarea id="post-report" rows="3" placeholder="What did the receiver perceive, sense, or experience?"></textarea>
+        <span class="field-label" style="margin-top:12px; display:block;">Correspondence</span>
+        <div class="match-row" id="match-row">
+            <button class="match-btn match-0 sel" data-v="0" onclick="setMatch(0)">0 None</button>
+            <button class="match-btn match-1" data-v="1" onclick="setMatch(1)">1 Vague</button>
+            <button class="match-btn match-2" data-v="2" onclick="setMatch(2)">2 Partial</button>
+            <button class="match-btn match-3" data-v="3" onclick="setMatch(3)">3 Strong</button>
+            <button class="match-btn match-4" data-v="4" onclick="setMatch(4)">4 Near-exact</button>
+            <button class="match-btn match-5" data-v="5" onclick="setMatch(5)">5 Exact</button>
+        </div>
+        <textarea id="post-notes" rows="2" placeholder="Session notes — conditions, anomalies, context…" style="margin-top:10px;"></textarea>
+        <button class="btn-main" onclick="saveSession()" style="margin-top:8px;">Save to Log</button>
+    </div>
+
+    <!-- Session Log -->
+    <div class="panel" id="log-panel">
+        <div class="panel-title">Session Log</div>
+        <div class="btn-row" style="margin-bottom:10px;">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm btn-danger" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div id="log-table-wrap">
+            <div id="log-empty" style="font-size:11px; color:var(--off); padding:8px 0;">No sessions recorded yet.</div>
+            <table id="log-table" class="hidden">
+                <thead>
+                    <tr>
+                        <th>Date</th><th>Receiver</th><th>Min</th><th>Match</th><th>Intention</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div><!-- .app -->
+
+<script>
+// ── Globals ──────────────────────────────────────────────────────────────────
+
+let ctx = null, leftOsc = null, rightOsc = null, leftG = null, rightG = null;
+let masterG = null, merger = null, noiseNode = null, noiseG = null;
+let running = false, sessTimer = null, elapsed = 0, sessDuration = 0;
+let matchVal = 0;
+let photoData = null;   // base64, session-only — never in localStorage
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const el  = id => document.getElementById(id);
+const gv  = id => el(id).value;
+const gf  = id => parseFloat(gv(id));
+const gc  = id => el(id).checked;
+const fmt = n  => String(n).padStart(2, '0');
+
+function sv(srcId, dispId, unit = '', dec = 2) {
+    const v = parseFloat(gv(srcId));
+    el(dispId).textContent = v.toFixed(dec) + (unit ? ' ' + unit : '');
+}
+
+// ── Config persistence ────────────────────────────────────────────────────────
+
+const CFG_RANGES = ['beat-hz','carrier-hz','bin-vol','noise-vol','sess-dur'];
+const CFG_BOOLS  = ['bin-on','noise-on'];
+
+function getConfig() {
+    const c = {};
+    CFG_RANGES.forEach(id => { c[id] = gv(id); });
+    CFG_BOOLS.forEach(id  => { c[id] = gc(id); });
+    c['target-name']     = gv('target-name');
+    c['target-location'] = gv('target-location');
+    c['focus-mode']      = currentFocusMode;
+    return c;
+}
+
+function applyConfig(c) {
+    CFG_RANGES.forEach(id => { if (c[id] !== undefined) el(id).value = c[id]; });
+    CFG_BOOLS.forEach(id  => { if (c[id] !== undefined) el(id).checked = c[id]; });
+    if (c['target-name'])     el('target-name').value     = c['target-name'];
+    if (c['target-location']) el('target-location').value = c['target-location'];
+    if (c['focus-mode'])      setFocusMode(c['focus-mode']);
+    refreshVals();
+}
+
+function refreshVals() {
+    sv('beat-hz',    'beat-hz-v',    'Hz', 1);
+    sv('carrier-hz', 'carrier-hz-v', 'Hz', 0);
+    sv('bin-vol',    'bin-vol-v',    '',   2);
+    sv('noise-vol',  'noise-vol-v',  '',   2);
+}
+
+function saveConfig() {
+    try { localStorage.setItem('thp-last', JSON.stringify(getConfig())); } catch(e){}
+}
+
+// ── Focus mode ────────────────────────────────────────────────────────────────
+
+let currentFocusMode = 'yantra';
+
+function setFocusMode(mode) {
+    currentFocusMode = mode;
+    ['yantra','photo','void'].forEach(m => {
+        el('view-' + m).classList.toggle('active', m === mode);
+        el('mode-' + m).classList.toggle('active', m === mode);
+    });
+    syncFocusContent();
+    saveConfig();
+}
+
+function syncFocusContent() {
+    const name = gv('target-name').trim() || '—';
+    el('photo-target-name').textContent = name;
+    el('void-name').textContent = name;
+    // Photo display
+    if (photoData) {
+        el('target-photo').src = photoData;
+        el('target-photo').style.display = '';
+        el('photo-placeholder').style.display = 'none';
+    } else {
+        el('target-photo').style.display = 'none';
+        el('photo-placeholder').style.display = '';
+    }
+}
+
+// ── Photo upload ──────────────────────────────────────────────────────────────
+
+el('photo-file-input').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        photoData = e.target.result;
+        syncFocusContent();
+        el('photo-upload-btn').textContent = '✓ Photo loaded — ' + file.name;
+    };
+    reader.readAsDataURL(file);
+});
+
+// ── Audio engine ──────────────────────────────────────────────────────────────
+
+function initAudio() {
+    if (ctx) return;
+    try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) {
+        alert('Web Audio API not available in this browser.'); return;
+    }
+
+    masterG = ctx.createGain();
+    masterG.gain.value = 0;
+    masterG.connect(ctx.destination);
+
+    merger = ctx.createChannelMerger(2);
+    merger.connect(masterG);
+
+    leftG = ctx.createGain();
+    rightG = ctx.createGain();
+    leftG.gain.value = 1;
+    rightG.gain.value = 1;
+    leftG.connect(merger, 0, 0);
+    rightG.connect(merger, 0, 1);
+
+    leftOsc  = ctx.createOscillator();
+    rightOsc = ctx.createOscillator();
+    leftOsc.type = rightOsc.type = 'sine';
+    leftOsc.connect(leftG);
+    rightOsc.connect(rightG);
+    leftOsc.start();
+    rightOsc.start();
+
+    // Pink noise
+    const bufLen = ctx.sampleRate * 5;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < bufLen; i++) {
+        const w = Math.random() * 2 - 1;
+        b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+        b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+        b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+        data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
+        b6 = w * 0.115926;
+    }
+    noiseNode = ctx.createBufferSource();
+    noiseNode.buffer = buf;
+    noiseNode.loop = true;
+    noiseG = ctx.createGain();
+    noiseG.gain.value = 0;
+    noiseNode.connect(noiseG);
+    noiseG.connect(masterG);
+    noiseNode.start();
+}
+
+function startAudio() {
+    if (!ctx) initAudio();
+    if (!ctx) return;
+    const carrier = gf('carrier-hz');
+    const beat    = gf('beat-hz');
+    const vol     = gf('bin-vol');
+    const nvol    = gf('noise-vol');
+
+    leftOsc.frequency.setValueAtTime(carrier, ctx.currentTime);
+    rightOsc.frequency.setValueAtTime(carrier + beat, ctx.currentTime);
+
+    if (gc('bin-on')) {
+        masterG.gain.cancelScheduledValues(ctx.currentTime);
+        masterG.gain.setValueAtTime(0, ctx.currentTime);
+        masterG.gain.linearRampToValueAtTime(vol, ctx.currentTime + 3);
+    }
+    noiseG.gain.value = gc('noise-on') ? nvol : 0;
+}
+
+function stopAudio() {
+    if (!ctx) return;
+    masterG.gain.cancelScheduledValues(ctx.currentTime);
+    masterG.gain.setValueAtTime(masterG.gain.value, ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(0, ctx.currentTime + 3);
+    noiseG.gain.linearRampToValueAtTime(0, ctx.currentTime + 2);
+}
+
+// ── Session state machine ─────────────────────────────────────────────────────
+
+function toggleSession() {
+    if (running) endSession();
+    else beginSession();
+}
+
+function beginSession() {
+    const name = gv('target-name').trim();
+    if (!name) { alert('Enter a receiver name before beginning.'); return; }
+    if (!gv('intention-text').trim()) { alert('Write your intention before beginning.'); return; }
+
+    running = true;
+    elapsed = 0;
+    sessDuration = parseInt(gv('sess-dur')) * 60;
+
+    syncFocusContent();
+
+    // Lock controls
+    ['target-panel','intention-panel','audio-panel'].forEach(id => {
+        el(id).style.opacity = '0.4';
+        el(id).style.pointerEvents = 'none';
+    });
+
+    // Hide intention text (replace with blinded message)
+    el('intention-text').style.display = 'none';
+    el('intention-locked').style.display = 'block';
+    el('intention-locked').textContent = '● Intention sealed. Hold it in mind.';
+
+    el('begin-btn').textContent = 'End Session';
+    el('begin-btn').classList.add('running');
+    el('post-panel').classList.add('hidden');
+
+    setPhase('● transmitting', true);
+    startAudio();
+
+    sessTimer = setInterval(() => {
+        elapsed++;
+        updateTimer();
+        if (elapsed >= sessDuration) endSession();
+    }, 1000);
+}
+
+function endSession() {
+    running = false;
+    clearInterval(sessTimer); sessTimer = null;
+
+    stopAudio();
+
+    // Unlock controls
+    ['target-panel','intention-panel','audio-panel'].forEach(id => {
+        el(id).style.opacity = '';
+        el(id).style.pointerEvents = '';
+    });
+
+    el('intention-text').style.display = '';
+    el('intention-locked').textContent = 'Write your intention before the session begins. It will be hidden during the active session.';
+
+    el('begin-btn').textContent = 'Begin Session';
+    el('begin-btn').classList.remove('running');
+    setPhase('Session complete — record below', false);
+
+    // Open post-session form
+    el('post-intention-display').textContent = gv('intention-text').trim() || '(no intention recorded)';
+    el('post-report').value = '';
+    el('post-notes').value  = '';
+    setMatch(0);
+    el('post-panel').classList.remove('hidden');
+    el('post-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateTimer() {
+    const rem = sessDuration - elapsed;
+    const display = running ? elapsed : sessDuration;
+    const s = display % 60;
+    const m = Math.floor(display / 60);
+    el('timer-display').textContent = fmt(m) + ':' + fmt(s);
+    if (running) {
+        const remM = Math.floor(rem/60), remS = rem % 60;
+        setPhase('● transmitting — ' + fmt(remM) + ':' + fmt(remS) + ' remaining', true);
+    }
+}
+
+function setPhase(text, active) {
+    el('phase-display').textContent = text;
+    el('phase-display').className = active ? 'active' : '';
+}
+
+// ── Match rating ──────────────────────────────────────────────────────────────
+
+function setMatch(v) {
+    matchVal = v;
+    el('match-row').querySelectorAll('.match-btn').forEach(btn => {
+        btn.classList.toggle('sel', parseInt(btn.dataset.v) === v);
+    });
+}
+
+// ── Session log ───────────────────────────────────────────────────────────────
+
+const MATCH_LABELS = ['None','Vague','Partial','Strong','Near-exact','Exact'];
+
+function loadLog() {
+    try { return JSON.parse(localStorage.getItem('thp-log') || '[]'); }
+    catch(e) { return []; }
+}
+
+function saveLog(log) {
+    try { localStorage.setItem('thp-log', JSON.stringify(log)); } catch(e) {}
+}
+
+function saveSession() {
+    const entry = {
+        id:        Math.random().toString(36).slice(2),
+        date:      new Date().toISOString(),
+        receiver:  gv('target-name').trim(),
+        location:  gv('target-location').trim(),
+        duration:  parseInt(gv('sess-dur')),
+        intention: gv('intention-text').trim(),
+        report:    el('post-report').value.trim(),
+        match:     matchVal,
+        notes:     el('post-notes').value.trim(),
+    };
+    const log = loadLog();
+    log.push(entry);
+    saveLog(log);
+    el('post-panel').classList.add('hidden');
+    renderLog();
+}
+
+function renderLog() {
+    const log = loadLog();
+    if (!log.length) {
+        el('log-empty').classList.remove('hidden');
+        el('log-table').classList.add('hidden');
+        return;
+    }
+    el('log-empty').classList.add('hidden');
+    el('log-table').classList.remove('hidden');
+    const tbody = el('log-tbody');
+    tbody.innerHTML = '';
+    [...log].reverse().forEach(e => {
+        const d = new Date(e.date);
+        const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const matchCls = 'match-' + e.match;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="white-space:nowrap;font-size:10px;">${dateStr}</td>
+            <td>${e.receiver || '—'}</td>
+            <td>${e.duration}</td>
+            <td class="${matchCls}">${e.match} ${MATCH_LABELS[e.match]||''}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
+                title="${(e.intention||'').replace(/"/g,'&quot;')}">${e.intention || '—'}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function exportLog() {
+    const log = loadLog();
+    if (!log.length) { alert('No sessions to export.'); return; }
+    const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'thp-sessions-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all session records? This cannot be undone.')) return;
+    localStorage.removeItem('thp-log');
+    renderLog();
+}
+
+// ── Live range display ────────────────────────────────────────────────────────
+
+['beat-hz','carrier-hz','bin-vol','noise-vol'].forEach(id => {
+    el(id).addEventListener('input', () => { refreshVals(); saveConfig(); });
+});
+['bin-on','noise-on'].forEach(id => {
+    el(id).addEventListener('change', saveConfig);
+});
+['target-name','target-location'].forEach(id => {
+    el(id).addEventListener('input', () => { syncFocusContent(); saveConfig(); });
+});
+el('sess-dur').addEventListener('change', saveConfig);
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(function init() {
+    // Restore config
+    try {
+        const last = localStorage.getItem('thp-last');
+        if (last) applyConfig(JSON.parse(last));
+        else refreshVals();
+    } catch(e) { refreshVals(); }
+
+    syncFocusContent();
+    renderLog();
+})();
+</script>
+</body>
+</html>
