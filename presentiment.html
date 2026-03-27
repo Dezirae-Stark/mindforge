@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Presentiment Trainer</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        header {
+            text-align: center; padding: 24px 0 20px;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 22px; letter-spacing: 0.35em; color: var(--accent);
+            text-transform: uppercase;
+        }
+        header p {
+            color: var(--text-dim); font-size: 11px; margin-top: 6px; letter-spacing: 0.1em;
+        }
+        header nav {
+            margin-top: 10px; font-size: 11px;
+        }
+        header nav a {
+            color: var(--accent2); text-decoration: none; margin: 0 8px;
+            letter-spacing: 0.06em;
+        }
+        header nav a:hover { color: var(--text); }
+
+        .section {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 16px; margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--accent2); margin-bottom: 14px;
+        }
+
+        .ctrl {
+            display: flex; align-items: center;
+            gap: 12px; margin-bottom: 10px;
+        }
+        .ctrl > label:first-child, .ctrl > span:first-child {
+            flex: 0 0 130px; font-size: 12px; color: var(--text-dim);
+        }
+        .ctrl select {
+            flex: 1; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 8px; border-radius: 2px;
+            font-size: 12px; font-family: inherit;
+        }
+
+        .tog { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .tog > span:first-child { flex: 0 0 130px; font-size: 12px; color: var(--text-dim); }
+
+        .toggle { position: relative; width: 40px; height: 20px; cursor: pointer; display: inline-block; }
+        .toggle input { display: none; }
+        .toggle-track { position: absolute; inset: 0; background: var(--off); border-radius: 10px; transition: background .2s; }
+        .toggle input:checked + .toggle-track { background: var(--accent); }
+        .toggle-thumb {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px; background: #fff;
+            border-radius: 50%; transition: left .2s; pointer-events: none;
+        }
+        .toggle input:checked ~ .toggle-thumb { left: 22px; }
+
+        button {
+            padding: 13px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--text); font-family: inherit;
+            font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
+            cursor: pointer; border-radius: 2px;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        button:hover { background: var(--surface2); border-color: var(--accent); }
+        button:active { transform: scale(0.97); }
+
+        .btn-begin {
+            width: 100%; border-color: var(--accent); color: var(--accent);
+        }
+        .btn-begin:hover { background: var(--accent); color: #fff; }
+
+        .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+
+        hr { border: none; border-top: 1px solid var(--border); margin: 10px 0 12px; }
+
+        /* ── Trial progress bar ── */
+        #trial-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 6px 12px; display: none;
+            flex-direction: row; align-items: center; gap: 10px;
+            font-size: 11px; color: var(--text-dim);
+        }
+        #trial-bar.visible { display: flex; }
+        #trial-bar-label { white-space: nowrap; }
+        #trial-bar-dots {
+            flex: 1; letter-spacing: 2px; font-size: 12px; overflow: hidden;
+            white-space: nowrap; text-overflow: ellipsis;
+        }
+        #trial-bar-score { white-space: nowrap; color: var(--accent); }
+
+        /* ── Trial panel ── */
+        #trial-panel { display: none; }
+        #trial-panel.visible { display: block; }
+
+        /* Phase A — fixation */
+        #phase-fixation {
+            display: none; text-align: center; padding: 60px 20px;
+        }
+        #phase-fixation.visible { display: block; }
+        #fixation-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-dim); margin: 0 auto 24px;
+        }
+        #fixation-countdown {
+            font-size: 13px; color: var(--text-dim); letter-spacing: 0.1em;
+            min-height: 20px;
+        }
+
+        /* Phase B — pre-rating */
+        #phase-rating {
+            display: none; padding: 20px 0;
+        }
+        #phase-rating.visible { display: block; }
+        #rating-prompt {
+            text-align: center; font-size: 13px; color: var(--text-dim);
+            letter-spacing: 0.12em; margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        .rating-btns {
+            display: flex; gap: 10px;
+        }
+        .rating-btn {
+            flex: 1; padding: 18px 8px; font-size: 14px; letter-spacing: 0.1em;
+            border-radius: 2px; cursor: pointer; font-family: inherit;
+            text-transform: uppercase; transition: background .12s, transform .08s;
+            border: 1px solid;
+        }
+        .rating-btn:active { transform: scale(0.95); }
+        .rating-btn.calm {
+            background: rgba(64, 160, 192, 0.1);
+            border-color: var(--accent2); color: var(--accent2);
+        }
+        .rating-btn.calm:hover { background: rgba(64, 160, 192, 0.22); }
+        .rating-btn.mild {
+            background: rgba(96, 96, 160, 0.1);
+            border-color: var(--text-dim); color: var(--text-dim);
+        }
+        .rating-btn.mild:hover { background: rgba(96, 96, 160, 0.22); }
+        .rating-btn.activated {
+            background: rgba(192, 112, 64, 0.1);
+            border-color: var(--warn); color: var(--warn);
+        }
+        .rating-btn.activated:hover { background: rgba(192, 112, 64, 0.22); }
+
+        /* Phase C — reveal */
+        #phase-reveal {
+            display: none; padding: 20px 0;
+        }
+        #phase-reveal.visible { display: block; }
+        #stimulus-text {
+            text-align: center; font-size: 17px; line-height: 1.55;
+            padding: 24px 16px; margin-bottom: 14px;
+            border: 1px solid var(--border); border-radius: 3px;
+            background: var(--surface2); min-height: 100px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #stimulus-text.neutral { color: var(--text-dim); border-color: var(--border); }
+        #stimulus-text.emotional { color: var(--warn); border-color: rgba(192,112,64,0.35); background: rgba(192,112,64,0.05); }
+        #valence-label {
+            text-align: center; font-size: 10px; letter-spacing: 0.2em;
+            text-transform: uppercase; margin-bottom: 10px;
+        }
+        #valence-label.neutral { color: var(--text-dim); }
+        #valence-label.emotional { color: var(--warn); }
+        #feedback-line {
+            text-align: center; font-size: 15px; letter-spacing: 0.08em; margin-bottom: 10px;
+        }
+        #feedback-line.correct  { color: var(--on); }
+        #feedback-line.partial  { color: var(--accent2); }
+        #feedback-line.miss     { color: var(--off); }
+        #running-score {
+            text-align: center; font-size: 11px; color: var(--text-dim);
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Session complete ── */
+        #complete-panel { display: none; }
+        #complete-panel.visible { display: block; }
+
+        .stat-block {
+            text-align: center; padding: 20px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px; margin-bottom: 12px;
+        }
+        .stat-score {
+            font-size: 40px; letter-spacing: 0.08em; color: var(--accent);
+            margin-bottom: 6px;
+        }
+        .stat-label {
+            font-size: 11px; color: var(--text-dim); letter-spacing: 0.12em;
+        }
+        .stat-row {
+            display: flex; gap: 10px; margin-bottom: 10px;
+        }
+        .stat-cell {
+            flex: 1; text-align: center; padding: 12px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+        .stat-cell .n { font-size: 20px; color: var(--text); margin-bottom: 4px; }
+        .stat-cell .l { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+
+        .result-above { color: var(--on); }
+        .result-below { color: var(--text-dim); }
+        .result-chance { color: var(--accent2); }
+
+        textarea {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 2px;
+            font-family: inherit; font-size: 12px; line-height: 1.6;
+            resize: vertical; min-height: 70px;
+        }
+        textarea::placeholder { color: var(--text-dim); }
+
+        /* ── Log table ── */
+        #log-table-wrap { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th {
+            text-align: left; color: var(--text-dim); font-weight: normal;
+            padding: 4px 6px; border-bottom: 1px solid var(--border); letter-spacing: 0.06em;
+        }
+        td {
+            padding: 6px 6px; border-bottom: 1px solid rgba(42,42,64,0.5); vertical-align: top;
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .btn-sm {
+            padding: 6px 12px; font-size: 11px;
+            border: 1px solid var(--border); color: var(--text-dim);
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger { border-color: #604040; color: #806060; }
+        .btn-danger:hover { border-color: #b04040; color: #c06060; background: rgba(176,64,64,0.1); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="trial-bar">
+    <span id="trial-bar-label">Trial — / —</span>
+    <span id="trial-bar-dots"></span>
+    <span id="trial-bar-score">0 / 0</span>
+</div>
+
+<div class="app">
+
+    <header>
+        <h1>Presentiment</h1>
+        <p>Pre-stimulus awareness training &nbsp;·&nbsp; Radin protocol &nbsp;·&nbsp; d=0.21 baseline</p>
+        <nav>
+            <a href="index.html">Mindforge</a>
+            <a href="telehypnosis-pro.html">Telehypnosis Pro</a>
+        </nav>
+    </header>
+
+    <!-- Setup panel -->
+    <div class="section" id="setup-panel">
+        <div class="section-title">Session Setup</div>
+
+        <div class="ctrl">
+            <span>Trials</span>
+            <select id="trial-count">
+                <option value="20">20 trials</option>
+                <option value="30" selected>30 trials</option>
+                <option value="40">40 trials</option>
+            </select>
+        </div>
+
+        <div class="ctrl">
+            <span>Inter-trial interval</span>
+            <select id="iti-dur">
+                <option value="2">2 seconds</option>
+                <option value="3" selected>3 seconds</option>
+                <option value="5">5 seconds</option>
+            </select>
+        </div>
+
+        <div class="tog">
+            <span>Trial tones</span>
+            <label class="toggle">
+                <input type="checkbox" id="tones-on" checked>
+                <div class="toggle-track"></div><div class="toggle-thumb"></div>
+            </label>
+        </div>
+
+        <div class="hint" style="margin-bottom:14px;">
+            Before each image is revealed, rate your gut-sense: calm, mild arousal, or activated.
+            After the stimulus is shown, the tool scores whether your pre-rating predicted the emotional valence.
+            Over 30–40 trials, deviation from 25% chance becomes statistically measurable.
+            Radin (IONS): d=0.21, p&lt;2.7×10⁻¹², replicated at 20 independent labs.
+        </div>
+
+        <button class="btn-begin" onclick="beginSession()">Begin Session</button>
+    </div>
+
+    <!-- Trial panel (replaces setup) -->
+    <div id="trial-panel">
+
+        <!-- Phase A: Fixation -->
+        <div class="section" id="phase-fixation">
+            <div id="fixation-dot"></div>
+            <div id="fixation-countdown"></div>
+        </div>
+
+        <!-- Phase B: Pre-rating -->
+        <div class="section" id="phase-rating">
+            <div id="rating-prompt">Rate your gut sense now</div>
+            <div class="rating-btns">
+                <button class="rating-btn calm"      onclick="submitRating('calm')">Calm</button>
+                <button class="rating-btn mild"      onclick="submitRating('mild')">Mild</button>
+                <button class="rating-btn activated" onclick="submitRating('activated')">Activated</button>
+            </div>
+        </div>
+
+        <!-- Phase C: Reveal -->
+        <div class="section" id="phase-reveal">
+            <div id="stimulus-text"></div>
+            <div id="valence-label"></div>
+            <div id="feedback-line"></div>
+            <div id="running-score"></div>
+        </div>
+
+    </div>
+
+    <!-- Session complete panel -->
+    <div id="complete-panel">
+        <div class="section">
+            <div class="section-title">Session Complete</div>
+
+            <div class="stat-block">
+                <div class="stat-score" id="final-score-display">—</div>
+                <div class="stat-label" id="final-score-label">score / trials</div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-cell">
+                    <div class="n" id="stat-chance">—</div>
+                    <div class="l">Chance baseline</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="n" id="stat-zscore">—</div>
+                    <div class="l">Z-score</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="n" id="stat-pct">—</div>
+                    <div class="l">Hit rate</div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-cell">
+                    <div class="n" id="stat-calm-hits">—</div>
+                    <div class="l">Calm → neutral</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="n" id="stat-activated-hits">—</div>
+                    <div class="l">Activated → emotional</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="n" id="stat-mild-rate">—</div>
+                    <div class="l">Mild rate</div>
+                </div>
+            </div>
+
+            <div id="result-verdict" style="text-align:center; font-size:13px; letter-spacing:0.06em; margin-bottom:14px;"></div>
+
+            <div style="margin-bottom:10px;">
+                <div style="font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">Session notes</div>
+                <textarea id="session-notes" placeholder="Observations, state of mind, conditions…"></textarea>
+            </div>
+
+            <button class="btn-begin" onclick="saveSession()" style="margin-bottom:10px;">Save to Log</button>
+            <button style="width:100%; border-color:var(--text-dim); color:var(--text-dim);" onclick="resetToSetup()">New Session</button>
+        </div>
+    </div>
+
+    <!-- Science note -->
+    <div class="section" id="science-section">
+        <div class="section-title">The Radin Protocol</div>
+        <div class="hint" style="line-height:1.7;">
+            Dean Radin's IONS presentiment experiments (2004–2023) measured electrodermal activity
+            continuously while participants viewed randomly-selected images. Physiological arousal
+            rose measurably 1–4 seconds BEFORE emotional stimuli were displayed — before any
+            conscious knowledge of which type was coming (double-blind random selection).<br><br>
+            Effect size: d = 0.21 &nbsp;·&nbsp; p &lt; 2.7 × 10⁻¹² &nbsp;·&nbsp; 26 studies
+            across 20 independent laboratories.<br><br>
+            This trainer runs a subjective analogue: you report your gut-sense (calm / mild / activated)
+            before each reveal. A "correct" presentiment is calm before neutral, activated before
+            emotional. Mild counts as partial (0.5 pts) regardless of valence. Chance baseline
+            for correct guesses averages 0.5 pts per trial.
+        </div>
+    </div>
+
+    <!-- Session Log -->
+    <div class="section" id="log-section">
+        <div class="section-title">Session Log</div>
+        <div class="btn-row">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm btn-danger" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div id="log-empty" style="font-size:11px; color:var(--off); padding:4px 0;">No sessions recorded yet.</div>
+        <div id="log-table-wrap" class="hidden">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Trials</th>
+                        <th>Score</th>
+                        <th>Chance</th>
+                        <th>Z</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div><!-- .app -->
+
+<script>
+'use strict';
+
+// ── Stimulus set ──────────────────────────────────────────────────────────────
+
+const STIMULI = [
+    // NEUTRAL (20)
+    {type:'neutral', label:'A plain white coffee mug on a wooden table'},
+    {type:'neutral', label:'A grey paved road stretching to the horizon'},
+    {type:'neutral', label:'A stack of blank white paper'},
+    {type:'neutral', label:'A closed brown door'},
+    {type:'neutral', label:'An empty park bench'},
+    {type:'neutral', label:'A single grey stone'},
+    {type:'neutral', label:'An open field, overcast sky, no features'},
+    {type:'neutral', label:'A plain wooden chair'},
+    {type:'neutral', label:'A folded grey blanket'},
+    {type:'neutral', label:'An empty white room'},
+    {type:'neutral', label:'A concrete wall, no markings'},
+    {type:'neutral', label:'A row of identical filing cabinets'},
+    {type:'neutral', label:'A single white candle, unlit'},
+    {type:'neutral', label:'A plain glass of water'},
+    {type:'neutral', label:'An empty parking lot, midday'},
+    {type:'neutral', label:'A closed book, no title visible'},
+    {type:'neutral', label:'A smooth grey pebble, close-up'},
+    {type:'neutral', label:'An empty corridor, fluorescent light'},
+    {type:'neutral', label:'A plain linen curtain, no wind'},
+    {type:'neutral', label:'A clock face showing 12:00'},
+
+    // EMOTIONAL (20)
+    {type:'emotional', label:'A newborn baby\'s hand gripping an adult finger'},
+    {type:'emotional', label:'A car crash scene, emergency responders, wreckage'},
+    {type:'emotional', label:'Two people embracing at an airport arrival gate'},
+    {type:'emotional', label:'A spider close-up, filling the frame, hairy legs'},
+    {type:'emotional', label:'A laughing child running through sprinklers'},
+    {type:'emotional', label:'A surgical procedure, open wound, bright light'},
+    {type:'emotional', label:'A soldier\'s funeral, flag-draped coffin, weeping family'},
+    {type:'emotional', label:'A dog reuniting with its owner after years apart'},
+    {type:'emotional', label:'A graphic injury — deep laceration, blood'},
+    {type:'emotional', label:'An elderly couple holding hands, eyes closed'},
+    {type:'emotional', label:'A snake striking toward the camera'},
+    {type:'emotional', label:'A baby laughing uncontrollably'},
+    {type:'emotional', label:'A house fire at night, flames engulfing the roof'},
+    {type:'emotional', label:'A wedding moment — first kiss, crowd cheering'},
+    {type:'emotional', label:'An emaciated child, hollow eyes, direct gaze'},
+    {type:'emotional', label:'A lion charging at full speed, mouth open'},
+    {type:'emotional', label:'A person crying alone, face in hands'},
+    {type:'emotional', label:'Fireworks exploding, massive crowd below celebrating'},
+    {type:'emotional', label:'A close-up of a needle entering skin'},
+    {type:'emotional', label:'A mother cradling a sleeping newborn, soft light'},
+];
+
+// ── Session state ─────────────────────────────────────────────────────────────
+
+let sessionActive   = false;
+let sessionTrials   = [];      // shuffled stimulus sequence for this session
+let trialIndex      = 0;
+let totalTrials     = 30;
+let itiDuration     = 3;       // seconds
+let currentRating   = null;    // 'calm' | 'mild' | 'activated'
+let score           = 0;       // running score (full=1, partial=0.5, miss=0)
+let dotHistory      = [];      // '●' hit, '∘' partial, '·' miss — last 10
+
+// detailed hit tracking
+let calmNeutralHits    = 0;
+let activatedEmotional = 0;
+let mildCount          = 0;
+
+let itiTimeout  = null;
+let revealTimeout = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function el(id)  { return document.getElementById(id); }
+function gc(id)  { return el(id).checked; }
+function gv(id)  { return el(id).value; }
+
+// Fisher-Yates shuffle
+function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// Build a balanced sequence of N trials from the 40-item pool
+function buildSequence(n) {
+    // We want roughly 50/50 neutral/emotional — repeat+shuffle the pool as needed
+    let pool = shuffle(STIMULI);
+    while (pool.length < n) pool = pool.concat(shuffle(STIMULI));
+    // Trim, but ensure roughly equal split
+    const neutrals   = shuffle(STIMULI.filter(s => s.type === 'neutral'));
+    const emotionals = shuffle(STIMULI.filter(s => s.type === 'emotional'));
+    const half = Math.floor(n / 2);
+    const extra = n % 2;
+    // Pad if needed
+    while (neutrals.length < half + extra) neutrals.push(...shuffle(STIMULI.filter(s => s.type === 'neutral')));
+    while (emotionals.length < half) emotionals.push(...shuffle(STIMULI.filter(s => s.type === 'emotional')));
+    const seq = shuffle([
+        ...neutrals.slice(0, half + extra),
+        ...emotionals.slice(0, half)
+    ]);
+    return seq;
+}
+
+// Short sine tick (Web Audio API)
+function tick() {
+    if (!gc('tones-on')) return;
+    try {
+        const c = new (window.AudioContext || window.webkitAudioContext)();
+        const o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = 400; o.type = 'sine';
+        g.gain.setValueAtTime(0.05, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.03);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.04);
+    } catch(e) {}
+}
+
+// ── Score logic ───────────────────────────────────────────────────────────────
+
+function scoreTrial(rating, type) {
+    // Full correct: 1 pt
+    if (rating === 'calm'      && type === 'neutral')   return 1;
+    if (rating === 'activated' && type === 'emotional') return 1;
+    // Partial: 0.5 pt
+    if (rating === 'mild') return 0.5;
+    // Miss: 0
+    return 0;
+}
+
+function expectedScore(n) {
+    // Chance: calm→neutral = 1 of 3 ratings × ~0.5 stimuli, activated→emotional = same
+    // Per-trial expected under random: 0.5 (1 full-correct path × 0.5 prob + mild × 0.5 × 1/3)
+    return n * 0.5;
+}
+
+function zScore(s, n) {
+    // Approximate z: (score - expected) / sigma
+    // Under chance, each trial contributes 0 or 0.5 or 1 with certain probs.
+    // Simplified: treat as binary (hit=1, miss=0), chance p=0.5 per trial
+    const expected = n * 0.5;
+    const sigma    = Math.sqrt(n * 0.25); // sqrt(n * p * (1-p)) with p=0.5
+    return sigma > 0 ? ((s - expected) / sigma).toFixed(2) : '—';
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function updateTrialBar() {
+    el('trial-bar-label').textContent = `Trial ${trialIndex + 1} / ${totalTrials}`;
+    const dots = dotHistory.slice(-10).join('');
+    el('trial-bar-dots').textContent = dots;
+    const chance = expectedScore(trialIndex);
+    el('trial-bar-score').textContent = `${score} / ${chance.toFixed(1)} exp`;
+}
+
+function showPhase(phaseId) {
+    ['phase-fixation', 'phase-rating', 'phase-reveal'].forEach(id => {
+        el(id).classList.remove('visible');
+        el(id).style.display = '';
+    });
+    if (phaseId) {
+        el(phaseId).style.display = 'block';
+        el(phaseId).classList.add('visible');
+    }
+}
+
+// ── Session flow ──────────────────────────────────────────────────────────────
+
+function beginSession() {
+    totalTrials  = parseInt(gv('trial-count'));
+    itiDuration  = parseInt(gv('iti-dur'));
+    sessionTrials = buildSequence(totalTrials);
+    trialIndex   = 0;
+    score        = 0;
+    dotHistory   = [];
+    calmNeutralHits    = 0;
+    activatedEmotional = 0;
+    mildCount          = 0;
+    sessionActive = true;
+
+    // Save settings
+    try { localStorage.setItem('pre-last', JSON.stringify({trials: totalTrials, iti: itiDuration, tones: gc('tones-on')})); } catch(e) {}
+
+    // Show UI
+    el('setup-panel').style.display    = 'none';
+    el('science-section').style.display = 'none';
+    el('complete-panel').classList.remove('visible');
+    el('complete-panel').style.display  = 'none';
+    el('trial-panel').style.display    = 'block';
+    el('trial-panel').classList.add('visible');
+    el('trial-bar').classList.add('visible');
+
+    updateTrialBar();
+    startTrial();
+}
+
+function startTrial() {
+    currentRating = null;
+    showPhase('phase-fixation');
+    tick();
+
+    // ITI countdown
+    let remaining = itiDuration;
+    el('fixation-countdown').textContent = `Next trial in ${remaining}…`;
+    updateTrialBar();
+
+    const countdown = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+            el('fixation-countdown').textContent = `Next trial in ${remaining}…`;
+        } else {
+            clearInterval(countdown);
+            el('fixation-countdown').textContent = '';
+            showPhaseRating();
+        }
+    }, 1000);
+}
+
+function showPhaseRating() {
+    showPhase('phase-rating');
+    tick();
+}
+
+function submitRating(rating) {
+    if (!sessionActive) return;
+    currentRating = rating;
+
+    // Button press visual feedback — quick scale handled by :active CSS
+    // 1-second pause before reveal
+    showPhase(null); // blank between rating and reveal
+
+    setTimeout(() => {
+        showReveal();
+    }, 1000);
+}
+
+function showReveal() {
+    const stim = sessionTrials[trialIndex];
+    const pts  = scoreTrial(currentRating, stim.type);
+
+    // Update score
+    score += pts;
+    if (currentRating === 'mild') {
+        mildCount++;
+    } else if (pts === 1) {
+        if (stim.type === 'neutral')   calmNeutralHits++;
+        if (stim.type === 'emotional') activatedEmotional++;
+    }
+
+    // Dot history
+    if (pts === 1)   dotHistory.push('●');
+    else if (pts === 0.5) dotHistory.push('∘');
+    else             dotHistory.push('·');
+
+    // Populate reveal elements
+    const stimEl = el('stimulus-text');
+    stimEl.textContent = stim.label;
+    stimEl.className   = stim.type === 'emotional' ? 'emotional' : 'neutral';
+
+    const valenceEl = el('valence-label');
+    valenceEl.textContent  = stim.type.toUpperCase();
+    valenceEl.className    = stim.type;
+
+    const feedEl = el('feedback-line');
+    if (pts === 1) {
+        feedEl.textContent  = '✓  Correct';
+        feedEl.className    = 'correct';
+    } else if (pts === 0.5) {
+        feedEl.textContent  = '~  Partial';
+        feedEl.className    = 'partial';
+    } else {
+        feedEl.textContent  = '✗  Miss';
+        feedEl.className    = 'miss';
+    }
+
+    const trialsCompleted = trialIndex + 1;
+    const chance = expectedScore(trialsCompleted).toFixed(1);
+    el('running-score').textContent = `Score: ${score} / ${trialsCompleted} trials  (chance: ${chance})`;
+
+    showPhase('phase-reveal');
+    tick();
+    updateTrialBar();
+
+    trialIndex++;
+
+    if (trialIndex >= totalTrials) {
+        // Session ends after reveal display
+        revealTimeout = setTimeout(() => {
+            endSession();
+        }, 4000);
+    } else {
+        revealTimeout = setTimeout(() => {
+            startTrial();
+        }, 4000);
+    }
+}
+
+function endSession() {
+    sessionActive = false;
+    clearTimeout(itiTimeout);
+    clearTimeout(revealTimeout);
+
+    el('trial-panel').style.display = 'none';
+    el('trial-panel').classList.remove('visible');
+    el('trial-bar').classList.remove('visible');
+
+    showCompletePanel();
+}
+
+function showCompletePanel() {
+    const n      = totalTrials;
+    const chance = expectedScore(n);
+    const z      = zScore(score, n);
+    const pct    = ((score / n) * 100).toFixed(1);
+
+    el('final-score-display').textContent = score % 1 === 0 ? score : score.toFixed(1);
+    el('final-score-label').textContent   = `pts / ${n} trials (max ${n})`;
+    el('stat-chance').textContent         = chance.toFixed(1);
+    el('stat-zscore').textContent         = z;
+    el('stat-pct').textContent            = pct + '%';
+    el('stat-calm-hits').textContent      = calmNeutralHits;
+    el('stat-activated-hits').textContent = activatedEmotional;
+    el('stat-mild-rate').textContent      = ((mildCount / n) * 100).toFixed(0) + '%';
+
+    const verdictEl = el('result-verdict');
+    const zNum = parseFloat(z);
+    if (zNum > 1.96) {
+        verdictEl.textContent  = 'Above chance performance (z > 1.96)';
+        verdictEl.className    = 'result-above';
+    } else if (zNum > 1.0) {
+        verdictEl.textContent  = 'Trending above chance (z > 1.0)';
+        verdictEl.className    = 'result-chance';
+    } else if (zNum < -1.0) {
+        verdictEl.textContent  = 'Below chance — inverted or noise';
+        verdictEl.className    = 'result-below';
+    } else {
+        verdictEl.textContent  = 'Within chance range — more trials needed';
+        verdictEl.className    = 'result-below';
+    }
+
+    el('session-notes').value = '';
+    el('complete-panel').style.display = 'block';
+    el('complete-panel').classList.add('visible');
+    el('complete-panel').scrollIntoView({behavior:'smooth'});
+}
+
+function resetToSetup() {
+    el('complete-panel').style.display    = 'none';
+    el('complete-panel').classList.remove('visible');
+    el('setup-panel').style.display       = '';
+    el('science-section').style.display   = '';
+    el('trial-bar').classList.remove('visible');
+}
+
+// ── Session log ───────────────────────────────────────────────────────────────
+
+function loadLog() {
+    try { return JSON.parse(localStorage.getItem('pre-log') || '[]'); }
+    catch(e) { return []; }
+}
+
+function saveLog(log) {
+    try { localStorage.setItem('pre-log', JSON.stringify(log)); } catch(e) {}
+}
+
+function saveSession() {
+    const n      = totalTrials;
+    const chance = expectedScore(n).toFixed(1);
+    const z      = zScore(score, n);
+
+    const entry = {
+        id:       Math.random().toString(36).slice(2),
+        date:     new Date().toISOString(),
+        trials:   n,
+        score:    score,
+        chance:   parseFloat(chance),
+        z:        parseFloat(z),
+        calm_neutral_hits:     calmNeutralHits,
+        activated_emotional:   activatedEmotional,
+        mild_rate:             ((mildCount / n) * 100).toFixed(0) + '%',
+        notes:    el('session-notes').value.trim(),
+    };
+    const log = loadLog();
+    log.push(entry);
+    saveLog(log);
+    renderLog();
+    resetToSetup();
+}
+
+function renderLog() {
+    const log = loadLog();
+    if (!log.length) {
+        el('log-empty').classList.remove('hidden');
+        el('log-table-wrap').classList.add('hidden');
+        return;
+    }
+    el('log-empty').classList.add('hidden');
+    el('log-table-wrap').classList.remove('hidden');
+    const tbody = el('log-tbody');
+    tbody.innerHTML = '';
+    [...log].reverse().forEach(e => {
+        const d = new Date(e.date);
+        const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const tr = document.createElement('tr');
+        const zNum = parseFloat(e.z);
+        const zColor = zNum > 1.96 ? 'var(--on)' : zNum > 1.0 ? 'var(--accent2)' : 'var(--text-dim)';
+        tr.innerHTML = `
+            <td style="white-space:nowrap;font-size:10px;color:var(--text-dim);">${dateStr}</td>
+            <td style="text-align:center;">${e.trials}</td>
+            <td style="text-align:center;color:var(--accent);">${typeof e.score === 'number' && e.score % 1 !== 0 ? e.score.toFixed(1) : e.score}</td>
+            <td style="text-align:center;color:var(--text-dim);">${e.chance}</td>
+            <td style="text-align:center;color:${zColor};">${e.z}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);font-size:10px;"
+                title="${(e.notes||'').replace(/"/g,'&quot;')}">${e.notes || '—'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function exportLog() {
+    const log = loadLog();
+    if (!log.length) { alert('No sessions to export.'); return; }
+    const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'presentiment-log-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all session records? This cannot be undone.')) return;
+    localStorage.removeItem('pre-log');
+    renderLog();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Restore last settings
+    try {
+        const last = JSON.parse(localStorage.getItem('pre-last') || '{}');
+        if (last.trials) el('trial-count').value = last.trials;
+        if (last.iti)    el('iti-dur').value      = last.iti;
+        if (last.tones !== undefined) el('tones-on').checked = last.tones;
+    } catch(e) {}
+
+    renderLog();
+});
+</script>
+</body>
+</html>

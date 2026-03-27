@@ -30,6 +30,68 @@ Features:
 
 ---
 
+### Ganzfeld Session Manager — Consensual Telepathy Protocol
+**IONS ganzfeld protocol · Sender/receiver consoles · Blinded judging · Statistics**
+
+Full ganzfeld session manager for two-person consensual psi research. Based on the Honorton meta-analysis (1985) and IONS replication series — ganzfeld shows the most replicated result in parapsychology (32% direct hits vs 25% chance, d=0.28).
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/ganzfeld.html
+
+Features:
+- Sender console (target image/text with timer) and receiver console (impression notes in soft-focus mode)
+- Built-in 20-target pool with Fisher-Yates shuffle; custom target entry supported
+- Blinded rank-order judging (receiver ranks all 4 options before reveal)
+- Running statistics: hit rate, z-score, p-value threshold markers
+- Pink noise generation for receiver homogenization, session log with JSON export
+
+---
+
+### Heart Coherence Trainer — HRV Resonance Protocol
+**HeartMath protocol · 5.5s breathing pacer · Coherence feedback · Pre-session primer**
+
+Heart rate variability coherence trainer based on HeartMath Institute research (McCraty, 2001) and Braud/Schlitz IONS findings that sender heart coherence correlates with receiver response amplitude (d=0.11). Use as a 5-minute pre-session primer before any Mindforge or Telehypnosis Pro session.
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/coherence.html
+
+Features:
+- 5.5-second inhale/exhale breathing pacer (resonance frequency per HeartMath)
+- Visual coherence wave with breath-phase color transitions
+- Rotating intention prompts (appreciation, gratitude, care — the three validated coherence states)
+- Session log tracking coherence rounds; integrates with Telehypnosis Pro via companion link
+
+---
+
+### Presentiment Trainer — Pre-Stimulus Awareness
+**Radin/Bierman protocol · 40-trial sessions · Calm/Activated pre-rating · Z-score scoring**
+
+Pre-stimulus response training tool based on Radin's presentiment research (d=0.21, p<0.001 across 40 studies). Trains awareness of subtle anticipatory signals before emotional stimuli are revealed. Each trial: rate your current state (Calm / Mild / Activated) → 1-second gap → neutral or emotional stimulus reveals.
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/presentiment.html
+
+Features:
+- Three-phase trial loop: pre-rating → gap → 4-second reveal
+- Neutral vs. emotional stimulus pool (text-based, no disturbing imagery)
+- Running score vs. chance baseline, hit dot history, z-score display
+- Session complete panel with full statistics; session log with JSON export
+
+---
+
+### Remote Viewing Log — SRI/ARV Protocol Manager
+**SRI coordinate RV · Associative RV · 6-stage CRV · 0–7 correspondence rating**
+
+Session manager for coordinate remote viewing and associative remote viewing (ARV) practice. Based on SRI International protocols (Targ & Puthoff), SAIC research, and the Bem/Honorton meta-analysis showing d≈0.4 for trained viewers.
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/remote-viewing.html
+
+Features:
+- Coordinate RV and ARV session modes with blind coordinate generation
+- 6-stage CRV structure guide (ideogram → sensory → dimensional → aesthetic → emotional → AOL)
+- 0–7 correspondence rating scale (SRI standard) with color-coded session log
+- ARV binary call tracking with hit rate statistics; independent judge support
+- Transcript textarea per session, full JSON export for research records
+
+---
+
 ## Mindforge — Table of Contents
 
 1. [What This Does](#what-this-does)

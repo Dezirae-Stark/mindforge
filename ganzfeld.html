@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ganzfeld</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        /* ── Dim overlay ────────────────────────────────────────────── */
+        #dim-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: #000;
+            z-index: 9000;
+            cursor: pointer;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+        #dim-overlay.active { display: flex; }
+        #dim-timer {
+            font-size: 36px; letter-spacing: 0.12em;
+            color: rgba(112,96,208,0.55);
+            font-variant-numeric: tabular-nums;
+        }
+        #dim-note {
+            font-size: 11px; color: rgba(96,96,160,0.4);
+            letter-spacing: 0.08em; text-align: center; max-width: 260px; line-height: 1.7;
+        }
+        #dim-impressions {
+            width: 88vw; max-width: 420px;
+            background: rgba(18,18,26,0.7); border: 1px solid rgba(42,42,64,0.5);
+            color: rgba(200,200,224,0.8); padding: 10px;
+            border-radius: 2px; font-family: 'Courier New', monospace;
+            font-size: 12px; line-height: 1.6; resize: none; min-height: 90px;
+        }
+        #dim-impressions::placeholder { color: rgba(96,96,160,0.35); }
+
+        /* ── Header ─────────────────────────────────────────────────── */
+        header {
+            text-align: center; padding: 24px 0 18px;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        header h1 { font-size: 22px; letter-spacing: 0.35em; color: var(--accent); text-transform: uppercase; }
+        header .sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; letter-spacing: 0.08em; }
+        header .nav  { margin-top: 10px; font-size: 11px; color: var(--text-dim); }
+        header .nav a { color: var(--accent2); text-decoration: none; margin: 0 8px; }
+        header .nav a:hover { color: var(--text); }
+
+        /* ── Panel ──────────────────────────────────────────────────── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 14px;
+            padding: 14px 16px;
+        }
+        .panel-title {
+            font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 14px;
+            border-bottom: 1px solid var(--border); padding-bottom: 8px;
+        }
+        .panel-title .dim { color: var(--off); }
+
+        .hidden { display: none !important; }
+
+        /* ── Controls ───────────────────────────────────────────────── */
+        .ctrl { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .ctrl label { width: 120px; min-width: 120px; font-size: 12px; color: var(--text-dim); }
+        .ctrl input[type=range] { flex: 1; accent-color: var(--accent); }
+        .ctrl input[type=text], .ctrl input[type=url], .ctrl select {
+            flex: 1; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 8px; border-radius: 3px; font-family: inherit;
+            font-size: 12px;
+        }
+        .ctrl input[type=text]:focus, .ctrl input[type=url]:focus, .ctrl select:focus,
+        textarea:focus { outline: none; border-color: var(--accent); }
+        .ctrl .val { width: 50px; text-align: right; font-size: 11px; color: var(--accent); }
+        .ctrl-full { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .ctrl-full label { font-size: 12px; color: var(--text-dim); }
+        .ctrl-full input[type=text], .ctrl-full input[type=url] {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 8px; border-radius: 3px;
+            font-family: inherit; font-size: 12px;
+        }
+        .ctrl-full input[type=text]:focus, .ctrl-full input[type=url]:focus { outline: none; border-color: var(--accent); }
+
+        textarea {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 3px; font-family: inherit;
+            font-size: 12px; resize: vertical; min-height: 72px; line-height: 1.6;
+        }
+        textarea::placeholder { color: var(--text-dim); }
+
+        /* ── Toggle ─────────────────────────────────────────────────── */
+        .tog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .tog-row label { font-size: 12px; color: var(--text-dim); flex: 1; }
+        .tog { position: relative; width: 40px; height: 20px; flex-shrink: 0; }
+        .tog input { opacity: 0; width: 0; height: 0; }
+        .tog-sl {
+            position: absolute; inset: 0; background: var(--off);
+            border-radius: 20px; cursor: pointer; transition: 0.2s;
+        }
+        .tog-sl::before {
+            content: ''; position: absolute; width: 14px; height: 14px;
+            left: 3px; top: 3px; background: var(--text); border-radius: 50%;
+            transition: 0.2s;
+        }
+        .tog input:checked + .tog-sl { background: var(--accent); }
+        .tog input:checked + .tog-sl::before { transform: translateX(20px); }
+
+        /* ── Buttons ────────────────────────────────────────────────── */
+        button {
+            font-family: inherit; font-size: 12px; cursor: pointer;
+            border-radius: 3px; transition: 0.15s; letter-spacing: 0.04em;
+        }
+        .btn-main {
+            width: 100%; padding: 12px; background: transparent;
+            border: 1px solid var(--accent); color: var(--accent);
+            font-size: 13px; margin-top: 6px; text-transform: uppercase;
+        }
+        .btn-main:hover { background: var(--accent); color: var(--bg); }
+        .btn-main.running { border-color: #b04040; color: #b04040; }
+        .btn-main.running:hover { background: #b04040; color: var(--bg); }
+        .btn-main:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-main:disabled:hover { background: transparent; color: var(--accent); }
+        .btn-sm {
+            padding: 6px 12px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.active { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.12); }
+        .btn-danger { border-color: #604040; color: #806060; }
+        .btn-danger:hover { border-color: #b04040; color: #c06060; background: rgba(176,64,64,0.1); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* ── Duration selector ──────────────────────────────────────── */
+        .dur-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .dur-btn {
+            flex: 1; padding: 8px 4px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+            font-size: 12px; text-align: center;
+        }
+        .dur-btn.sel { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.12); }
+
+        /* ── Timer ──────────────────────────────────────────────────── */
+        .timer-display {
+            text-align: center; font-size: 36px; letter-spacing: 0.12em;
+            color: var(--accent); padding: 10px 0 6px;
+            font-variant-numeric: tabular-nums;
+        }
+        .phase-line {
+            text-align: center; font-size: 11px; color: var(--text-dim);
+            letter-spacing: 0.06em; min-height: 18px; margin-bottom: 6px;
+        }
+        .phase-line.active { color: var(--on); }
+
+        /* ── Target display (sender) ────────────────────────────────── */
+        #sender-target-box {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px; padding: 14px; margin-bottom: 12px;
+            min-height: 80px; position: relative;
+        }
+        #sender-target-cover {
+            position: absolute; inset: 0; border-radius: 3px;
+            background: var(--surface2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 2;
+            border: 1px dashed var(--border);
+        }
+        #sender-target-cover span { font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; }
+        #sender-target-cover:hover { border-color: var(--accent); }
+        #sender-target-img {
+            width: 100%; max-height: 260px; object-fit: contain;
+            border-radius: 2px; display: block;
+        }
+        #sender-target-text {
+            font-size: 15px; line-height: 1.6; color: var(--text);
+            letter-spacing: 0.03em;
+        }
+        #sender-target-label {
+            font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 8px;
+        }
+
+        /* ── Status dot ─────────────────────────────────────────────── */
+        .dot {
+            display: inline-block; width: 7px; height: 7px;
+            border-radius: 50%; background: var(--off);
+            margin-right: 5px; vertical-align: middle;
+        }
+        .dot.on { background: var(--on); box-shadow: 0 0 5px var(--on); }
+
+        /* ── Judging panel ──────────────────────────────────────────── */
+        .judge-option {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px; padding: 12px; margin-bottom: 10px;
+        }
+        .judge-option-label {
+            font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+            letter-spacing: 0.12em; margin-bottom: 8px;
+        }
+        .judge-option-content {
+            font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 8px;
+        }
+        .judge-option-img {
+            width: 100%; max-height: 200px; object-fit: contain;
+            border-radius: 2px; display: block; margin-bottom: 8px;
+        }
+        .rank-row { display: flex; gap: 5px; }
+        .rank-btn {
+            flex: 1; padding: 6px 2px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+            font-size: 11px; text-align: center;
+        }
+        .rank-btn.sel { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.15); }
+        .rank-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+        /* ── Result display ─────────────────────────────────────────── */
+        #result-box {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px; padding: 14px; margin-top: 10px; margin-bottom: 10px;
+            text-align: center;
+        }
+        #result-hit { font-size: 22px; letter-spacing: 0.08em; margin-bottom: 8px; }
+        #result-detail { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+        .hit-yes { color: var(--on); }
+        .hit-no  { color: var(--text-dim); }
+
+        /* ── Session log / stats ────────────────────────────────────── */
+        #log-table-wrap { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { text-align: left; color: var(--text-dim); font-weight: normal;
+             padding: 4px 6px; border-bottom: 1px solid var(--border); letter-spacing: 0.06em; }
+        td { padding: 6px 6px; border-bottom: 1px solid rgba(42,42,64,0.5); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        .rank1 { color: var(--on); }
+        .rank2 { color: var(--accent); }
+        .rank3 { color: var(--warn); }
+        .rank4 { color: var(--off); }
+
+        .stats-box {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 3px; padding: 12px; margin-top: 12px;
+        }
+        .stats-box .stat-line {
+            display: flex; justify-content: space-between;
+            font-size: 12px; margin-bottom: 6px;
+        }
+        .stats-box .stat-line:last-child { margin-bottom: 0; }
+        .stat-key { color: var(--text-dim); }
+        .stat-val { color: var(--text); font-variant-numeric: tabular-nums; }
+        .stat-sig { color: var(--on); }
+
+        /* ── Hint ───────────────────────────────────────────────────── */
+        .hint { font-size: 10px; color: var(--off); line-height: 1.5; margin-top: 6px; }
+        .warn-note {
+            font-size: 11px; color: var(--warn);
+            border: 1px solid rgba(192,112,64,0.3); border-radius: 3px;
+            padding: 8px 10px; margin-bottom: 10px; line-height: 1.6;
+        }
+        .sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .field-label {
+            font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 6px; display: block;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Dim overlay (receiver screen blackout) ─────────────────────────── -->
+<div id="dim-overlay" onclick="handleDimClick(event)">
+    <div id="dim-timer">00:00</div>
+    <textarea id="dim-impressions" placeholder="Impressions — describe images, feelings, colours, scenes as they arise…" onclick="event.stopPropagation()"></textarea>
+    <div id="dim-note">Tap outside textarea to restore screen</div>
+</div>
+
+<div class="app">
+
+    <!-- ── Header ─────────────────────────────────────────────────────── -->
+    <header>
+        <h1>Ganzfeld</h1>
+        <div class="sub">Sender/receiver psi research &nbsp;&middot;&nbsp; Honoré protocol &nbsp;&middot;&nbsp; Research grade</div>
+        <div class="nav">
+            <a href="index.html">&#8592; Mindforge</a>
+            <a href="telehypnosis-pro.html">Telehypnosis</a>
+        </div>
+    </header>
+
+    <!-- ── Panel 1: Session Setup ─────────────────────────────────────── -->
+    <div class="panel" id="setup-panel">
+        <div class="panel-title">Session Setup</div>
+
+        <div class="ctrl">
+            <label>Receiver name</label>
+            <input type="text" id="receiver-name" placeholder="name" autocomplete="off">
+        </div>
+        <div class="ctrl">
+            <label>Sender name</label>
+            <input type="text" id="sender-name" placeholder="name" autocomplete="off">
+        </div>
+        <div class="ctrl-full">
+            <label>Session notes / conditions</label>
+            <textarea id="session-notes" rows="2" placeholder="room, time of day, distance, shielding, baseline, etc."></textarea>
+        </div>
+
+        <hr class="sep">
+
+        <div class="tog-row">
+            <label>Use built-in target pool (no images needed)</label>
+            <div class="tog"><input type="checkbox" id="builtin-pool" onchange="togglePoolMode()"><span class="tog-sl"></span></div>
+        </div>
+
+        <!-- Custom image/text targets -->
+        <div id="custom-targets">
+            <div class="hint" style="margin-bottom:10px;">Enter 4 image URLs — or leave all blank to use text descriptions below.</div>
+            <div id="img-inputs">
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Image A</label>
+                    <input type="url" class="img-url" data-idx="0" placeholder="https://... or leave blank for text targets">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Image B</label>
+                    <input type="url" class="img-url" data-idx="1" placeholder="https://... or leave blank for text targets">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Image C</label>
+                    <input type="url" class="img-url" data-idx="2" placeholder="https://... or leave blank for text targets">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Image D</label>
+                    <input type="url" class="img-url" data-idx="3" placeholder="https://... or leave blank for text targets">
+                </div>
+            </div>
+            <div id="text-targets" class="hidden">
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Target A description</label>
+                    <input type="text" class="txt-target" data-idx="0" placeholder="Describe target A">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Target B description</label>
+                    <input type="text" class="txt-target" data-idx="1" placeholder="Describe target B">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Target C description</label>
+                    <input type="text" class="txt-target" data-idx="2" placeholder="Describe target C">
+                </div>
+                <div class="ctrl-full" style="margin-bottom:8px;">
+                    <label>Target D description</label>
+                    <input type="text" class="txt-target" data-idx="3" placeholder="Describe target D">
+                </div>
+            </div>
+        </div>
+
+        <div id="builtin-note" class="hidden">
+            <div class="hint" style="margin-bottom:0;">Built-in pool active. 4 targets will be randomly drawn from 20 descriptive text targets at session start.</div>
+        </div>
+    </div>
+
+    <!-- ── Panel 2: Sender Console ────────────────────────────────────── -->
+    <div class="panel" id="sender-panel">
+        <div class="panel-title"><span class="dot" id="dot-sender"></span>Sender Console</div>
+        <div class="hint" style="margin-bottom:10px;">Share the receiver console below with your receiver — or seat them at the same device and ask them not to scroll up.</div>
+
+        <div id="sender-target-box">
+            <div id="sender-target-cover" onclick="revealTarget()">
+                <span>&#9654; REVEAL TARGET</span>
+            </div>
+            <div id="sender-target-inner" style="display:none;">
+                <div id="sender-target-label">Your target</div>
+                <img id="sender-target-img" src="" alt="" style="display:none;">
+                <div id="sender-target-text"></div>
+            </div>
+        </div>
+
+        <div class="timer-display" id="sender-timer">00:00</div>
+        <div class="phase-line" id="sender-phase">Waiting for session to begin</div>
+
+        <div class="ctrl-full" style="margin-top:8px;">
+            <label>Sender focus notes — what you are sending, visualisations, impressions</label>
+            <textarea id="sender-notes" rows="4" placeholder="Focus notes…"></textarea>
+        </div>
+    </div>
+
+    <!-- ── Panel 3: Receiver Console ──────────────────────────────────── -->
+    <div class="panel" id="receiver-panel">
+        <div class="panel-title"><span class="dot" id="dot-receiver"></span>Receiver Console</div>
+        <div class="warn-note">Receiver: do not scroll up to the Sender Console during the session.</div>
+
+        <div class="tog-row">
+            <label>Pink noise (ganzfeld sensory reduction)</label>
+            <div class="tog"><input type="checkbox" id="noise-on" onchange="toggleNoise()"><span class="tog-sl"></span></div>
+        </div>
+        <div class="ctrl">
+            <label>Noise volume</label>
+            <input type="range" id="noise-vol" min="0" max="0.8" step="0.02" value="0.35"
+                   oninput="updateNoiseVol(); sv('noise-vol','noise-vol-v','',2)">
+            <span class="val" id="noise-vol-v">0.35</span>
+        </div>
+        <div class="hint" style="margin-bottom:10px;">Pink noise provides uniform sensory masking. Headphones preferred. Volume to comfortable masking level — not oppressive.</div>
+
+        <button class="btn-sm" id="dim-btn" onclick="enterDim()" style="width:100%; margin-bottom:10px;">Dim Screen — receiver isolation mode</button>
+
+        <div class="timer-display" id="receiver-timer">00:00</div>
+        <div class="phase-line" id="receiver-phase">Waiting for session to begin</div>
+
+        <div class="ctrl-full" style="margin-top:8px;">
+            <label>Impressions — describe images, feelings, colours, scenes as they arise</label>
+            <textarea id="impressions" rows="7" placeholder="Do not try to &#34;receive.&#34; Report whatever arises spontaneously. Drift."></textarea>
+        </div>
+    </div>
+
+    <!-- ── Panel 4: Session Controls ──────────────────────────────────── -->
+    <div class="panel" id="controls-panel">
+        <div class="panel-title">Session Controls</div>
+        <div class="dur-row">
+            <button class="dur-btn" data-min="20" onclick="selectDur(20)">20 min</button>
+            <button class="dur-btn sel" data-min="30" onclick="selectDur(30)">30 min</button>
+            <button class="dur-btn" data-min="40" onclick="selectDur(40)">40 min</button>
+        </div>
+        <button class="btn-main" id="begin-btn" onclick="beginSession()">Begin Session</button>
+        <button class="btn-main hidden" id="end-btn" onclick="endSession()" style="border-color:#b04040;color:#b04040;">End Session</button>
+    </div>
+
+    <!-- ── Panel 5: Judging ───────────────────────────────────────────── -->
+    <div class="panel hidden" id="judging-panel">
+        <div class="panel-title">Judging <span class="dim">— receiver blind ranking</span></div>
+        <div class="hint" style="margin-bottom:12px;">Rate each option: 1st = most resembles your impressions. Options are shown in randomised order — do not show sender until you have ranked all four.</div>
+
+        <div id="judge-options"></div>
+
+        <div class="ctrl-full" style="margin-top:4px;">
+            <label>Match notes</label>
+            <input type="text" id="match-notes" placeholder="Any observations on the correspondence…">
+        </div>
+
+        <button class="btn-main" id="reveal-btn" onclick="revealResult()">Reveal Result</button>
+
+        <div id="result-box" class="hidden">
+            <div id="result-hit"></div>
+            <div id="result-detail"></div>
+        </div>
+
+        <button class="btn-main hidden" id="save-btn" onclick="saveSession()" style="border-color:var(--on);color:var(--on);">Save Session</button>
+    </div>
+
+    <!-- ── Panel 6: Session Log ───────────────────────────────────────── -->
+    <div class="panel" id="log-panel">
+        <div class="panel-title">Session Log</div>
+        <div class="btn-row" style="margin-bottom:10px;">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm btn-danger" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div id="log-table-wrap">
+            <div id="log-empty" style="font-size:11px;color:var(--off);padding:8px 0;">No sessions recorded yet.</div>
+            <table id="log-table" class="hidden">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Receiver</th>
+                        <th>Sender</th>
+                        <th>Min</th>
+                        <th>Rank</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="stats-box" id="stats-box">
+            <div class="stat-line">
+                <span class="stat-key">Total sessions</span>
+                <span class="stat-val" id="stat-total">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-key">Direct hits (rank 1)</span>
+                <span class="stat-val" id="stat-hits">0</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-key">Hit rate</span>
+                <span class="stat-val" id="stat-rate">—</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-key">Expected by chance</span>
+                <span class="stat-val">25%</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-key">Z-score</span>
+                <span class="stat-val" id="stat-z">—</span>
+            </div>
+            <div class="stat-line" id="sig-line" style="display:none;">
+                <span class="stat-key">Significance</span>
+                <span class="stat-sig" id="stat-sig"></span>
+            </div>
+        </div>
+    </div>
+
+</div><!-- .app -->
+
+<script>
+'use strict';
+
+// ── Built-in target pool ─────────────────────────────────────────────────────
+const BUILTIN_TARGETS = [
+    "Ocean waves breaking on a rocky shore at sunset",
+    "Dense rainforest canopy, dappled green light",
+    "A single candle flame in a dark room",
+    "Snow-covered mountain peak above clouds",
+    "Crowded city street at night, neon signs",
+    "Empty desert, red sand dunes, midday heat",
+    "A wooden dock extending into a still lake at dawn",
+    "A fireplace with crackling logs, warm amber light",
+    "Abstract painting — bold red and orange shapes",
+    "A lighthouse beam sweeping foggy dark water",
+    "Underground cave with glowing stalactites",
+    "Wheat field in wind, golden, flat horizon",
+    "Aerial view of a river delta from high altitude",
+    "Close-up of a human eye, green iris, light reflections",
+    "Thunderstorm over open plains, lightning striking",
+    "Zen garden, raked gravel, single stone",
+    "Deep sea creature, bioluminescent, black water",
+    "Ancient stone temple, jungle overgrowth, mist",
+    "A spiral staircase viewed from below, looking up",
+    "Aurora borealis over frozen tundra, green and violet"
+];
+
+// ── Session state ────────────────────────────────────────────────────────────
+let sessionRunning  = false;
+let sessionDuration = 30; // minutes
+let sessionElapsed  = 0;  // seconds
+let sessionTimer    = null;
+
+// The 4 targets for this session: [{label:'A', img:'url'|null, text:'...'}]
+let sessionTargets = [];
+// Index into sessionTargets that is the actual target (0-3)
+let targetIdx = 0;
+// Display order for judging: shuffled indices into sessionTargets
+let judgeOrder = [];
+// Rankings: judgeOrder[i] -> rank (1-4), null if not set
+let judgeRanks = [];
+// Has result been revealed?
+let resultRevealed = false;
+
+// ── Audio (pink noise, mono) ──────────────────────────────────────────────────
+let audioCtx   = null;
+let noiseNode  = null;
+let noiseGain  = null;
+let noiseReady = false;
+
+function initAudio() {
+    if (audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { return; }
+
+    // Paul Kellett IIR pink noise, 5-second looped mono buffer
+    const sr  = audioCtx.sampleRate;
+    const len = sr * 5;
+    const buf = audioCtx.createBuffer(1, len, sr);
+    const d   = buf.getChannelData(0);
+    let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+    for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        b0 = 0.99886*b0 + w*0.0555179;
+        b1 = 0.99332*b1 + w*0.0750759;
+        b2 = 0.96900*b2 + w*0.1538520;
+        b3 = 0.86650*b3 + w*0.3104856;
+        b4 = 0.55000*b4 + w*0.5329522;
+        b5 = -0.7616*b5 - w*0.0168980;
+        d[i] = (b0+b1+b2+b3+b4+b5+b6 + w*0.5362) / 6.5;
+        b6 = w * 0.115926;
+    }
+
+    noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = buf;
+    noiseNode.loop   = true;
+
+    noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0;
+
+    noiseNode.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseNode.start();
+    noiseReady = true;
+}
+
+function toggleNoise() {
+    if (!audioCtx) initAudio();
+    if (!audioCtx || !noiseReady) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const on  = el('noise-on').checked;
+    const vol = parseFloat(el('noise-vol').value);
+    noiseGain.gain.setTargetAtTime(on ? vol : 0, audioCtx.currentTime, 0.1);
+}
+
+function updateNoiseVol() {
+    if (!noiseGain || !el('noise-on').checked) return;
+    noiseGain.gain.setTargetAtTime(parseFloat(el('noise-vol').value), audioCtx.currentTime, 0.05);
+}
+
+function stopNoise() {
+    if (!noiseGain) return;
+    noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+    el('noise-on').checked = false;
+}
+
+// ── Pool mode toggle ──────────────────────────────────────────────────────────
+function togglePoolMode() {
+    const builtin = el('builtin-pool').checked;
+    el('custom-targets').classList.toggle('hidden', builtin);
+    el('builtin-note').classList.toggle('hidden', !builtin);
+    saveSetupState();
+}
+
+// ── Duration selection ────────────────────────────────────────────────────────
+function selectDur(min) {
+    sessionDuration = min;
+    document.querySelectorAll('.dur-btn').forEach(b => {
+        b.classList.toggle('sel', parseInt(b.dataset.min) === min);
+    });
+    saveSetupState();
+}
+
+// ── Target resolution ─────────────────────────────────────────────────────────
+// Returns [{label, img, text}] x 4, or null if invalid
+function resolveTargets() {
+    if (el('builtin-pool').checked) {
+        // Fisher-Yates shuffle of BUILTIN_TARGETS, take first 4
+        const pool = BUILTIN_TARGETS.slice();
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        const four = pool.slice(0, 4);
+        return four.map((t, i) => ({ label: String.fromCharCode(65+i), img: null, text: t }));
+    }
+
+    // Check image URLs
+    const urls = Array.from(document.querySelectorAll('.img-url')).map(inp => inp.value.trim());
+    const allBlank = urls.every(u => !u);
+
+    if (!allBlank) {
+        // Use image mode — every blank URL treated as text fallback
+        return urls.map((u, i) => ({ label: String.fromCharCode(65+i), img: u || null, text: u ? '' : '(no image provided)' }));
+    }
+
+    // Text mode
+    const texts = Array.from(document.querySelectorAll('.txt-target')).map(inp => inp.value.trim());
+    const anyText = texts.some(t => t);
+
+    // Show text inputs if all blank images
+    el('text-targets').classList.remove('hidden');
+
+    if (!anyText) {
+        return null; // nothing entered
+    }
+    return texts.map((t, i) => ({ label: String.fromCharCode(65+i), img: null, text: t || `Target ${String.fromCharCode(65+i)} (blank)` }));
+}
+
+// ── Fisher-Yates shuffle (in-place) ──────────────────────────────────────────
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// ── Session start ─────────────────────────────────────────────────────────────
+function beginSession() {
+    if (sessionRunning) return;
+
+    // Validate
+    const receiver = el('receiver-name').value.trim();
+    const sender   = el('sender-name').value.trim();
+    if (!receiver || !sender) {
+        alert('Enter receiver and sender names before beginning.');
+        return;
+    }
+
+    const targets = resolveTargets();
+    if (!targets) {
+        alert('Enter target images or descriptions before beginning, or enable the built-in pool.');
+        return;
+    }
+    if (targets.some(t => !t.img && !t.text)) {
+        alert('All 4 targets must have an image URL or description.');
+        return;
+    }
+
+    sessionTargets = targets;
+    // Randomly pick actual target
+    targetIdx = Math.floor(Math.random() * 4);
+
+    // Prepare judging shuffle (indices 0-3 into sessionTargets)
+    judgeOrder = shuffle([0, 1, 2, 3]);
+    judgeRanks = [null, null, null, null]; // indexed by position in judgeOrder
+    resultRevealed = false;
+
+    // Set sender target display (hidden behind cover)
+    renderSenderTarget();
+
+    // Lock setup
+    el('setup-panel').style.opacity    = '0.4';
+    el('setup-panel').style.pointerEvents = 'none';
+    el('controls-panel').querySelectorAll('.dur-btn').forEach(b => b.disabled = true);
+
+    // Switch buttons
+    el('begin-btn').classList.add('hidden');
+    el('end-btn').classList.remove('hidden');
+
+    // Start timer
+    sessionRunning = true;
+    sessionElapsed = 0;
+    renderTimers();
+    setPhase('sender', '● Sending — ' + fmtTime(sessionDuration * 60 - sessionElapsed) + ' remaining', true);
+    setPhase('receiver', '● Receiving — relax and drift', true);
+    dot('dot-sender', true);
+    dot('dot-receiver', true);
+
+    sessionTimer = setInterval(tickSession, 1000);
+    saveSetupState();
+}
+
+function tickSession() {
+    sessionElapsed++;
+    renderTimers();
+    const rem = sessionDuration * 60 - sessionElapsed;
+    if (rem <= 0) {
+        endSession();
+        return;
+    }
+    setPhase('sender',   '● Sending — ' + fmtTime(rem) + ' remaining', true);
+    setPhase('receiver', '● Receiving — ' + fmtTime(rem) + ' remaining', true);
+    // sync dim overlay timer
+    el('dim-timer').textContent = fmtTime(sessionElapsed);
+}
+
+function renderTimers() {
+    const t = fmtTime(sessionElapsed);
+    el('sender-timer').textContent   = t;
+    el('receiver-timer').textContent = t;
+    el('dim-timer').textContent      = t;
+}
+
+function endSession() {
+    if (!sessionRunning) return;
+    sessionRunning = false;
+    clearInterval(sessionTimer);
+    sessionTimer = null;
+
+    // Sync impressions from dim overlay back to main textarea
+    syncImpressionsFromDim();
+    exitDim();
+
+    dot('dot-sender',   false);
+    dot('dot-receiver', false);
+    setPhase('sender',   'Session ended — see judging below', false);
+    setPhase('receiver', 'Session ended — rank the targets below', false);
+
+    // Reveal judging panel
+    renderJudgingPanel();
+    el('judging-panel').classList.remove('hidden');
+    el('judging-panel').scrollIntoView({ behavior: 'smooth' });
+
+    el('end-btn').classList.add('hidden');
+    el('begin-btn').classList.remove('hidden');
+    el('begin-btn').textContent = 'New Session';
+    el('begin-btn').onclick = resetSession;
+}
+
+// ── Sender target rendering ───────────────────────────────────────────────────
+function renderSenderTarget() {
+    const t = sessionTargets[targetIdx];
+    el('sender-target-cover').style.display = 'flex';
+    el('sender-target-inner').style.display = 'none';
+
+    const img  = el('sender-target-img');
+    const text = el('sender-target-text');
+
+    if (t.img) {
+        img.src = t.img;
+        img.style.display = 'block';
+        text.textContent = '';
+        text.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        text.textContent  = t.text;
+        text.style.display = 'block';
+    }
+}
+
+function revealTarget() {
+    el('sender-target-cover').style.display = 'none';
+    el('sender-target-inner').style.display = 'block';
+    const t = sessionTargets[targetIdx];
+    el('sender-target-label').textContent = 'Your target — ' + t.label;
+}
+
+// ── Judging panel rendering ───────────────────────────────────────────────────
+function renderJudgingPanel() {
+    const container = el('judge-options');
+    container.innerHTML = '';
+
+    judgeOrder.forEach((targetI, pos) => {
+        const t = sessionTargets[targetI];
+        const card = document.createElement('div');
+        card.className = 'judge-option';
+        card.id = 'judge-card-' + pos;
+
+        let contentHTML = '';
+        if (t.img) {
+            contentHTML = `<img class="judge-option-img" src="${escHtml(t.img)}" alt="Option ${pos+1}">`;
+        } else {
+            contentHTML = `<div class="judge-option-content">${escHtml(t.text)}</div>`;
+        }
+
+        card.innerHTML = `
+            <div class="judge-option-label">Option ${pos + 1}</div>
+            ${contentHTML}
+            <div class="rank-row" id="rank-row-${pos}">
+                <button class="rank-btn" onclick="setRank(${pos},1)">1st</button>
+                <button class="rank-btn" onclick="setRank(${pos},2)">2nd</button>
+                <button class="rank-btn" onclick="setRank(${pos},3)">3rd</button>
+                <button class="rank-btn" onclick="setRank(${pos},4)">4th</button>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    el('result-box').classList.add('hidden');
+    el('save-btn').classList.add('hidden');
+}
+
+function setRank(pos, rank) {
+    // Clear same rank from any other position
+    judgeRanks.forEach((r, i) => {
+        if (r === rank && i !== pos) {
+            judgeRanks[i] = null;
+            refreshRankButtons(i);
+        }
+    });
+    judgeRanks[pos] = rank;
+    refreshRankButtons(pos);
+}
+
+function refreshRankButtons(pos) {
+    const row = el('rank-row-' + pos);
+    if (!row) return;
+    const rank = judgeRanks[pos];
+    row.querySelectorAll('.rank-btn').forEach((btn, i) => {
+        btn.classList.toggle('sel', (i + 1) === rank);
+    });
+}
+
+function revealResult() {
+    // Ensure all 4 options ranked
+    if (judgeRanks.some(r => r === null)) {
+        alert('Rank all four options before revealing the result.');
+        return;
+    }
+
+    resultRevealed = true;
+
+    // Find position of actual target in judgeOrder
+    const actualPos = judgeOrder.indexOf(targetIdx);
+    const actualRank = judgeRanks[actualPos];
+
+    const t = sessionTargets[targetIdx];
+    const isHit = actualRank === 1;
+    const label = t.img ? `Image ${t.label}` : `"${t.text}"`;
+
+    el('result-hit').className = isHit ? 'hit-yes' : 'hit-no';
+    el('result-hit').textContent = isHit
+        ? 'DIRECT HIT — Rank 1'
+        : 'Miss — Rank ' + actualRank;
+
+    el('result-detail').textContent =
+        `Target was Option ${actualPos + 1} (${label}). ` +
+        `You ranked it ${actualRank}${ordSuffix(actualRank)} out of 4. ` +
+        (isHit ? 'Direct hit.' : `Direct hit = Rank 1 (25% chance).`);
+
+    el('result-box').classList.remove('hidden');
+    el('save-btn').classList.remove('hidden');
+    el('reveal-btn').classList.add('hidden');
+
+    // Highlight the actual target card
+    judgeOrder.forEach((targetI, pos) => {
+        el('judge-card-' + pos).style.borderColor = (pos === actualPos) ? 'var(--on)' : '';
+    });
+}
+
+// ── Save session ──────────────────────────────────────────────────────────────
+function saveSession() {
+    if (!resultRevealed) return;
+
+    const actualPos  = judgeOrder.indexOf(targetIdx);
+    const actualRank = judgeRanks[actualPos];
+    const t = sessionTargets[targetIdx];
+
+    const entry = {
+        id:           Math.random().toString(36).slice(2),
+        date:         new Date().toISOString(),
+        receiver:     el('receiver-name').value.trim(),
+        sender:       el('sender-name').value.trim(),
+        duration:     sessionDuration,
+        target:       t.img || t.text,
+        target_rank:  actualRank,
+        impressions:  el('impressions').value.trim(),
+        sender_notes: el('sender-notes').value.trim(),
+        notes:        el('session-notes').value.trim() + (el('match-notes').value.trim() ? ' | match: ' + el('match-notes').value.trim() : '')
+    };
+
+    const log = loadLog();
+    log.push(entry);
+    saveLog(log);
+    renderLog();
+    el('judging-panel').classList.add('hidden');
+}
+
+// ── Reset / New Session ───────────────────────────────────────────────────────
+function resetSession() {
+    // Clear state
+    sessionTargets = [];
+    targetIdx = 0;
+    judgeOrder = [];
+    judgeRanks = [];
+    resultRevealed = false;
+
+    // Re-lock judging panel
+    el('judging-panel').classList.add('hidden');
+    el('reveal-btn').classList.remove('hidden');
+    el('save-btn').classList.add('hidden');
+    el('result-box').classList.add('hidden');
+
+    // Restore setup
+    el('setup-panel').style.opacity = '';
+    el('setup-panel').style.pointerEvents = '';
+    el('controls-panel').querySelectorAll('.dur-btn').forEach(b => b.disabled = false);
+
+    // Reset sender display
+    el('sender-target-cover').style.display = 'flex';
+    el('sender-target-inner').style.display = 'none';
+    el('sender-notes').value = '';
+    el('match-notes').value  = '';
+    el('impressions').value  = '';
+    el('dim-impressions').value = '';
+
+    // Reset timers
+    el('sender-timer').textContent   = '00:00';
+    el('receiver-timer').textContent = '00:00';
+    el('dim-timer').textContent      = '00:00';
+    setPhase('sender',   'Waiting for session to begin', false);
+    setPhase('receiver', 'Waiting for session to begin', false);
+
+    el('begin-btn').textContent = 'Begin Session';
+    el('begin-btn').onclick = beginSession;
+    el('begin-btn').classList.remove('hidden');
+    el('end-btn').classList.add('hidden');
+}
+
+// ── Dim overlay ───────────────────────────────────────────────────────────────
+function enterDim() {
+    if (!sessionRunning) { alert('Begin the session first.'); return; }
+    syncImpressionsToDim();
+    el('dim-overlay').classList.add('active');
+    // Attempt screen wake lock (non-fatal if unsupported)
+    if (navigator.wakeLock) {
+        navigator.wakeLock.request('screen').catch(() => {});
+    }
+}
+
+function handleDimClick(e) {
+    // Only restore if clicking the overlay itself (not the textarea)
+    if (e.target === el('dim-overlay') || e.target === el('dim-timer') || e.target === el('dim-note')) {
+        syncImpressionsFromDim();
+        exitDim();
+    }
+}
+
+function exitDim() {
+    el('dim-overlay').classList.remove('active');
+}
+
+function syncImpressionsToDim() {
+    el('dim-impressions').value = el('impressions').value;
+}
+
+function syncImpressionsFromDim() {
+    // Merge: if dim textarea has content, prefer it (more recent)
+    const dimVal  = el('dim-impressions').value;
+    const mainVal = el('impressions').value;
+    if (dimVal && dimVal !== mainVal) {
+        el('impressions').value = dimVal;
+    }
+}
+
+// ── Session log ───────────────────────────────────────────────────────────────
+function loadLog() {
+    try { return JSON.parse(localStorage.getItem('gz-log') || '[]'); }
+    catch(e) { return []; }
+}
+
+function saveLog(log) {
+    try { localStorage.setItem('gz-log', JSON.stringify(log)); } catch(e) {}
+}
+
+function renderLog() {
+    const log = loadLog();
+
+    if (!log.length) {
+        el('log-empty').classList.remove('hidden');
+        el('log-table').classList.add('hidden');
+        updateStats(log);
+        return;
+    }
+
+    el('log-empty').classList.add('hidden');
+    el('log-table').classList.remove('hidden');
+    const tbody = el('log-tbody');
+    tbody.innerHTML = '';
+
+    [...log].reverse().forEach(e => {
+        const d = new Date(e.date);
+        const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const rankCls = 'rank' + (e.target_rank || 4);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="white-space:nowrap;font-size:10px;">${dateStr}</td>
+            <td>${escHtml(e.receiver||'—')}</td>
+            <td>${escHtml(e.sender||'—')}</td>
+            <td>${e.duration}</td>
+            <td class="${rankCls}">${e.target_rank || '?'}</td>
+            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
+                title="${escHtml(e.notes||'')}">${escHtml(e.notes||'—')}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    updateStats(log);
+}
+
+function updateStats(log) {
+    const N     = log.length;
+    const hits  = log.filter(e => e.target_rank === 1).length;
+    const rate  = N > 0 ? (hits / N * 100).toFixed(1) + '%' : '—';
+    const z     = N > 0 ? ((hits - N * 0.25) / Math.sqrt(N * 0.25 * 0.75)).toFixed(2) : '—';
+    const zNum  = N > 0 ? parseFloat(z) : null;
+
+    el('stat-total').textContent = N;
+    el('stat-hits').textContent  = hits;
+    el('stat-rate').textContent  = rate;
+    el('stat-z').textContent     = N > 0 ? z : '—';
+
+    const sigLine = el('sig-line');
+    if (zNum !== null && zNum > 1.96) {
+        sigLine.style.display = 'flex';
+        el('stat-sig').textContent = 'p < 0.05';
+    } else if (zNum !== null && zNum > 1.645) {
+        sigLine.style.display = 'flex';
+        el('stat-sig').textContent = 'p < 0.10 (trend)';
+        el('stat-sig').style.color = 'var(--warn)';
+    } else {
+        sigLine.style.display = 'none';
+    }
+}
+
+function exportLog() {
+    const log = loadLog();
+    if (!log.length) { alert('No sessions to export.'); return; }
+    const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ganzfeld-sessions-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all session records? This cannot be undone.')) return;
+    localStorage.removeItem('gz-log');
+    renderLog();
+}
+
+// ── Setup state persistence ───────────────────────────────────────────────────
+function saveSetupState() {
+    try {
+        const state = {
+            receiver:  el('receiver-name').value,
+            sender:    el('sender-name').value,
+            notes:     el('session-notes').value,
+            builtin:   el('builtin-pool').checked,
+            duration:  sessionDuration,
+            imgUrls:   Array.from(document.querySelectorAll('.img-url')).map(i=>i.value),
+            txtTargets:Array.from(document.querySelectorAll('.txt-target')).map(i=>i.value)
+        };
+        localStorage.setItem('gz-last', JSON.stringify(state));
+    } catch(e) {}
+}
+
+function restoreSetupState() {
+    try {
+        const raw = localStorage.getItem('gz-last');
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s.receiver)  el('receiver-name').value = s.receiver;
+        if (s.sender)    el('sender-name').value    = s.sender;
+        if (s.notes)     el('session-notes').value  = s.notes;
+        if (s.builtin)   { el('builtin-pool').checked = true; togglePoolMode(); }
+        if (s.duration)  selectDur(s.duration);
+        if (s.imgUrls)   s.imgUrls.forEach((v,i)=>{ const el2=document.querySelectorAll('.img-url')[i]; if(el2) el2.value=v; });
+        if (s.txtTargets)s.txtTargets.forEach((v,i)=>{ const el2=document.querySelectorAll('.txt-target')[i]; if(el2) el2.value=v; });
+    } catch(e) {}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const el  = id => document.getElementById(id);
+const fmt = n  => String(Math.floor(n)).padStart(2, '0');
+
+function fmtTime(totalSec) {
+    const s = totalSec % 60;
+    const m = Math.floor(totalSec / 60);
+    return fmt(m) + ':' + fmt(s);
+}
+
+function sv(srcId, dispId, unit='', dec=2) {
+    const v = parseFloat(document.getElementById(srcId).value);
+    document.getElementById(dispId).textContent = (dec>0?v.toFixed(dec):v) + unit;
+}
+
+function dot(id, on) { el(id).classList.toggle('on', !!on); }
+
+function setPhase(role, text, active) {
+    const id = role + '-phase';
+    const el2 = el(id);
+    if (!el2) return;
+    el2.textContent = text;
+    el2.className = 'phase-line' + (active ? ' active' : '');
+}
+
+function ordSuffix(n) {
+    if (n === 1) return 'st';
+    if (n === 2) return 'nd';
+    if (n === 3) return 'rd';
+    return 'th';
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auto-detect image vs text mode ───────────────────────────────────────────
+// If all image URLs blank, show text inputs
+document.querySelectorAll('.img-url').forEach(inp => {
+    inp.addEventListener('input', () => {
+        const urls = Array.from(document.querySelectorAll('.img-url')).map(i => i.value.trim());
+        const allBlank = urls.every(u => !u);
+        el('text-targets').classList.toggle('hidden', !allBlank);
+        saveSetupState();
+    });
+});
+
+// Setup state autosave
+['receiver-name','sender-name'].forEach(id => {
+    el(id).addEventListener('input', saveSetupState);
+});
+el('session-notes').addEventListener('input', saveSetupState);
+document.querySelectorAll('.txt-target').forEach(inp => {
+    inp.addEventListener('input', saveSetupState);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+    restoreSetupState();
+    renderLog();
+    // Initialise vol display
+    sv('noise-vol','noise-vol-v','',2);
+})();
+</script>
+</body>
+</html>

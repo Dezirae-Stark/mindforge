@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Coherence — Heart-Brain Trainer</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        /* ── Header ── */
+        header {
+            text-align: center; padding: 24px 0 20px;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 22px; letter-spacing: 0.35em;
+            color: var(--accent); text-transform: uppercase;
+        }
+        header p {
+            color: var(--text-dim); font-size: 11px; margin-top: 6px; letter-spacing: 0.1em;
+        }
+        .nav-links {
+            margin-top: 12px; display: flex; justify-content: center;
+            gap: 18px; flex-wrap: wrap;
+        }
+        .nav-links a {
+            font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--text-dim); text-decoration: none;
+            border-bottom: 1px solid var(--border); padding-bottom: 1px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .nav-links a:hover { color: var(--accent2); border-color: var(--accent2); }
+
+        /* ── Panels ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 14px;
+            padding: 16px;
+        }
+        .panel-title {
+            font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 14px;
+            border-bottom: 1px solid var(--border); padding-bottom: 8px;
+        }
+
+        /* ── Preset buttons ── */
+        .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .preset-btn {
+            flex: 1; min-width: 70px; padding: 10px 6px;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-dim); font-family: inherit; font-size: 12px;
+            letter-spacing: 0.06em; cursor: pointer; border-radius: 3px;
+            transition: 0.15s; text-align: center;
+        }
+        .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .preset-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(64,160,192,0.08); }
+        .preset-btn .dur { font-size: 15px; display: block; margin-bottom: 2px; color: var(--text); }
+        .preset-btn.active .dur { color: var(--accent2); }
+        .preset-btn .desc { font-size: 9px; color: var(--text-dim); display: block; line-height: 1.4; }
+
+        /* custom slider row */
+        .custom-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+            height: 0; overflow: hidden;
+        }
+        .custom-row.visible { opacity: 1; pointer-events: auto; height: auto; overflow: visible; }
+        .custom-row label { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+        .custom-row input[type=range] { flex: 1; accent-color: var(--accent); }
+        .custom-row .val { font-size: 12px; color: var(--accent); min-width: 50px; text-align: right; }
+
+        /* ── Begin button ── */
+        .begin-btn {
+            width: 100%; padding: 13px; background: transparent;
+            border: 1px solid var(--accent); color: var(--accent);
+            font-family: inherit; font-size: 14px; letter-spacing: 0.2em;
+            text-transform: uppercase; cursor: pointer; border-radius: 3px;
+            transition: 0.15s; margin-top: 4px;
+        }
+        .begin-btn:hover { background: var(--accent); color: var(--bg); }
+
+        /* ── Session area ── */
+        #session-area {
+            transition: opacity 0.4s;
+        }
+        #session-area.dimmed {
+            opacity: 0.3; pointer-events: none;
+        }
+
+        /* Timer */
+        #timer-display {
+            text-align: center; font-size: 38px; letter-spacing: 0.14em;
+            color: var(--accent); font-variant-numeric: tabular-nums;
+            padding: 10px 0 4px; min-height: 52px;
+        }
+        #cycle-display {
+            text-align: center; font-size: 11px; color: var(--text-dim);
+            letter-spacing: 0.1em; margin-bottom: 16px; min-height: 16px;
+        }
+
+        /* ── Breathing circle ── */
+        #pacer-wrap {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 20px 0 14px;
+        }
+        #breath-circle {
+            border-radius: 50%;
+            width: 80px; height: 80px;
+            background: radial-gradient(circle, rgba(64,160,192,0.2), rgba(112,96,208,0.2));
+            box-shadow: 0 0 30px rgba(112,96,208,0.12);
+            transition: none;
+            will-change: width, height, background, box-shadow;
+            flex-shrink: 0;
+        }
+        #phase-label {
+            margin-top: 20px; font-size: 13px; letter-spacing: 0.2em;
+            text-transform: uppercase; color: var(--text-dim);
+            min-height: 18px; transition: opacity 0.4s;
+        }
+
+        /* ── Prompt ── */
+        #prompt-wrap {
+            text-align: center; margin: 14px 0 4px;
+            min-height: 48px; display: flex; align-items: center; justify-content: center;
+        }
+        #prompt-text {
+            font-size: 13px; color: var(--text-dim); max-width: 280px;
+            line-height: 1.6; transition: opacity 1s; opacity: 0;
+            font-style: italic;
+        }
+
+        /* ── End early / controls ── */
+        #session-controls {
+            display: flex; gap: 10px; margin-top: 14px; align-items: center;
+        }
+        .end-btn {
+            flex: 1; padding: 10px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+            font-family: inherit; font-size: 11px; letter-spacing: 0.1em;
+            text-transform: uppercase; cursor: pointer; border-radius: 3px;
+            transition: 0.15s;
+        }
+        .end-btn:hover { border-color: var(--warn); color: var(--warn); }
+
+        /* ── Completion ── */
+        #completion-panel {
+            display: none; text-align: center; padding: 20px 0;
+        }
+        #completion-panel.visible { display: block; }
+        #completion-msg {
+            font-size: 13px; color: var(--text-dim); line-height: 1.7;
+            margin-bottom: 20px; letter-spacing: 0.04em;
+        }
+        .launch-row {
+            display: flex; gap: 10px; flex-direction: column; margin-bottom: 20px;
+        }
+        .launch-btn {
+            display: block; width: 100%; padding: 13px;
+            background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); font-family: inherit; font-size: 13px;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            text-decoration: none; border-radius: 3px;
+            transition: 0.15s; cursor: pointer; text-align: center;
+        }
+        .launch-btn:hover { background: var(--accent); color: var(--bg); }
+        .launch-btn.accent2 { border-color: var(--accent2); color: var(--accent2); }
+        .launch-btn.accent2:hover { background: var(--accent2); color: var(--bg); }
+
+        /* ── Log form ── */
+        #log-form { margin-top: 16px; }
+        .star-row {
+            display: flex; gap: 8px; justify-content: center; margin: 10px 0 14px;
+        }
+        .star {
+            font-size: 22px; cursor: pointer; color: var(--off);
+            transition: color 0.1s; user-select: none; line-height: 1;
+        }
+        .star.lit { color: #c0a030; }
+        .star:hover { color: #d0b840; }
+
+        textarea {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 3px;
+            font-family: inherit; font-size: 12px; resize: vertical;
+            min-height: 66px; line-height: 1.5;
+        }
+        textarea::placeholder { color: var(--text-dim); }
+        textarea:focus { outline: none; border-color: var(--accent); }
+
+        .save-btn {
+            width: 100%; padding: 11px; margin-top: 10px;
+            background: transparent; border: 1px solid var(--on);
+            color: var(--on); font-family: inherit; font-size: 12px;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            cursor: pointer; border-radius: 3px; transition: 0.15s;
+        }
+        .save-btn:hover { background: var(--on); color: var(--bg); }
+        .save-note {
+            font-size: 10px; color: var(--text-dim); text-align: center;
+            margin-top: 6px; min-height: 14px;
+        }
+
+        /* ── Log table ── */
+        .log-stats {
+            display: flex; gap: 16px; flex-wrap: wrap;
+            margin-bottom: 14px; font-size: 11px; color: var(--text-dim);
+        }
+        .log-stat { display: flex; flex-direction: column; gap: 2px; }
+        .log-stat .val { font-size: 20px; color: var(--accent); letter-spacing: 0.06em; }
+        .log-stat .lbl { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+
+        .log-table-wrap { overflow-x: auto; margin-bottom: 12px; }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 11px;
+        }
+        th {
+            text-align: left; padding: 5px 8px;
+            color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase;
+            border-bottom: 1px solid var(--border); font-size: 10px; font-weight: normal;
+        }
+        td {
+            padding: 6px 8px; border-bottom: 1px solid rgba(42,42,64,0.5);
+            color: var(--text); vertical-align: top; line-height: 1.4;
+        }
+        td.stars { color: #c0a030; letter-spacing: 0.05em; }
+        td.notes { color: var(--text-dim); font-size: 11px; max-width: 150px; word-break: break-word; }
+        tr:last-child td { border-bottom: none; }
+
+        .empty-note {
+            text-align: center; padding: 20px; color: var(--text-dim);
+            font-size: 12px; letter-spacing: 0.08em;
+        }
+
+        .log-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-sm {
+            padding: 7px 13px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+            font-family: inherit; font-size: 11px; cursor: pointer;
+            border-radius: 3px; transition: 0.15s; letter-spacing: 0.06em;
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.danger:hover { border-color: var(--warn); color: var(--warn); }
+
+        /* ── Setup overlay dims session ── */
+        #setup-panel { transition: opacity 0.4s; }
+        #setup-panel.dimmed { opacity: 0.3; pointer-events: none; }
+
+        /* ── Hidden utility ── */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- ── Header ── -->
+    <header>
+        <h1>Coherence</h1>
+        <p>Heart-brain coherence trainer &middot; HeartMath protocol &middot; 60-second onset</p>
+        <div class="nav-links">
+            <a href="index.html">Mindforge</a>
+            <a href="telehypnosis-pro.html">Telehypnosis Pro</a>
+            <a href="ganzfeld.html">Ganzfeld</a>
+        </div>
+    </header>
+
+    <!-- ── Setup ── -->
+    <div id="setup-panel" class="panel">
+        <div class="panel-title">Session duration</div>
+        <div class="preset-row">
+            <button class="preset-btn active" data-min="3" onclick="selectPreset(this, 3)">
+                <span class="dur">3 min</span>
+                <span class="desc">Quick coherence<br>reset · 18 cycles</span>
+            </button>
+            <button class="preset-btn" data-min="10" onclick="selectPreset(this, 10)">
+                <span class="dur">10 min</span>
+                <span class="desc">Standard session<br>60 cycles</span>
+            </button>
+            <button class="preset-btn" data-min="20" onclick="selectPreset(this, 20)">
+                <span class="dur">20 min</span>
+                <span class="desc">Deep coherence<br>120 cycles</span>
+            </button>
+            <button class="preset-btn" data-min="custom" onclick="selectPreset(this, 'custom')">
+                <span class="dur">Custom</span>
+                <span class="desc">1–30 min<br>your choice</span>
+            </button>
+        </div>
+        <div class="custom-row" id="custom-row">
+            <label>Duration</label>
+            <input type="range" id="custom-slider" min="1" max="30" value="5"
+                   oninput="onCustomSlider()">
+            <span class="val" id="custom-val">5 min · 28 cycles</span>
+        </div>
+        <button class="begin-btn" id="begin-btn" onclick="beginSession()">Begin</button>
+    </div>
+
+    <!-- ── Active session ── -->
+    <div id="session-area" class="panel hidden">
+        <div id="timer-display">—:——</div>
+        <div id="cycle-display">—</div>
+
+        <div id="pacer-wrap">
+            <div id="breath-circle"></div>
+            <div id="phase-label">—</div>
+        </div>
+
+        <div id="prompt-wrap">
+            <div id="prompt-text"></div>
+        </div>
+
+        <div id="session-controls">
+            <button class="end-btn" onclick="endEarly()">End early</button>
+        </div>
+    </div>
+
+    <!-- ── Completion ── -->
+    <div id="completion-panel" class="panel">
+        <div id="completion-msg">
+            Session complete.<br>Stay with this state for a moment before continuing.
+        </div>
+        <div class="launch-row">
+            <a href="index.html" class="launch-btn">Launch Mindforge &rarr;</a>
+            <a href="telehypnosis-pro.html" class="launch-btn accent2">Launch Telehypnosis Pro &rarr;</a>
+        </div>
+
+        <!-- Post-session log form -->
+        <div id="log-form">
+            <div class="panel-title" style="margin-bottom:8px;">Log this session</div>
+            <div style="font-size:11px; color:var(--text-dim); text-align:center; margin-bottom:4px; letter-spacing:0.08em;">
+                FELT COHERENCE
+            </div>
+            <div class="star-row" id="star-row">
+                <span class="star" data-v="1" onclick="setStar(1)">&#9733;</span>
+                <span class="star" data-v="2" onclick="setStar(2)">&#9733;</span>
+                <span class="star" data-v="3" onclick="setStar(3)">&#9733;</span>
+                <span class="star" data-v="4" onclick="setStar(4)">&#9733;</span>
+                <span class="star" data-v="5" onclick="setStar(5)">&#9733;</span>
+            </div>
+            <textarea id="log-notes" placeholder="Notes (optional)…" rows="3"></textarea>
+            <button class="save-btn" onclick="saveLog()">Save to log</button>
+            <div class="save-note" id="save-note"></div>
+        </div>
+    </div>
+
+    <!-- ── Session log ── -->
+    <div class="panel">
+        <div class="panel-title">Session log</div>
+        <div class="log-stats" id="log-stats"></div>
+        <div class="log-table-wrap">
+            <table id="log-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Duration</th>
+                        <th>Coherence</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+        </div>
+        <div id="log-empty" class="empty-note hidden">No sessions recorded yet.</div>
+        <div class="log-actions">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm danger" onclick="clearLog()">Clear</button>
+        </div>
+    </div>
+
+</div><!-- /app -->
+
+<script>
+/* ─────────────────────────────────────────────
+   Constants
+───────────────────────────────────────────── */
+const BREATH_PHASE_MS   = 5500;          // inhale or exhale duration
+const CYCLE_MS          = BREATH_PHASE_MS * 2; // 11 s
+const PROMPT_INTERVAL_S = 30;
+
+const PROMPTS = [
+    "Breathe as if from the centre of your chest.",
+    "Recall something you genuinely appreciate.",
+    "Feel care for someone close to you.",
+    "Notice what you are grateful for right now.",
+    "Rest in the feeling of warmth toward someone you love.",
+    "Appreciation. Let it be simple.",
+    "Care. Not effort — just warmth.",
+    "You are breathing. That is enough to feel gratitude for.",
+    "Let the exhale carry any tension out.",
+    "Bring to mind a moment of genuine connection.",
+    "What do you love? Hold it lightly.",
+    "Feel the heart. Breathe from there."
+];
+
+/* circle size */
+const CIRCLE_MIN = 80;
+const CIRCLE_MAX = 160;
+
+/* ─────────────────────────────────────────────
+   State
+───────────────────────────────────────────── */
+let sessionDurationMin = 3;
+let sessionRunning     = false;
+let sessionStartTime   = 0;
+let sessionDurationMs  = 0;
+let rafId              = null;
+let phaseStart         = 0;   // timestamp when current phase began
+let phaseIsInhale      = true;
+let totalCycles        = 0;
+let currentCycle       = 1;
+let promptIndex        = 0;
+let promptTimer        = null;
+let pendingLog         = null; // session data to log after completion
+let selectedStar       = 0;
+
+/* ─────────────────────────────────────────────
+   Preset / Custom slider
+───────────────────────────────────────────── */
+function selectPreset(btn, min) {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const customRow = document.getElementById('custom-row');
+    if (min === 'custom') {
+        customRow.classList.add('visible');
+        sessionDurationMin = parseInt(document.getElementById('custom-slider').value, 10);
+    } else {
+        customRow.classList.remove('visible');
+        sessionDurationMin = min;
+    }
+    saveLastSettings();
+}
+
+function onCustomSlider() {
+    const v = parseInt(document.getElementById('custom-slider').value, 10);
+    sessionDurationMin = v;
+    const cycles = Math.round((v * 60) / 11);
+    document.getElementById('custom-val').textContent = v + ' min · ' + cycles + ' cycles';
+    saveLastSettings();
+}
+
+function saveLastSettings() {
+    try {
+        localStorage.setItem('coh-last', JSON.stringify({ min: sessionDurationMin }));
+    } catch(e) {}
+}
+
+function loadLastSettings() {
+    try {
+        const s = JSON.parse(localStorage.getItem('coh-last') || 'null');
+        if (s && s.min) {
+            sessionDurationMin = s.min;
+            // try to match to a preset button
+            const btn = document.querySelector('.preset-btn[data-min="' + s.min + '"]');
+            if (btn) {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        }
+    } catch(e) {}
+}
+
+/* ─────────────────────────────────────────────
+   Session begin / end
+───────────────────────────────────────────── */
+function beginSession() {
+    sessionDurationMs = sessionDurationMin * 60 * 1000;
+    totalCycles = Math.round(sessionDurationMs / CYCLE_MS);
+    currentCycle = 1;
+    phaseIsInhale = true;
+
+    // UI transitions
+    document.getElementById('setup-panel').classList.add('dimmed');
+    document.getElementById('session-area').classList.remove('hidden');
+    document.getElementById('completion-panel').classList.remove('visible');
+    document.getElementById('completion-panel').style.display = 'none';
+
+    sessionStartTime = performance.now();
+    phaseStart = sessionStartTime;
+
+    sessionRunning = true;
+
+    // Prompts
+    showPrompt();
+    scheduleNextPrompt();
+
+    // RAF loop
+    rafId = requestAnimationFrame(sessionTick);
+}
+
+function endEarly() {
+    stopSession(true);
+}
+
+function stopSession(early) {
+    if (!sessionRunning) return;
+    sessionRunning = false;
+    cancelAnimationFrame(rafId);
+    clearTimeout(promptTimer);
+
+    // fade out prompt
+    document.getElementById('prompt-text').style.opacity = '0';
+
+    const elapsedMs = performance.now() - sessionStartTime;
+    pendingLog = {
+        durationMin: Math.round(elapsedMs / 60000 * 10) / 10,
+        durationLabel: formatDur(elapsedMs),
+        date: new Date().toISOString()
+    };
+
+    if (!early) {
+        chime();
+    }
+
+    // show completion after brief delay
+    setTimeout(() => {
+        document.getElementById('session-area').classList.add('hidden');
+        const cp = document.getElementById('completion-panel');
+        cp.style.display = 'block';
+        cp.classList.add('visible');
+        document.getElementById('setup-panel').classList.remove('dimmed');
+        // reset star
+        selectedStar = 0;
+        renderStars();
+        document.getElementById('log-notes').value = '';
+        document.getElementById('save-note').textContent = '';
+    }, early ? 200 : 600);
+}
+
+function formatDur(ms) {
+    const s = Math.round(ms / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + String(sec).padStart(2, '0');
+}
+
+/* ─────────────────────────────────────────────
+   Animation tick
+───────────────────────────────────────────── */
+function sessionTick(now) {
+    if (!sessionRunning) return;
+
+    const elapsed   = now - sessionStartTime;
+    const remaining = sessionDurationMs - elapsed;
+
+    // Check done
+    if (remaining <= 0) {
+        updateTimerDisplay(0);
+        updateCycleDisplay(totalCycles, totalCycles);
+        stopSession(false);
+        return;
+    }
+
+    // Timer
+    updateTimerDisplay(remaining);
+
+    // Phase progress
+    const phaseElapsed = now - phaseStart;
+    let t = Math.min(phaseElapsed / BREATH_PHASE_MS, 1); // 0 → 1
+
+    if (t >= 1) {
+        // Switch phase
+        phaseIsInhale = !phaseIsInhale;
+        phaseStart = now;
+        t = 0;
+        if (phaseIsInhale) {
+            currentCycle = Math.min(currentCycle + 1, totalCycles);
+        }
+        updatePhaseLabel(phaseIsInhale);
+    }
+
+    // Smooth easing (sine)
+    const eased = 0.5 - 0.5 * Math.cos(Math.PI * t);
+    const progress = phaseIsInhale ? eased : (1 - eased);
+
+    // Circle
+    const size = CIRCLE_MIN + progress * (CIRCLE_MAX - CIRCLE_MIN);
+    const opacity = 0.2 + progress * 0.65;
+    const glowSize = 20 + progress * 40;
+    const glowAlpha = 0.08 + progress * 0.22;
+
+    const circle = document.getElementById('breath-circle');
+    circle.style.width  = size + 'px';
+    circle.style.height = size + 'px';
+    circle.style.background = 'radial-gradient(circle, rgba(64,160,192,' + opacity.toFixed(3) + '), rgba(112,96,208,0.2))';
+    circle.style.boxShadow  = '0 0 ' + glowSize + 'px rgba(112,96,208,' + glowAlpha.toFixed(3) + ')';
+
+    // Cycle counter
+    updateCycleDisplay(currentCycle, totalCycles);
+
+    rafId = requestAnimationFrame(sessionTick);
+}
+
+function updateTimerDisplay(ms) {
+    const totalSec = Math.ceil(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    document.getElementById('timer-display').textContent =
+        String(m).padStart(1,'0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateCycleDisplay(current, total) {
+    document.getElementById('cycle-display').textContent =
+        'Breath ' + current + ' of ' + total;
+}
+
+function updatePhaseLabel(isInhale) {
+    const el = document.getElementById('phase-label');
+    el.style.opacity = '0';
+    setTimeout(() => {
+        el.textContent = isInhale ? 'Inhale' : 'Exhale';
+        el.style.opacity = '1';
+    }, 200);
+}
+
+/* ─────────────────────────────────────────────
+   Prompts
+───────────────────────────────────────────── */
+function showPrompt() {
+    const el = document.getElementById('prompt-text');
+    el.style.opacity = '0';
+    setTimeout(() => {
+        el.textContent = PROMPTS[promptIndex % PROMPTS.length];
+        el.style.opacity = '1';
+    }, 600);
+}
+
+function scheduleNextPrompt() {
+    promptTimer = setTimeout(() => {
+        if (!sessionRunning) return;
+        // fade out
+        document.getElementById('prompt-text').style.opacity = '0';
+        setTimeout(() => {
+            promptIndex = (promptIndex + 1) % PROMPTS.length;
+            showPrompt();
+            scheduleNextPrompt();
+        }, 1200);
+    }, PROMPT_INTERVAL_S * 1000);
+}
+
+/* ─────────────────────────────────────────────
+   Chime
+───────────────────────────────────────────── */
+function chime() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [396, 528, 660].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const g   = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            g.gain.setValueAtTime(0, ctx.currentTime + i * 0.55);
+            g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.55 + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.55 + 1.8);
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.55);
+            osc.stop(ctx.currentTime + i * 0.55 + 2);
+        });
+    } catch(e) { /* audio not available */ }
+}
+
+/* ─────────────────────────────────────────────
+   Stars
+───────────────────────────────────────────── */
+function setStar(v) {
+    selectedStar = v;
+    renderStars();
+}
+
+function renderStars() {
+    document.querySelectorAll('.star').forEach(s => {
+        const v = parseInt(s.dataset.v, 10);
+        s.classList.toggle('lit', v <= selectedStar);
+    });
+}
+
+/* ─────────────────────────────────────────────
+   Log save / load
+───────────────────────────────────────────── */
+function saveLog() {
+    if (!pendingLog) return;
+    const note = document.getElementById('save-note');
+    const records = loadLogData();
+
+    records.unshift({
+        date: pendingLog.date,
+        duration: pendingLog.durationLabel,
+        durationMin: pendingLog.durationMin,
+        coherence: selectedStar,
+        notes: document.getElementById('log-notes').value.trim()
+    });
+
+    try {
+        localStorage.setItem('coh-log', JSON.stringify(records));
+        note.textContent = 'Saved.';
+        note.style.color = 'var(--on)';
+        pendingLog = null;
+        renderLog();
+        setTimeout(() => { note.textContent = ''; }, 3000);
+    } catch(e) {
+        note.textContent = 'Save failed (storage error).';
+        note.style.color = 'var(--warn)';
+    }
+}
+
+function loadLogData() {
+    try {
+        return JSON.parse(localStorage.getItem('coh-log') || '[]');
+    } catch(e) { return []; }
+}
+
+function renderLog() {
+    const records = loadLogData();
+    const tbody = document.getElementById('log-tbody');
+    const empty  = document.getElementById('log-empty');
+    const stats  = document.getElementById('log-stats');
+
+    tbody.innerHTML = '';
+
+    if (records.length === 0) {
+        empty.classList.remove('hidden');
+        stats.innerHTML = '';
+        return;
+    }
+    empty.classList.add('hidden');
+
+    // Stats
+    const thisWeek = getThisWeekCount(records);
+    const avg = records.filter(r => r.coherence > 0).length > 0
+        ? (records.filter(r => r.coherence > 0).reduce((a, r) => a + r.coherence, 0) /
+           records.filter(r => r.coherence > 0).length).toFixed(1)
+        : '—';
+
+    stats.innerHTML = `
+        <div class="log-stat">
+            <span class="val">${records.length}</span>
+            <span class="lbl">Total sessions</span>
+        </div>
+        <div class="log-stat">
+            <span class="val">${thisWeek}</span>
+            <span class="lbl">This week</span>
+        </div>
+        <div class="log-stat">
+            <span class="val">${avg}${avg !== '—' ? '<span style="font-size:13px;color:var(--text-dim);">★</span>' : ''}</span>
+            <span class="lbl">Avg coherence</span>
+        </div>`;
+
+    // Table
+    records.forEach(r => {
+        const tr = document.createElement('tr');
+        const d  = new Date(r.date);
+        const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+                        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        const stars = r.coherence > 0 ? '★'.repeat(r.coherence) : '—';
+        tr.innerHTML = `
+            <td>${dateStr}</td>
+            <td>${r.duration}</td>
+            <td class="stars">${stars}</td>
+            <td class="notes">${r.notes ? escHtml(r.notes) : '<span style="color:var(--off)">—</span>'}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function getThisWeekCount(records) {
+    const now  = new Date();
+    const day  = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - day);
+    startOfWeek.setHours(0, 0, 0, 0);
+    return records.filter(r => new Date(r.date) >= startOfWeek).length;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function exportLog() {
+    const data = loadLogData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'coherence-log.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function clearLog() {
+    if (!confirm('Clear all session logs?')) return;
+    try { localStorage.removeItem('coh-log'); } catch(e) {}
+    renderLog();
+}
+
+/* ─────────────────────────────────────────────
+   Init
+───────────────────────────────────────────── */
+(function init() {
+    loadLastSettings();
+    onCustomSlider(); // set initial label
+    renderLog();
+
+    // Set initial phase label
+    document.getElementById('phase-label').textContent = '';
+
+    // Initialise custom slider label
+    const slider = document.getElementById('custom-slider');
+    const v = parseInt(slider.value, 10);
+    const cycles = Math.round((v * 60) / 11);
+    document.getElementById('custom-val').textContent = v + ' min · ' + cycles + ' cycles';
+})();
+</script>
+</body>
+</html>

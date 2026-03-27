@@ -267,6 +267,99 @@
 
         /* Separator */
         .sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+        /* ── Enhancement 1: Heart coherence overlay ────────────────────────────── */
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.6); opacity: 0.5; }
+            50%       { transform: scale(1);   opacity: 1;   }
+        }
+
+        #coherence-overlay {
+            position: fixed; inset: 0;
+            background: rgba(10,10,15,0.96);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 3000;
+            transition: opacity 0.6s ease;
+        }
+        #coherence-overlay.fade-out { opacity: 0; pointer-events: none; }
+
+        #coherence-title {
+            font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 36px;
+        }
+
+        #coherence-circle {
+            width: 140px; height: 140px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(160,96,224,0.6), rgba(112,96,208,0.2));
+            animation: breathe 11s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        #coherence-instruction {
+            font-size: 12px; color: var(--text-dim); text-align: center;
+            margin-top: 32px; line-height: 1.8; max-width: 300px;
+            letter-spacing: 0.04em;
+        }
+
+        #coherence-countdown {
+            font-size: 28px; letter-spacing: 0.1em;
+            color: rgba(160,96,224,0.6); margin-top: 28px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #coherence-skip {
+            position: absolute; bottom: 28px; right: 28px;
+            font-size: 11px; color: var(--off);
+            background: none; border: 1px solid var(--border);
+            padding: 5px 12px; cursor: pointer; border-radius: 3px;
+            letter-spacing: 0.06em;
+        }
+        #coherence-skip:hover { color: var(--text-dim); border-color: var(--text-dim); }
+
+        /* ── Enhancement 2: Relationship field ────────────────────────────────── */
+
+        #relationship-hint {
+            font-size: 10px; color: var(--off);
+            line-height: 1.6; margin-top: 4px;
+            min-height: 28px;
+            transition: color 0.2s;
+        }
+
+        /* ── Enhancement 3: Intention framing guide ───────────────────────────── */
+
+        #intention-guide-toggle {
+            font-size: 11px; color: var(--text-dim);
+            background: none; border: none; cursor: pointer;
+            padding: 0; letter-spacing: 0.04em;
+            display: inline-flex; align-items: center; gap: 4px;
+            margin-top: 10px;
+        }
+        #intention-guide-toggle:hover { color: var(--accent); }
+
+        #intention-guide-arrow {
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+        #intention-guide-arrow.open { transform: rotate(90deg); }
+
+        #intention-guide-body {
+            display: none;
+            margin-top: 10px;
+            background: var(--surface2);
+            border-left: 2px solid var(--accent);
+            padding: 10px 14px;
+            font-size: 11px;
+            line-height: 1.7;
+            color: var(--text-dim);
+            border-radius: 0 3px 3px 0;
+        }
+        #intention-guide-body.open { display: block; }
+
+        #intention-guide-body .guide-good { color: var(--on); }
+        #intention-guide-body .guide-bad  { color: #804040; }
+        #intention-guide-body .guide-note { color: var(--off); margin-top: 8px; display: block; }
     </style>
 </head>
 <body>
@@ -289,7 +382,21 @@
             <label>Location note</label>
             <input type="text" id="target-location" placeholder="city, distance, conditions…" autocomplete="off">
         </div>
-        <label id="photo-upload-btn" for="photo-file-input">&#43; Upload target photo (optional)</label>
+
+        <!-- Enhancement 2: Relationship dropdown -->
+        <div class="ctrl">
+            <label>Relationship</label>
+            <select id="relationship">
+                <option value="stranger">Stranger</option>
+                <option value="acquaintance">Acquaintance</option>
+                <option value="friend">Friend</option>
+                <option value="family" selected>Close family</option>
+                <option value="partner">Intimate partner</option>
+            </select>
+        </div>
+        <div id="relationship-hint"></div>
+
+        <label id="photo-upload-btn" for="photo-file-input" style="margin-top:10px;">&#43; Upload target photo (optional)</label>
         <input type="file" id="photo-file-input" accept="image/*">
         <div class="hint">Photo stays on your device. Not saved to localStorage. Displayed in Photo focus mode.</div>
     </div>
@@ -303,6 +410,19 @@
         </div>
         <textarea id="intention-text" rows="3" placeholder="What are you transmitting? One clear image, impression, or concept."></textarea>
         <div class="hint">Keep it simple and concrete. Abstract concepts transmit poorly. A colour, a shape, an emotion, a scene.</div>
+
+        <!-- Enhancement 3: Intention framing guide -->
+        <button id="intention-guide-toggle" onclick="toggleIntentionGuide()">
+            <span id="intention-guide-arrow">&#9658;</span> Intention framing guide (Braud DMILS protocol)
+        </button>
+        <div id="intention-guide-body">
+            <div style="margin-bottom:6px; color:var(--text); font-size:11px; letter-spacing:0.06em;">Effective intention framing (from Braud's DMILS research):</div>
+            <div class="guide-good">&#10003; Compassion-based: "I intend to calm and relax [name]'s nervous system."</div>
+            <div class="guide-good">&#10003; Care-focused: "I hold [name] in warm attention and send ease."</div>
+            <div class="guide-good">&#10003; Specific &amp; somatic: "I intend that [name]'s breathing deepens and shoulders release."</div>
+            <div class="guide-bad">&#10007; Avoid: Vague, abstract, or control-oriented framing.</div>
+            <span class="guide-note">The strongest DMILS results used care and compassion as the transmission vector,<br>not willpower or focused concentration.</span>
+        </div>
     </div>
 
     <!-- Operator Audio -->
@@ -467,6 +587,14 @@
                 <option value="45">45 min</option>
             </select>
         </div>
+
+        <!-- Enhancement 1: Pre-session coherence toggle -->
+        <div class="tog-row" style="margin-top:4px;">
+            <label>Pre-session coherence (5 min)</label>
+            <div class="tog"><input type="checkbox" id="coherence-on" checked><span class="tog-sl"></span></div>
+        </div>
+        <div class="hint" style="margin-top:-4px; margin-bottom:8px;">Heart-focused breathing before transmission. Sender coherence is the strongest predictor of remote influence effect size (HeartMath/Braud/Schlitz).</div>
+
         <div id="timer-display">00:00</div>
         <div id="phase-display">Ready — agree a start time with receiver, then begin simultaneously</div>
         <button class="btn-main" id="begin-btn" onclick="toggleSession()">Begin Session</button>
@@ -523,6 +651,10 @@ let running = false, sessTimer = null, elapsed = 0, sessDuration = 0;
 let matchVal = 0;
 let photoData = null;   // base64, session-only — never in localStorage
 
+// Coherence overlay state
+let coherenceTimer = null;
+let coherenceOverlayEl = null;
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const el  = id => document.getElementById(id);
@@ -539,7 +671,7 @@ function sv(srcId, dispId, unit = '', dec = 2) {
 // ── Config persistence ────────────────────────────────────────────────────────
 
 const CFG_RANGES = ['beat-hz','carrier-hz','bin-vol','noise-vol','sess-dur'];
-const CFG_BOOLS  = ['bin-on','noise-on'];
+const CFG_BOOLS  = ['bin-on','noise-on','coherence-on'];
 
 function getConfig() {
     const c = {};
@@ -548,6 +680,7 @@ function getConfig() {
     c['target-name']     = gv('target-name');
     c['target-location'] = gv('target-location');
     c['focus-mode']      = currentFocusMode;
+    c['relationship']    = gv('relationship');
     return c;
 }
 
@@ -557,7 +690,9 @@ function applyConfig(c) {
     if (c['target-name'])     el('target-name').value     = c['target-name'];
     if (c['target-location']) el('target-location').value = c['target-location'];
     if (c['focus-mode'])      setFocusMode(c['focus-mode']);
+    if (c['relationship'])    el('relationship').value    = c['relationship'];
     refreshVals();
+    updateRelationshipHint();
 }
 
 function refreshVals() {
@@ -609,7 +744,7 @@ el('photo-file-input').addEventListener('change', function() {
     reader.onload = e => {
         photoData = e.target.result;
         syncFocusContent();
-        el('photo-upload-btn').textContent = '✓ Photo loaded — ' + file.name;
+        el('photo-upload-btn').textContent = '\u2713 Photo loaded \u2014 ' + file.name;
     };
     reader.readAsDataURL(file);
 });
@@ -696,18 +831,68 @@ function stopAudio() {
     noiseG.gain.linearRampToValueAtTime(0, ctx.currentTime + 2);
 }
 
+// ── Enhancement 1: Heart coherence overlay ───────────────────────────────────
+
+function buildCoherenceOverlay(receiverName, onComplete) {
+    const DURATION = 300; // 5 minutes in seconds
+    let remaining = DURATION;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'coherence-overlay';
+    overlay.innerHTML = `
+        <div id="coherence-title">Heart-focused breathing</div>
+        <div id="coherence-circle"></div>
+        <div id="coherence-instruction">Breathe as if from your heart.<br>Cultivate care for <strong style="color:rgba(160,96,224,0.85);">${receiverName}</strong>.</div>
+        <div id="coherence-countdown">${fmt(Math.floor(DURATION / 60))}:${fmt(DURATION % 60)}</div>
+        <button id="coherence-skip">Skip</button>
+    `;
+    document.body.appendChild(overlay);
+    coherenceOverlayEl = overlay;
+
+    function tick() {
+        remaining--;
+        const cdEl = overlay.querySelector('#coherence-countdown');
+        if (cdEl) cdEl.textContent = fmt(Math.floor(remaining / 60)) + ':' + fmt(remaining % 60);
+        if (remaining <= 0) finishCoherence();
+    }
+
+    coherenceTimer = setInterval(tick, 1000);
+
+    function finishCoherence() {
+        clearInterval(coherenceTimer);
+        coherenceTimer = null;
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            coherenceOverlayEl = null;
+            onComplete();
+        }, 650);
+    }
+
+    overlay.querySelector('#coherence-skip').addEventListener('click', finishCoherence);
+}
+
 // ── Session state machine ─────────────────────────────────────────────────────
 
 function toggleSession() {
     if (running) endSession();
-    else beginSession();
+    else startSessionFlow();
 }
 
-function beginSession() {
+// Entry point: runs coherence overlay if enabled, then beginSession()
+function startSessionFlow() {
     const name = gv('target-name').trim();
     if (!name) { alert('Enter a receiver name before beginning.'); return; }
     if (!gv('intention-text').trim()) { alert('Write your intention before beginning.'); return; }
 
+    if (gc('coherence-on')) {
+        buildCoherenceOverlay(name, beginSession);
+    } else {
+        beginSession();
+    }
+}
+
+function beginSession() {
     running = true;
     elapsed = 0;
     sessDuration = parseInt(gv('sess-dur')) * 60;
@@ -723,13 +908,13 @@ function beginSession() {
     // Hide intention text (replace with blinded message)
     el('intention-text').style.display = 'none';
     el('intention-locked').style.display = 'block';
-    el('intention-locked').textContent = '● Intention sealed. Hold it in mind.';
+    el('intention-locked').textContent = '\u25CF Intention sealed. Hold it in mind.';
 
     el('begin-btn').textContent = 'End Session';
     el('begin-btn').classList.add('running');
     el('post-panel').classList.add('hidden');
 
-    setPhase('● transmitting', true);
+    setPhase('\u25CF transmitting', true);
     startAudio();
 
     sessTimer = setInterval(() => {
@@ -742,6 +927,13 @@ function beginSession() {
 function endSession() {
     running = false;
     clearInterval(sessTimer); sessTimer = null;
+
+    // If coherence overlay is somehow still up (edge case), clean it up
+    if (coherenceTimer) { clearInterval(coherenceTimer); coherenceTimer = null; }
+    if (coherenceOverlayEl && coherenceOverlayEl.parentNode) {
+        coherenceOverlayEl.parentNode.removeChild(coherenceOverlayEl);
+        coherenceOverlayEl = null;
+    }
 
     stopAudio();
 
@@ -756,7 +948,7 @@ function endSession() {
 
     el('begin-btn').textContent = 'Begin Session';
     el('begin-btn').classList.remove('running');
-    setPhase('Session complete — record below', false);
+    setPhase('Session complete \u2014 record below', false);
 
     // Open post-session form
     el('post-intention-display').textContent = gv('intention-text').trim() || '(no intention recorded)';
@@ -775,7 +967,7 @@ function updateTimer() {
     el('timer-display').textContent = fmt(m) + ':' + fmt(s);
     if (running) {
         const remM = Math.floor(rem/60), remS = rem % 60;
-        setPhase('● transmitting — ' + fmt(remM) + ':' + fmt(remS) + ' remaining', true);
+        setPhase('\u25CF transmitting \u2014 ' + fmt(remM) + ':' + fmt(remS) + ' remaining', true);
     }
 }
 
@@ -808,15 +1000,16 @@ function saveLog(log) {
 
 function saveSession() {
     const entry = {
-        id:        Math.random().toString(36).slice(2),
-        date:      new Date().toISOString(),
-        receiver:  gv('target-name').trim(),
-        location:  gv('target-location').trim(),
-        duration:  parseInt(gv('sess-dur')),
-        intention: gv('intention-text').trim(),
-        report:    el('post-report').value.trim(),
-        match:     matchVal,
-        notes:     el('post-notes').value.trim(),
+        id:           Math.random().toString(36).slice(2),
+        date:         new Date().toISOString(),
+        receiver:     gv('target-name').trim(),
+        location:     gv('target-location').trim(),
+        relationship: gv('relationship'),
+        duration:     parseInt(gv('sess-dur')),
+        intention:    gv('intention-text').trim(),
+        report:       el('post-report').value.trim(),
+        match:        matchVal,
+        notes:        el('post-notes').value.trim(),
     };
     const log = loadLog();
     log.push(entry);
@@ -843,11 +1036,11 @@ function renderLog() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="white-space:nowrap;font-size:10px;">${dateStr}</td>
-            <td>${e.receiver || '—'}</td>
+            <td>${e.receiver || '\u2014'}</td>
             <td>${e.duration}</td>
             <td class="${matchCls}">${e.match} ${MATCH_LABELS[e.match]||''}</td>
             <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
-                title="${(e.intention||'').replace(/"/g,'&quot;')}">${e.intention || '—'}</td>`;
+                title="${(e.intention||'').replace(/"/g,'&quot;')}">${e.intention || '\u2014'}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -868,18 +1061,44 @@ function clearLog() {
     renderLog();
 }
 
+// ── Enhancement 2: Relationship hint ─────────────────────────────────────────
+
+const RELATIONSHIP_HINTS = {
+    stranger:     'Effect size typically minimal. Sheldrake trials: ~33% (near chance).',
+    acquaintance: 'Modest effect possible. Familiar context helps.',
+    friend:       'Good candidate. Familiarity significantly boosts effect size.',
+    family:       'Strong candidate. Family bonds show consistently elevated effects.',
+    partner:      'Highest documented effect sizes. Emotional bond is the primary amplifier.',
+};
+
+function updateRelationshipHint() {
+    const val  = gv('relationship');
+    const hint = RELATIONSHIP_HINTS[val] || '';
+    el('relationship-hint').textContent = hint;
+}
+
+// ── Enhancement 3: Intention framing guide toggle ─────────────────────────────
+
+function toggleIntentionGuide() {
+    const body  = el('intention-guide-body');
+    const arrow = el('intention-guide-arrow');
+    const isOpen = body.classList.toggle('open');
+    arrow.classList.toggle('open', isOpen);
+}
+
 // ── Live range display ────────────────────────────────────────────────────────
 
 ['beat-hz','carrier-hz','bin-vol','noise-vol'].forEach(id => {
     el(id).addEventListener('input', () => { refreshVals(); saveConfig(); });
 });
-['bin-on','noise-on'].forEach(id => {
+['bin-on','noise-on','coherence-on'].forEach(id => {
     el(id).addEventListener('change', saveConfig);
 });
 ['target-name','target-location'].forEach(id => {
     el(id).addEventListener('input', () => { syncFocusContent(); saveConfig(); });
 });
 el('sess-dur').addEventListener('change', saveConfig);
+el('relationship').addEventListener('change', () => { updateRelationshipHint(); saveConfig(); });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -888,8 +1107,8 @@ el('sess-dur').addEventListener('change', saveConfig);
     try {
         const last = localStorage.getItem('thp-last');
         if (last) applyConfig(JSON.parse(last));
-        else refreshVals();
-    } catch(e) { refreshVals(); }
+        else { refreshVals(); updateRelationshipHint(); }
+    } catch(e) { refreshVals(); updateRelationshipHint(); }
 
     syncFocusContent();
     renderLog();

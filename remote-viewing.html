@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Remote Viewing — Mindforge</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #7060d0;
+            --accent2: #40a0c0;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        header {
+            text-align: center; padding: 24px 0 20px;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 22px; letter-spacing: 0.35em; color: var(--accent);
+            text-transform: uppercase;
+        }
+        header p { color: var(--text-dim); font-size: 11px; margin-top: 6px; letter-spacing: 0.1em; }
+        header nav { margin-top: 12px; display: flex; justify-content: center; gap: 18px; }
+        header nav a {
+            font-size: 11px; color: var(--text-dim); text-decoration: none;
+            letter-spacing: 0.08em; border-bottom: 1px solid transparent;
+            transition: color .15s, border-color .15s;
+        }
+        header nav a:hover { color: var(--accent2); border-color: var(--accent2); }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 12px;
+            padding: 16px;
+        }
+        .panel-title {
+            font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--accent2); margin-bottom: 14px;
+        }
+        .panel-title .dim { color: var(--off); font-size: 10px; }
+
+        .sub-title {
+            font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 10px; margin-top: 4px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Intro panel */
+        #intro-panel {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; margin-bottom: 12px; padding: 16px;
+        }
+        #intro-panel .intro-title {
+            font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 12px;
+        }
+        #intro-panel pre {
+            font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-dim);
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+        }
+        #intro-panel pre em { color: var(--accent2); font-style: normal; }
+        #intro-dismiss {
+            margin-top: 14px; font-size: 11px; color: var(--off);
+            background: transparent; border: 1px solid var(--border);
+            padding: 7px 14px; cursor: pointer; border-radius: 2px;
+            font-family: inherit; letter-spacing: 0.06em;
+            transition: border-color .15s, color .15s;
+        }
+        #intro-dismiss:hover { border-color: var(--accent2); color: var(--accent2); }
+
+        /* Controls */
+        .ctrl { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .ctrl label { width: 130px; min-width: 130px; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+        .ctrl input[type=text], .ctrl select, .ctrl input[type=url] {
+            flex: 1; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 6px 8px; border-radius: 2px;
+            font-family: inherit; font-size: 12px;
+        }
+        .ctrl input[type=text]:focus, .ctrl select:focus, .ctrl input[type=url]:focus {
+            outline: none; border-color: var(--accent);
+        }
+        .ctrl .btn-gen {
+            flex-shrink: 0; padding: 6px 10px; font-size: 11px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+            border-radius: 2px; font-family: inherit; letter-spacing: 0.04em;
+            transition: border-color .15s, color .15s;
+        }
+        .ctrl .btn-gen:hover { border-color: var(--accent); color: var(--accent); }
+
+        textarea {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 2px;
+            font-family: inherit; font-size: 12px; line-height: 1.6;
+            resize: vertical; min-height: 80px;
+        }
+        textarea:focus { outline: none; border-color: var(--accent); }
+        textarea::placeholder { color: var(--text-dim); }
+
+        .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+        .hint.warn { color: var(--warn); }
+
+        .sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+        /* ARV note box */
+        #arv-note {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-left: 3px solid var(--warn);
+            padding: 10px 12px; border-radius: 2px; margin-top: 10px;
+            font-size: 11px; color: var(--text-dim); line-height: 1.6;
+        }
+        #arv-targets { margin-top: 10px; }
+
+        /* Session Console */
+        #console-panel { display: none; }
+
+        .coord-display {
+            text-align: center; padding: 14px 0 10px;
+            font-size: 11px; letter-spacing: 0.14em; color: var(--text-dim);
+            text-transform: uppercase;
+        }
+        .coord-display span {
+            font-size: 26px; letter-spacing: 0.22em; color: var(--accent);
+            display: block; margin-top: 4px; font-variant-numeric: tabular-nums;
+        }
+
+        #timer-wrap {
+            text-align: center; padding: 10px 0 6px;
+        }
+        #sess-timer {
+            font-size: 42px; letter-spacing: 0.12em; color: var(--text);
+            font-variant-numeric: tabular-nums; display: block;
+        }
+        #phase-label {
+            font-size: 11px; color: var(--accent2); letter-spacing: 0.1em;
+            margin-top: 6px; min-height: 16px; text-align: center;
+        }
+
+        #transcript {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 12px; border-radius: 2px;
+            font-family: inherit; font-size: 12px; line-height: 1.7;
+            resize: none; min-height: 220px;
+            flex: 1;
+        }
+        #transcript:focus { outline: none; border-color: var(--accent); }
+
+        .console-btns { display: flex; gap: 8px; margin-top: 8px; }
+
+        button {
+            font-family: inherit; font-size: 12px; cursor: pointer;
+            border-radius: 2px; transition: background .15s, border-color .15s, color .15s;
+            letter-spacing: 0.06em;
+        }
+        .btn-main {
+            flex: 1; padding: 12px; background: transparent;
+            border: 1px solid var(--border); color: var(--text);
+            text-transform: uppercase;
+        }
+        .btn-main:hover { background: var(--surface2); border-color: var(--accent); }
+        .btn-main.primary { border-color: var(--accent); color: var(--accent); }
+        .btn-main.primary:hover { background: var(--accent); color: #fff; }
+        .btn-main.danger { border-color: var(--warn); color: var(--warn); }
+        .btn-main.danger:hover { background: var(--warn); color: #fff; }
+        .btn-main.running { border-color: var(--on); color: var(--on); }
+        .btn-main.running:hover { background: #903030; border-color: #c04040; color: #fff; }
+        .btn-sm {
+            padding: 7px 12px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim); font-size: 11px;
+        }
+        .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-sm.danger { border-color: #604040; color: #806060; }
+        .btn-sm.danger:hover { border-color: #b04040; color: #c06060; background: rgba(176,64,64,0.08); }
+
+        /* Reveal target */
+        #reveal-wrap { text-align: center; padding: 10px 0; }
+        #reveal-confirm {
+            display: inline-block; background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); padding: 10px 24px; font-size: 13px;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            cursor: pointer; font-family: inherit; border-radius: 2px;
+            transition: background .15s;
+        }
+        #reveal-confirm:hover { background: var(--accent); color: #fff; }
+        #reveal-confirm.armed {
+            border-color: var(--warn); color: var(--warn);
+        }
+        #reveal-confirm.armed:hover { background: var(--warn); color: #fff; }
+
+        #target-reveal-content { margin-top: 12px; display: none; }
+        #target-revealed-text {
+            background: var(--surface2); border: 1px solid var(--border);
+            padding: 10px; border-radius: 2px; font-size: 12px;
+            line-height: 1.6; color: var(--text); min-height: 40px;
+        }
+        #target-img-preview {
+            max-width: 100%; border-radius: 2px; margin-top: 8px;
+            border: 1px solid var(--border); display: none;
+        }
+
+        /* Rating scale */
+        .rating-row {
+            display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px;
+        }
+        .rating-btn {
+            flex: 1; min-width: 36px; padding: 9px 4px; text-align: center;
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-dim); font-size: 11px; font-family: inherit;
+            cursor: pointer; border-radius: 2px;
+            transition: background .12s, border-color .12s, color .12s;
+        }
+        .rating-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .rating-btn.sel { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.18); }
+
+        .rating-desc {
+            font-size: 10px; color: var(--text-dim); margin-top: 6px;
+            min-height: 14px; text-align: center; letter-spacing: 0.06em;
+        }
+
+        /* ARV post-session */
+        .arv-call-row { display: flex; gap: 8px; margin-top: 8px; }
+        .arv-call-btn {
+            flex: 1; padding: 11px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-dim);
+            font-size: 12px; font-family: inherit; cursor: pointer;
+            border-radius: 2px; letter-spacing: 0.08em; text-transform: uppercase;
+            transition: background .12s, border-color .12s, color .12s;
+        }
+        .arv-call-btn.sel-a { border-color: var(--accent2); color: var(--accent2); background: rgba(64,160,192,0.12); }
+        .arv-call-btn.sel-b { border-color: var(--accent); color: var(--accent); background: rgba(112,96,208,0.12); }
+        .arv-call-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+        /* CRV reference */
+        #crv-ref { display: none; }
+        #crv-toggle {
+            background: transparent; border: none; color: var(--text-dim);
+            font-size: 11px; cursor: pointer; font-family: inherit; letter-spacing: 0.08em;
+            padding: 0; text-decoration: underline;
+        }
+        #crv-toggle:hover { color: var(--accent2); }
+        #crv-body {
+            margin-top: 12px; background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 2px; padding: 12px;
+        }
+        .crv-stage {
+            display: flex; gap: 10px; margin-bottom: 8px; font-size: 11px;
+        }
+        .crv-stage-num {
+            flex-shrink: 0; width: 18px; color: var(--accent); font-size: 11px;
+        }
+        .crv-stage-label { color: var(--accent2); }
+        .crv-stage-desc { color: var(--text-dim); }
+
+        /* Log table */
+        #log-table-wrap { overflow-x: auto; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th {
+            text-align: left; color: var(--text-dim); font-weight: normal;
+            padding: 4px 6px; border-bottom: 1px solid var(--border); letter-spacing: 0.06em;
+            white-space: nowrap;
+        }
+        td {
+            padding: 6px 6px; border-bottom: 1px solid rgba(42,42,64,0.5);
+            vertical-align: top;
+        }
+        tr:last-child td { border-bottom: none; }
+        .r0 { color: var(--off); }
+        .r1 { color: var(--text-dim); }
+        .r2 { color: #907840; }
+        .r3 { color: var(--warn); }
+        .r4 { color: var(--accent2); }
+        .r5 { color: var(--accent); }
+        .r6 { color: #a080e0; }
+        .r7 { color: var(--on); }
+
+        /* Stats */
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; margin-top: 12px;
+        }
+        .stat-box {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 2px; padding: 10px 12px;
+        }
+        .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+        .stat-val { font-size: 20px; color: var(--accent); margin-top: 4px; letter-spacing: 0.06em; }
+        .stat-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+        .dots-row { display: flex; gap: 4px; margin-top: 8px; align-items: center; }
+        .dot-pip {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 1px solid var(--border); background: var(--surface2);
+            transition: background .2s;
+        }
+        .dot-pip.filled { background: var(--accent); border-color: var(--accent); }
+        .dot-pip.half { background: rgba(112,96,208,0.4); border-color: var(--accent); }
+        .dots-label { font-size: 11px; color: var(--text-dim); margin-left: 6px; }
+
+        .log-btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+        /* Begin-session lock */
+        .locked { opacity: 0.4; pointer-events: none; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header>
+        <h1>Remote Viewing</h1>
+        <p>SRI protocol &nbsp;·&nbsp; Free-response &nbsp;·&nbsp; Blind judging</p>
+        <nav>
+            <a href="index.html">Mindforge</a>
+            <a href="ganzfeld.html">Ganzfeld</a>
+        </nav>
+    </header>
+
+    <!-- INTRO PANEL -->
+    <div id="intro-panel">
+        <div class="intro-title">Standard Protocol (SRI, Targ &amp; Puthoff)</div>
+        <pre>
+1. <em>Tasker</em> selects and records a target — location, photo, or object.
+   Viewer is told only a coordinate or session ID. Nothing else.
+
+2. <em>Session:</em> Viewer relaxes and describes impressions for 15–30 min.
+   Describe shapes, textures, colours, spatial feelings, movements.
+   Do not name or label ("I think it's a…"). Just describe raw perception.
+
+3. <em>Feedback:</em> After session, viewer is shown the actual target.
+   Viewer and/or independent judge rates correspondence 0–7 (ARV scale).
+
+4. Over multiple sessions, deviation from chance becomes measurable.
+   Meta-analysis 1974–2022: d ≈ 0.4 across 117 studies.</pre>
+        <button id="intro-dismiss" onclick="dismissIntro()">Got it — hide this</button>
+    </div>
+
+    <!-- PANEL 1: SESSION SETUP -->
+    <div class="panel" id="setup-panel">
+        <div class="panel-title">Session Setup</div>
+
+        <div class="ctrl">
+            <label>Session Coordinate</label>
+            <input type="text" id="coordinate" placeholder="e.g. 483921" maxlength="20" autocomplete="off">
+            <button class="btn-gen" onclick="genCoord()">Generate</button>
+        </div>
+
+        <div class="ctrl">
+            <label>Viewer name</label>
+            <input type="text" id="viewer-name" placeholder="name" autocomplete="off">
+        </div>
+
+        <div class="ctrl">
+            <label>Tasker name</label>
+            <input type="text" id="tasker-name" placeholder="name" autocomplete="off">
+        </div>
+
+        <div class="ctrl">
+            <label>Target mode</label>
+            <select id="target-mode" onchange="onModeChange()">
+                <option value="Photo target">Photo target</option>
+                <option value="Location target">Location target</option>
+                <option value="Object target">Object target</option>
+                <option value="Associative RV (binary)">Associative RV (binary)</option>
+            </select>
+        </div>
+
+        <div id="arv-note" class="hidden">
+            <strong style="color:var(--warn);">ARV — Associative Remote Viewing</strong><br>
+            Two targets are preassigned — one for YES, one for NO outcome. Viewer describes
+            which they perceive. Judge determines if description matches the YES or NO target.
+            Tasker then acts on the call. Enter targets below after the session ends.
+        </div>
+
+        <div id="arv-targets" class="hidden">
+            <hr class="sep">
+            <div class="sub-title">ARV Targets (enter after session — keep blind during viewing)</div>
+            <div class="ctrl">
+                <label>Target A (= YES)</label>
+                <input type="text" id="arv-target-a" placeholder="describe or name target A" autocomplete="off">
+            </div>
+            <div class="ctrl">
+                <label>Target B (= NO)</label>
+                <input type="text" id="arv-target-b" placeholder="describe or name target B" autocomplete="off">
+            </div>
+        </div>
+
+        <hr class="sep">
+
+        <div class="sub-title">Pre-session notes</div>
+        <textarea id="session-notes" placeholder="Date, time, conditions, emotional state, any prior sessions today…" style="min-height:60px;"></textarea>
+
+        <button class="btn-main primary" style="margin-top:12px; width:100%;" onclick="beginSession()">Begin Session</button>
+    </div>
+
+    <!-- PANEL 2: SESSION CONSOLE -->
+    <div class="panel" id="console-panel">
+        <div class="panel-title">Session Console <span class="dim" id="console-mode-label"></span></div>
+
+        <div class="coord-display">
+            Target coordinate
+            <span id="console-coord">—</span>
+        </div>
+
+        <div id="timer-wrap">
+            <span id="sess-timer">00:00</span>
+            <div id="phase-label">Initial contact — first impressions</div>
+        </div>
+
+        <hr class="sep">
+
+        <textarea id="transcript"
+            placeholder="Describe shapes, textures, colours, spatial relationships, feelings, movements. Avoid naming or labelling. 'Angular dark mass' not 'it's a mountain.'"></textarea>
+
+        <div class="console-btns">
+            <button class="btn-main" id="pause-btn" onclick="togglePause()">Pause</button>
+            <button class="btn-main danger" onclick="endSession()">End Session</button>
+        </div>
+    </div>
+
+    <!-- PANEL 3: POST-SESSION JUDGING -->
+    <div class="panel hidden" id="judge-panel">
+        <div class="panel-title">Post-Session Judging</div>
+
+        <!-- Step 1: Reveal -->
+        <div class="sub-title">Step 1 — Reveal the target</div>
+        <div id="reveal-wrap">
+            <button id="reveal-confirm" onclick="handleReveal()">Reveal Target</button>
+            <div class="hint" style="margin-top:8px;">Click once to arm, click again to confirm reveal.</div>
+        </div>
+
+        <div id="target-reveal-content">
+            <hr class="sep">
+            <div class="sub-title">Actual target</div>
+            <textarea id="target-actual" placeholder="Tasker: describe or paste the target location, object, or scene. Be specific." style="min-height:70px;"></textarea>
+            <div class="ctrl" style="margin-top:8px;">
+                <label>Target image URL</label>
+                <input type="url" id="target-img-url" placeholder="https://…" oninput="previewImg()">
+            </div>
+            <img id="target-img-preview" src="" alt="target preview">
+        </div>
+
+        <!-- ARV call -->
+        <div id="arv-judge-section" class="hidden">
+            <hr class="sep">
+            <div class="sub-title">ARV — Which target does the transcript better match?</div>
+            <div id="arv-label-a" style="font-size:11px; color:var(--text-dim); margin-bottom:4px;"></div>
+            <div id="arv-label-b" style="font-size:11px; color:var(--text-dim); margin-bottom:8px;"></div>
+            <div class="arv-call-row">
+                <button class="arv-call-btn" id="arv-call-a" onclick="setArvCall('A')">A &mdash; YES</button>
+                <button class="arv-call-btn" id="arv-call-b" onclick="setArvCall('B')">B &mdash; NO</button>
+            </div>
+            <div class="ctrl" style="margin-top:10px;">
+                <label>Actual outcome</label>
+                <select id="arv-actual-outcome">
+                    <option value="">— unknown / pending —</option>
+                    <option value="YES">YES (A was correct)</option>
+                    <option value="NO">NO (B was correct)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Step 2: Rating -->
+        <div id="rating-section">
+            <hr class="sep">
+            <div class="sub-title">Step 2 — Correspondence rating (0–7 ARV/CRV scale)</div>
+            <div class="rating-row" id="rating-row"></div>
+            <div class="rating-desc" id="rating-desc">Select a rating</div>
+        </div>
+
+        <!-- Step 3: Analysis -->
+        <hr class="sep">
+        <div class="sub-title">Step 3 — Analysis</div>
+
+        <div class="ctrl">
+            <label>Judged by</label>
+            <select id="judge-by">
+                <option value="Self">Self (viewer judged own session)</option>
+                <option value="Viewer">Viewer (separate from self-rating)</option>
+                <option value="Independent judge">Independent judge</option>
+            </select>
+        </div>
+
+        <textarea id="judge-notes" placeholder="Judge notes — what matched, what didn't, notable correspondences or misses…" style="min-height:70px; margin-top:4px;"></textarea>
+
+        <button class="btn-main primary" style="margin-top:12px; width:100%;" onclick="saveSession()">Save Session</button>
+    </div>
+
+    <!-- PANEL 4: SESSION LOG -->
+    <div class="panel" id="log-panel">
+        <div class="panel-title">Session Log</div>
+
+        <div class="log-btn-row">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm danger" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div id="log-empty" style="font-size:11px; color:var(--off); padding:6px 0;">No sessions recorded yet.</div>
+
+        <div id="log-table-wrap" class="hidden">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Coord</th>
+                        <th>Viewer</th>
+                        <th>Mode</th>
+                        <th>Rating</th>
+                        <th>Dur</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Stats -->
+        <div id="log-stats" class="hidden">
+            <hr class="sep" style="margin-top:14px;">
+            <div class="sub-title">Running Statistics</div>
+
+            <div class="dots-row">
+                <div id="avg-dots"></div>
+                <span class="dots-label" id="avg-dots-label"></span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Total Sessions</div>
+                    <div class="stat-val" id="stat-total">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Average Rating</div>
+                    <div class="stat-val" id="stat-avg">—</div>
+                    <div class="stat-sub">chance baseline: 3.5</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Moderate+ (≥3)</div>
+                    <div class="stat-val" id="stat-mod">0</div>
+                    <div class="stat-sub" id="stat-mod-pct"></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">This Month</div>
+                    <div class="stat-val" id="stat-month">0</div>
+                </div>
+            </div>
+
+            <div id="arv-stats-box" class="hidden" style="margin-top:8px;">
+                <div class="stat-box" style="width:100%;">
+                    <div class="stat-label">ARV Hit Rate</div>
+                    <div class="stat-val" id="stat-arv-hits">—</div>
+                    <div class="stat-sub" id="stat-arv-sub">chance: 50%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CRV REFERENCE (collapsible) -->
+    <div class="panel">
+        <div class="panel-title">CRV Stage Reference</div>
+        <button id="crv-toggle" onclick="toggleCrv()">Show CRV stages</button>
+        <div id="crv-ref">
+            <div id="crv-body">
+                <div class="crv-stage">
+                    <span class="crv-stage-num">1</span>
+                    <span><span class="crv-stage-label">Ideogram</span> <span class="crv-stage-desc">— first spontaneous mark or impression. Don't analyse it yet.</span></span>
+                </div>
+                <div class="crv-stage">
+                    <span class="crv-stage-num">2</span>
+                    <span><span class="crv-stage-label">Sensory data</span> <span class="crv-stage-desc">— temperature, texture, colour, sound, smell, taste.</span></span>
+                </div>
+                <div class="crv-stage">
+                    <span class="crv-stage-num">3</span>
+                    <span><span class="crv-stage-label">Dimensional data</span> <span class="crv-stage-desc">— shapes, sizes, spatial relationships, height, depth.</span></span>
+                </div>
+                <div class="crv-stage">
+                    <span class="crv-stage-num">4</span>
+                    <span><span class="crv-stage-label">Aesthetic impact</span> <span class="crv-stage-desc">— emotional tone, beauty, function, purpose, feeling.</span></span>
+                </div>
+                <div class="crv-stage">
+                    <span class="crv-stage-num">5</span>
+                    <span><span class="crv-stage-label">Analytical work</span> <span class="crv-stage-desc">— attempt naming only after raw data gathered.</span></span>
+                </div>
+                <div class="crv-stage" style="margin-bottom:0;">
+                    <span class="crv-stage-num">6</span>
+                    <span><span class="crv-stage-label">3D model / sketch</span> <span class="crv-stage-desc">— consolidation. Draw or describe overall structure.</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- .app -->
+
+<script>
+'use strict';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const RATING_LABELS = [
+    '0 — No correspondence',
+    '1 — Vague, incidental',
+    '2 — Some broad correspondence (shapes, general feel)',
+    '3 — Moderate — several elements match',
+    '4 — Good — most major elements, spatial relationships correct',
+    '5 — Strong — detailed and accurate',
+    '6 — Near-exact — viewer described the target precisely',
+    '7 — Perfect — complete correspondence (rare)',
+];
+
+const PHASE_LABELS = [
+    [0,   3,   'Initial contact — first impressions'],
+    [3,   10,  'Exploration — move through the target space'],
+    [10,  20,  'Detail pass — textures, colours, structures'],
+    [20,  Infinity, 'Summary — consolidate strongest impressions'],
+];
+
+const LOG_KEY   = 'rv-log';
+const LAST_KEY  = 'rv-last';
+const INTRO_KEY = 'rv-intro-dismissed';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let sessionRunning = false;
+let sessionPaused  = false;
+let timerElapsed   = 0;   // seconds
+let timerInterval  = null;
+
+let ratingVal  = null;
+let arvCall    = null;  // 'A' | 'B' | null
+let revealArmed = false;
+let revealDone  = false;
+
+let currentSession = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const el  = id => document.getElementById(id);
+const fmt = n  => String(Math.floor(n)).padStart(2, '0');
+
+function uuid() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return fmt(m) + ':' + fmt(s);
+}
+
+function fmtDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'2-digit'})
+        + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function truncate(s, n) {
+    if (!s) return '—';
+    return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ── Intro panel ───────────────────────────────────────────────────────────────
+
+function dismissIntro() {
+    localStorage.setItem(INTRO_KEY, 'true');
+    el('intro-panel').classList.add('hidden');
+}
+
+(function initIntro() {
+    if (localStorage.getItem(INTRO_KEY) === 'true') {
+        el('intro-panel').classList.add('hidden');
+    }
+})();
+
+// ── Coordinate generator ──────────────────────────────────────────────────────
+
+function genCoord() {
+    const n = Math.floor(100000 + Math.random() * 900000);
+    el('coordinate').value = String(n);
+    saveSetupFields();
+}
+
+// ── Mode change ───────────────────────────────────────────────────────────────
+
+function onModeChange() {
+    const mode = el('target-mode').value;
+    const isArv = mode === 'Associative RV (binary)';
+    el('arv-note').classList.toggle('hidden', !isArv);
+    el('arv-targets').classList.toggle('hidden', !isArv);
+    saveSetupFields();
+}
+
+// ── Persist setup fields ──────────────────────────────────────────────────────
+
+function saveSetupFields() {
+    const d = {
+        coordinate:    el('coordinate').value,
+        viewer:        el('viewer-name').value,
+        tasker:        el('tasker-name').value,
+        mode:          el('target-mode').value,
+        notes:         el('session-notes').value,
+        arvA:          el('arv-target-a').value,
+        arvB:          el('arv-target-b').value,
+    };
+    try { localStorage.setItem(LAST_KEY, JSON.stringify(d)); } catch(e){}
+}
+
+function restoreSetupFields() {
+    try {
+        const d = JSON.parse(localStorage.getItem(LAST_KEY) || '{}');
+        if (d.coordinate)  el('coordinate').value    = d.coordinate;
+        if (d.viewer)      el('viewer-name').value   = d.viewer;
+        if (d.tasker)      el('tasker-name').value   = d.tasker;
+        if (d.mode)        el('target-mode').value   = d.mode;
+        if (d.notes)       el('session-notes').value = d.notes;
+        if (d.arvA)        el('arv-target-a').value  = d.arvA;
+        if (d.arvB)        el('arv-target-b').value  = d.arvB;
+        onModeChange();
+    } catch(e){}
+}
+
+['coordinate','viewer-name','tasker-name','session-notes','arv-target-a','arv-target-b'].forEach(id => {
+    el(id).addEventListener('input', saveSetupFields);
+});
+el('target-mode').addEventListener('change', saveSetupFields);
+
+// ── Session lifecycle ─────────────────────────────────────────────────────────
+
+function beginSession() {
+    const coord  = el('coordinate').value.trim();
+    const viewer = el('viewer-name').value.trim();
+    if (!coord)  { alert('Enter a session coordinate before beginning.'); return; }
+    if (!viewer) { alert('Enter a viewer name before beginning.'); return; }
+
+    saveSetupFields();
+
+    const mode = el('target-mode').value;
+
+    currentSession = {
+        id:              uuid(),
+        date:            new Date().toISOString(),
+        coordinate:      coord,
+        viewer:          viewer,
+        tasker:          el('tasker-name').value.trim(),
+        mode:            mode,
+        notes:           el('session-notes').value.trim(),
+        transcript:      '',
+        target_revealed: '',
+        rating:          null,
+        judge:           'Self',
+        judge_notes:     '',
+        duration_sec:    0,
+        arv_call:        null,
+        arv_correct:     null,
+    };
+
+    // Switch panels
+    el('setup-panel').classList.add('locked');
+    el('console-panel').style.display = 'block';
+    el('judge-panel').classList.add('hidden');
+
+    // Set console labels
+    el('console-coord').textContent = coord;
+    el('console-mode-label').textContent = '· ' + mode;
+
+    // Reset timer
+    timerElapsed  = 0;
+    sessionPaused = false;
+    sessionRunning = true;
+    el('sess-timer').textContent = '00:00';
+    el('pause-btn').textContent  = 'Pause';
+    updatePhaseLabel();
+
+    timerInterval = setInterval(() => {
+        if (!sessionPaused) {
+            timerElapsed++;
+            el('sess-timer').textContent = fmtTime(timerElapsed);
+            updatePhaseLabel();
+        }
+    }, 1000);
+
+    // Scroll to console
+    el('console-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updatePhaseLabel() {
+    const min = timerElapsed / 60;
+    for (const [start, end, label] of PHASE_LABELS) {
+        if (min >= start && min < end) {
+            el('phase-label').textContent = label;
+            break;
+        }
+    }
+}
+
+function togglePause() {
+    if (!sessionRunning) return;
+    sessionPaused = !sessionPaused;
+    el('pause-btn').textContent = sessionPaused ? 'Resume' : 'Pause';
+}
+
+function endSession() {
+    if (!sessionRunning) return;
+    clearInterval(timerInterval);
+    timerInterval  = null;
+    sessionRunning = false;
+    sessionPaused  = false;
+
+    currentSession.duration_sec = timerElapsed;
+    currentSession.transcript   = el('transcript').value;
+
+    // Lock console
+    el('pause-btn').disabled    = true;
+    el('transcript').readOnly   = true;
+
+    // Show judge panel
+    revealArmed = false;
+    revealDone  = false;
+    ratingVal   = null;
+    arvCall     = null;
+    el('reveal-confirm').textContent = 'Reveal Target';
+    el('reveal-confirm').classList.remove('armed');
+    el('target-reveal-content').style.display = 'none';
+    el('target-actual').value  = '';
+    el('target-img-url').value = '';
+    el('target-img-preview').style.display = 'none';
+    el('judge-notes').value    = '';
+    el('arv-call-a').className = 'arv-call-btn';
+    el('arv-call-b').className = 'arv-call-btn';
+    el('arv-actual-outcome').value = '';
+
+    buildRatingRow();
+    el('rating-desc').textContent = 'Select a rating';
+
+    const isArv = currentSession.mode === 'Associative RV (binary)';
+    el('arv-judge-section').classList.toggle('hidden', !isArv);
+    if (isArv) {
+        const a = el('arv-target-a').value.trim() || 'Target A';
+        const b = el('arv-target-b').value.trim() || 'Target B';
+        el('arv-label-a').textContent = 'A (YES): ' + a;
+        el('arv-label-b').textContent = 'B (NO): ' + b;
+    }
+
+    el('judge-panel').classList.remove('hidden');
+    el('judge-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Rating row builder ────────────────────────────────────────────────────────
+
+function buildRatingRow() {
+    const row = el('rating-row');
+    row.innerHTML = '';
+    for (let i = 0; i <= 7; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'rating-btn';
+        btn.textContent = i;
+        btn.dataset.v = i;
+        btn.onclick = () => setRating(i);
+        row.appendChild(btn);
+    }
+}
+
+function setRating(v) {
+    ratingVal = v;
+    el('rating-row').querySelectorAll('.rating-btn').forEach(btn => {
+        btn.classList.toggle('sel', parseInt(btn.dataset.v) === v);
+    });
+    el('rating-desc').textContent = RATING_LABELS[v] || '';
+}
+
+// ── ARV call ──────────────────────────────────────────────────────────────────
+
+function setArvCall(call) {
+    arvCall = call;
+    el('arv-call-a').className = 'arv-call-btn' + (call === 'A' ? ' sel-a' : '');
+    el('arv-call-b').className = 'arv-call-btn' + (call === 'B' ? ' sel-b' : '');
+}
+
+// ── Reveal logic ──────────────────────────────────────────────────────────────
+
+function handleReveal() {
+    if (!revealArmed) {
+        // First click: arm
+        revealArmed = true;
+        el('reveal-confirm').textContent = 'Confirm — Show Target';
+        el('reveal-confirm').classList.add('armed');
+    } else {
+        // Second click: reveal
+        revealDone = true;
+        el('reveal-confirm').style.display = 'none';
+        el('target-reveal-content').style.display = 'block';
+        el('target-actual').focus();
+    }
+}
+
+function previewImg() {
+    const url = el('target-img-url').value.trim();
+    const img = el('target-img-preview');
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        img.src = url;
+        img.style.display = 'block';
+        img.onerror = () => { img.style.display = 'none'; };
+    } else {
+        img.style.display = 'none';
+    }
+}
+
+// ── Save session ──────────────────────────────────────────────────────────────
+
+function saveSession() {
+    if (!currentSession) return;
+
+    if (ratingVal === null && currentSession.mode !== 'Associative RV (binary)') {
+        alert('Select a correspondence rating (0–7) before saving.');
+        return;
+    }
+
+    const isArv = currentSession.mode === 'Associative RV (binary)';
+
+    currentSession.target_revealed = el('target-actual').value.trim();
+    currentSession.rating          = ratingVal !== null ? ratingVal : null;
+    currentSession.judge           = el('judge-by').value;
+    currentSession.judge_notes     = el('judge-notes').value.trim();
+
+    if (isArv) {
+        currentSession.arv_call = arvCall;
+        const outcome = el('arv-actual-outcome').value;
+        if (outcome && arvCall) {
+            currentSession.arv_correct = (
+                (arvCall === 'A' && outcome === 'YES') ||
+                (arvCall === 'B' && outcome === 'NO')
+            );
+        }
+    }
+
+    const log = loadLog();
+    log.push(currentSession);
+    saveLog(log);
+
+    // Reset UI
+    el('judge-panel').classList.add('hidden');
+    el('console-panel').style.display = 'none';
+    el('setup-panel').classList.remove('locked');
+    el('transcript').value    = '';
+    el('transcript').readOnly = false;
+    el('pause-btn').disabled  = false;
+    currentSession = null;
+
+    renderLog();
+    el('log-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── localStorage ──────────────────────────────────────────────────────────────
+
+function loadLog() {
+    try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function saveLog(log) {
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e){}
+}
+
+// ── Render log ────────────────────────────────────────────────────────────────
+
+const RATING_CLASS = ['r0','r1','r2','r3','r4','r5','r6','r7'];
+
+function renderLog() {
+    const log = loadLog();
+
+    if (!log.length) {
+        el('log-empty').classList.remove('hidden');
+        el('log-table-wrap').classList.add('hidden');
+        el('log-stats').classList.add('hidden');
+        return;
+    }
+
+    el('log-empty').classList.add('hidden');
+    el('log-table-wrap').classList.remove('hidden');
+    el('log-stats').classList.remove('hidden');
+
+    const tbody = el('log-tbody');
+    tbody.innerHTML = '';
+
+    [...log].reverse().forEach(s => {
+        const tr = document.createElement('tr');
+        const durStr = s.duration_sec ? fmtTime(s.duration_sec) : '—';
+        const ratingStr = s.rating !== null && s.rating !== undefined ? s.rating : '—';
+        const ratingCls = (s.rating !== null && s.rating !== undefined) ? RATING_CLASS[s.rating] : '';
+        tr.innerHTML = `
+            <td style="white-space:nowrap;font-size:10px;">${fmtDate(s.date)}</td>
+            <td>${escHtml(s.coordinate || '—')}</td>
+            <td>${escHtml(s.viewer || '—')}</td>
+            <td style="font-size:10px;color:var(--text-dim);">${escHtml(modeShort(s.mode))}</td>
+            <td class="${ratingCls}">${ratingStr}</td>
+            <td style="font-size:10px;color:var(--text-dim);">${durStr}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);font-size:10px;"
+                title="${escAttr(s.notes || '')}">${escHtml(truncate(s.notes, 30))}</td>`;
+        tbody.appendChild(tr);
+    });
+
+    renderStats(log);
+}
+
+function modeShort(mode) {
+    if (!mode) return '—';
+    if (mode === 'Associative RV (binary)') return 'ARV';
+    if (mode === 'Photo target') return 'Photo';
+    if (mode === 'Location target') return 'Location';
+    if (mode === 'Object target') return 'Object';
+    return mode;
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+    return String(s).replace(/"/g,'&quot;').replace(/&/g,'&amp;');
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+
+function renderStats(log) {
+    const rated = log.filter(s => s.rating !== null && s.rating !== undefined);
+    const total = log.length;
+
+    el('stat-total').textContent = total;
+
+    if (rated.length) {
+        const avg = rated.reduce((a, s) => a + s.rating, 0) / rated.length;
+        el('stat-avg').textContent = avg.toFixed(1) + ' / 7';
+        renderDots(avg);
+    } else {
+        el('stat-avg').textContent = '—';
+        renderDots(null);
+    }
+
+    const mod = rated.filter(s => s.rating >= 3).length;
+    el('stat-mod').textContent = mod;
+    el('stat-mod-pct').textContent = total ? Math.round(mod / total * 100) + '% of total' : '';
+
+    const now = new Date();
+    const thisMonth = log.filter(s => {
+        const d = new Date(s.date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+    el('stat-month').textContent = thisMonth;
+
+    // ARV stats
+    const arvSessions = log.filter(s => s.mode === 'Associative RV (binary)' && s.arv_correct !== null && s.arv_correct !== undefined);
+    if (arvSessions.length) {
+        el('arv-stats-box').classList.remove('hidden');
+        const hits = arvSessions.filter(s => s.arv_correct === true).length;
+        const pct  = Math.round(hits / arvSessions.length * 100);
+        el('stat-arv-hits').textContent = hits + ' / ' + arvSessions.length;
+        el('stat-arv-sub').textContent  = pct + '% hit rate · chance: 50%';
+    } else {
+        el('arv-stats-box').classList.add('hidden');
+    }
+}
+
+function renderDots(avg) {
+    const container = el('avg-dots');
+    container.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'dots-row';
+
+    for (let i = 1; i <= 7; i++) {
+        const pip = document.createElement('div');
+        pip.className = 'dot-pip';
+        if (avg !== null) {
+            if (i <= Math.floor(avg)) {
+                pip.classList.add('filled');
+            } else if (i === Math.ceil(avg) && avg % 1 >= 0.5) {
+                pip.classList.add('half');
+            }
+        }
+        row.appendChild(pip);
+    }
+    container.appendChild(row);
+
+    el('avg-dots-label').textContent = avg !== null ? 'avg ' + avg.toFixed(1) + ' / 7' : 'no rated sessions';
+}
+
+// ── Export / clear ────────────────────────────────────────────────────────────
+
+function exportLog() {
+    const log = loadLog();
+    if (!log.length) { alert('No sessions to export.'); return; }
+    const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'rv-sessions-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all session records? This cannot be undone.')) return;
+    localStorage.removeItem(LOG_KEY);
+    renderLog();
+}
+
+// ── CRV reference toggle ──────────────────────────────────────────────────────
+
+function toggleCrv() {
+    const ref = el('crv-ref');
+    const open = ref.style.display === 'block';
+    ref.style.display = open ? 'none' : 'block';
+    el('crv-toggle').textContent = open ? 'Show CRV stages' : 'Hide CRV stages';
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+(function init() {
+    restoreSetupFields();
+    onModeChange();
+    buildRatingRow();
+    renderLog();
+})();
+</script>
+</body>
+</html>
