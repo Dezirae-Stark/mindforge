@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mindforge</title>
+    <title>Mindforge Suite</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #0a0a0f;
-            --surface: #12121a;
+            --bg:       #0a0a0f;
+            --surface:  #12121a;
             --surface2: #1a1a28;
-            --border: #2a2a40;
-            --text: #c8c8e0;
+            --border:   #2a2a40;
+            --text:     #c8c8e0;
             --text-dim: #6060a0;
-            --accent: #7060d0;
-            --accent2: #40a0c0;
-            --warn: #c07040;
-            --on: #40c080;
-            --off: #404060;
-            --interrupt: #b05030;
+            --accent:   #7060d0;
+            --accent2:  #40a0c0;
+            --warn:     #c07040;
+            --on:       #40c080;
+            --off:      #404060;
         }
 
         body {
@@ -28,1058 +27,331 @@
             font-family: 'Courier New', monospace;
             font-size: 14px;
             min-height: 100vh;
-            overflow-x: hidden;
         }
 
-        #stim-left, #stim-right {
-            position: fixed; top: 0;
-            width: 14px; height: 100vh;
-            z-index: 1000; pointer-events: none; opacity: 0;
+        .app {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-bottom: 60px;
         }
-        #stim-left  { left: 0; }
-        #stim-right { right: 0; }
-        #stim-left.active, #stim-right.active { opacity: 1; }
 
-        #subliminal-flash {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2000; pointer-events: none; opacity: 0;
-            color: rgba(255,255,255,0.92);
-            font-weight: bold; text-align: center;
-            text-shadow: 0 0 22px rgba(112,96,208,0.9);
-            max-width: 82vw; line-height: 1.4;
-            letter-spacing: 0.05em; font-size: 18px;
-        }
-        #subliminal-flash.visible { opacity: 1; }
-
-        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
-
+        /* ── Header ── */
         header {
-            text-align: center; padding: 24px 0 20px;
-            border-bottom: 1px solid var(--border); margin-bottom: 20px;
+            text-align: center;
+            padding: 36px 0 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 28px;
         }
-        header h1 { font-size: 22px; letter-spacing: 0.35em; color: var(--accent); text-transform: uppercase; }
-        header p  { color: var(--text-dim); font-size: 11px; margin-top: 6px; letter-spacing: 0.1em; }
-
-        .section {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 4px; padding: 16px; margin-bottom: 12px;
+        .logo {
+            display: inline-block;
+            margin-bottom: 14px;
         }
-        .section-title {
-            font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
-            color: var(--accent2); margin-bottom: 14px;
+        .logo svg {
+            display: block;
+            margin: 0 auto;
         }
-        .sub-title {
-            font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
-            color: var(--text-dim); margin-bottom: 10px; margin-top: 4px;
+        header h1 {
+            font-size: 22px;
+            letter-spacing: 0.4em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 8px;
         }
-
-        .ctrl {
-            display: flex; align-items: center;
-            gap: 12px; margin-bottom: 10px;
-        }
-        .ctrl > label:first-child, .ctrl > span:first-child {
-            flex: 0 0 130px; font-size: 12px; color: var(--text-dim);
-        }
-        .ctrl input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
-        .ctrl .val { flex: 0 0 58px; text-align: right; font-size: 12px; color: var(--text); }
-        .ctrl select {
-            flex: 1; background: var(--surface2); border: 1px solid var(--border);
-            color: var(--text); padding: 5px 8px; border-radius: 2px;
-            font-size: 12px; font-family: inherit;
+        header .tagline {
+            color: var(--text-dim);
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            line-height: 1.7;
         }
 
-        .tog { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-        .tog > span:first-child { flex: 0 0 130px; font-size: 12px; color: var(--text-dim); }
-
-        .toggle { position: relative; width: 40px; height: 20px; cursor: pointer; display: inline-block; }
-        .toggle input { display: none; }
-        .toggle-track { position: absolute; inset: 0; background: var(--off); border-radius: 10px; transition: background .2s; }
-        .toggle input:checked + .toggle-track { background: var(--accent); }
-        .toggle-thumb {
-            position: absolute; top: 2px; left: 2px;
-            width: 16px; height: 16px; background: #fff;
-            border-radius: 50%; transition: left .2s; pointer-events: none;
+        /* ── Section label ── */
+        .section-label {
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--off);
+            margin-bottom: 12px;
+            padding-left: 2px;
         }
-        .toggle input:checked ~ .toggle-thumb { left: 22px; }
 
-        textarea {
-            width: 100%; background: var(--surface2); border: 1px solid var(--border);
-            color: var(--text); padding: 10px; border-radius: 2px;
-            font-family: inherit; font-size: 12px; line-height: 1.6;
-            resize: vertical; min-height: 110px;
+        /* ── Tool cards ── */
+        .card {
+            display: block;
+            text-decoration: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px 18px;
+            margin-bottom: 10px;
+            transition: border-color 0.15s, background 0.15s;
+            position: relative;
+            overflow: hidden;
         }
-        textarea::placeholder { color: var(--text-dim); }
-        .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
-
-        #status-display {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 4px; padding: 12px 16px; margin-bottom: 12px;
-            display: flex; justify-content: space-between; align-items: center;
+        .card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--card-color, var(--accent));
+            opacity: 0.7;
         }
-        #status-left { flex: 1; }
-        #status-text { font-size: 12px; color: var(--text-dim); }
-        #phase-display { font-size: 10px; color: var(--accent2); margin-top: 3px; min-height: 14px; }
-        #timer-display {
-            font-size: 22px; letter-spacing: 0.12em; color: var(--accent);
-            font-variant-numeric: tabular-nums;
+        .card:hover {
+            border-color: var(--card-color, var(--accent));
+            background: var(--surface2);
         }
-        #timer-display.int { color: var(--interrupt); }
+        .card:hover .arrow { opacity: 1; transform: translateX(3px); }
 
-        .main-controls { display: flex; gap: 10px; margin-bottom: 12px; }
-
-        button {
-            flex: 1; padding: 13px; border: 1px solid var(--border);
-            background: var(--surface); color: var(--text); font-family: inherit;
-            font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;
-            cursor: pointer; border-radius: 2px;
-            transition: background .15s, border-color .15s, color .15s;
+        .card-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 5px;
         }
-        button:hover { background: var(--surface2); border-color: var(--accent); }
-        button.start   { border-color: var(--accent); color: var(--accent); }
-        button.start:hover { background: var(--accent); color: #fff; }
-        button.running { border-color: var(--on); color: var(--on); }
-        button.running:hover { background: #903030; border-color: #c04040; color: #fff; }
-        button.int-btn { border-color: var(--interrupt); color: var(--interrupt); }
-        button.secondary { flex: 0 0 auto; font-size: 11px; padding: 13px 14px; }
-
-        .presets-row { display: flex; gap: 6px; flex-wrap: wrap; }
-        .pe { display: flex; gap: 4px; align-items: center; }
-        .pe-load { flex: 0 0 auto; padding: 6px 12px; font-size: 11px; }
-        .pe-del  { flex: 0 0 auto; padding: 6px 9px;  font-size: 11px; color: var(--warn); }
-
-        .quick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .qb {
-            flex: 0 0 auto; padding: 7px 11px; font-size: 11px;
-            border-color: var(--accent2); color: var(--accent2);
+        .glyph {
+            font-size: 16px;
+            color: var(--card-color, var(--accent));
+            line-height: 1;
+            flex-shrink: 0;
         }
-        .qb:hover { background: var(--accent2); color: #000; }
-        .qb.gateway { border-color: #a080e0; color: #a080e0; }
-        .qb.gateway:hover { background: #a080e0; color: #000; }
-
-        .dot {
-            display: inline-block; width: 6px; height: 6px;
-            border-radius: 50%; background: var(--off); margin-right: 6px; vertical-align: middle;
+        .card-name {
+            font-size: 13px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text);
+            font-weight: bold;
         }
-        .dot.on { background: var(--on); box-shadow: 0 0 6px var(--on); }
-
-        hr { border: none; border-top: 1px solid var(--border); margin: 6px 0 12px; }
-
-        .freq-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
-        .ft {
-            font-size: 10px; padding: 3px 7px; border: 1px solid var(--border);
-            border-radius: 2px; color: var(--text-dim); cursor: pointer;
+        .arrow {
+            margin-left: auto;
+            color: var(--card-color, var(--accent));
+            font-size: 14px;
+            opacity: 0.4;
+            transition: opacity 0.15s, transform 0.15s;
+            flex-shrink: 0;
         }
-        .ft:hover { border-color: var(--accent2); color: var(--accent2); }
-        .ft.special { border-color: #806090; color: #806090; }
-        .ft.special:hover { background: #806090; color: #fff; }
+        .card-proto {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--card-color, var(--accent));
+            opacity: 0.75;
+            margin-bottom: 6px;
+            padding-left: 26px;
+        }
+        .card-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            padding-left: 26px;
+        }
 
-        #live-hz { font-size: 10px; color: var(--accent); text-align: right; margin-top: -6px; margin-bottom: 8px; min-height: 14px; }
+        /* ── Divider between solo/paired sections ── */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 22px 0 18px;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
+            margin-top: 10px;
+        }
+        footer p {
+            font-size: 10px;
+            color: var(--off);
+            letter-spacing: 0.08em;
+            line-height: 1.9;
+        }
+        footer a { color: var(--text-dim); text-decoration: none; }
+        footer a:hover { color: var(--accent2); }
+
+        /* ── Workflow hint ── */
+        .workflow {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+        .workflow-title {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+        .workflow-row {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .workflow-row:last-child { margin-bottom: 0; }
+        .wf-step {
+            color: var(--text);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 2px 7px;
+            font-size: 10px;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        .wf-arrow { color: var(--off); font-size: 10px; }
+        .wf-label {
+            font-size: 10px;
+            color: var(--off);
+            letter-spacing: 0.1em;
+            width: 100%;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
-
-<div id="stim-left"></div>
-<div id="stim-right"></div>
-<div id="subliminal-flash"></div>
-
 <div class="app">
+
     <header>
+        <div class="logo">
+            <!-- Minimal yantra-inspired mark -->
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="24" cy="24" r="22" stroke="#7060d0" stroke-width="1" opacity="0.5"/>
+                <circle cx="24" cy="24" r="14" stroke="#40a0c0" stroke-width="0.75" opacity="0.4"/>
+                <!-- upward triangle -->
+                <polygon points="24,8 37,30 11,30" stroke="#7060d0" stroke-width="1" fill="none" opacity="0.6"/>
+                <!-- downward triangle -->
+                <polygon points="24,40 11,18 37,18" stroke="#40a0c0" stroke-width="1" fill="none" opacity="0.6"/>
+                <!-- bindu -->
+                <circle cx="24" cy="24" r="2.5" fill="#7060d0" opacity="0.9"/>
+            </svg>
+        </div>
         <h1>Mindforge</h1>
-        <p>binaural entrainment &nbsp;·&nbsp; bilateral stimulation &nbsp;·&nbsp; subliminal suggestion</p>
+        <div class="tagline">
+            Consciousness research tools &nbsp;·&nbsp; Single-file &nbsp;·&nbsp; No account &nbsp;·&nbsp; No data sent anywhere
+        </div>
     </header>
 
-    <div id="status-display">
-        <div id="status-left">
-            <div id="status-text">ready</div>
-            <div id="phase-display"></div>
-        </div>
-        <span id="timer-display">20:00</span>
-    </div>
+    <!-- Solo tools -->
+    <div class="section-label">Solo practice</div>
 
-    <div class="main-controls">
-        <button id="start-btn" class="start" onclick="toggleSession()">Begin Session</button>
-        <button class="secondary" onclick="savePreset()">Save</button>
-        <button class="secondary" onclick="showPresets()">Presets</button>
-    </div>
+    <a class="card" href="mindforge.html" style="--card-color: #7060d0;">
+        <div class="card-head">
+            <span class="glyph">⟁</span>
+            <span class="card-name">Mindforge</span>
+            <span class="arrow">→</span>
+        </div>
+        <div class="card-proto">Monroe Institute · CIA Gateway · Vasiliev</div>
+        <div class="card-desc">Brainwave entrainment, bilateral stimulation, and subliminal suggestion. Progressive alpha→theta descent with automated hypnagogic window detection. Pattern interrupt + Ericksonian embedding.</div>
+    </a>
 
-    <div id="presets-panel" class="section" style="display:none">
-        <div class="section-title">Saved Presets</div>
-        <div class="presets-row" id="presets-list"></div>
-    </div>
+    <a class="card" href="coherence.html" style="--card-color: #40c080;">
+        <div class="card-head">
+            <span class="glyph">♡</span>
+            <span class="card-name">Coherence</span>
+            <span class="arrow">→</span>
+        </div>
+        <div class="card-proto">HeartMath Institute · McCraty · Braud-Schlitz IONS</div>
+        <div class="card-desc">Heart-brain coherence trainer. 5.5 s inhale / 5.5 s exhale pacing at the HRV resonance frequency. Rotating intention prompts. Use as a 3–5 min pre-session primer before any other tool.</div>
+    </a>
 
-    <!-- SESSION PROTOCOL -->
-    <div class="section">
-        <div class="section-title">Session Protocol</div>
+    <a class="card" href="presentiment.html" style="--card-color: #c07040;">
+        <div class="card-head">
+            <span class="glyph">◌</span>
+            <span class="card-name">Presentiment</span>
+            <span class="arrow">→</span>
+        </div>
+        <div class="card-proto">Radin / Bierman IONS · d = 0.21 · 26 studies</div>
+        <div class="card-desc">Pre-stimulus anticipatory response trainer. Rate your gut-sense (Calm / Mild / Activated) before each reveal. 20–40 trials, z-score vs chance baseline, session log.</div>
+    </a>
 
-        <div class="sub-title">Pre-Session Interrupt</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="interrupt-enabled" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    <a class="card" href="remote-viewing.html" style="--card-color: #40a0c0;">
+        <div class="card-head">
+            <span class="glyph">✦</span>
+            <span class="card-name">Remote Viewing</span>
+            <span class="arrow">→</span>
         </div>
-        <div class="ctrl">
-            <span>Duration</span>
-            <input type="range" id="interrupt-dur" min="15" max="120" step="5" value="60"
-                   oninput="sv('interrupt-dur','interrupt-dur-v','s')">
-            <span class="val" id="interrupt-dur-v">60 s</span>
-        </div>
-        <div class="hint">60 seconds of fast bilateral at 4 Hz — Ericksonian pattern interrupt. Overloads and suspends the critical faculty before the main session begins.</div>
-        <hr>
+        <div class="card-proto">SRI · Targ &amp; Puthoff · SAIC Stargate · ARV</div>
+        <div class="card-desc">Coordinate RV and associative RV session log. 6-stage CRV structure guide. 0–7 correspondence rating. ARV binary call tracking with hit rate statistics.</div>
+    </a>
 
-        <div class="sub-title">Progressive Frequency Descent</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="descent-on" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Start freq</span>
-            <input type="range" id="desc-start" min="6" max="16" step="0.5" value="10"
-                   oninput="sv('desc-start','desc-start-v','Hz')">
-            <span class="val" id="desc-start-v">10 Hz</span>
-        </div>
-        <div class="ctrl">
-            <span>Mid freq</span>
-            <input type="range" id="desc-mid" min="3" max="10" step="0.5" value="7.5"
-                   oninput="sv('desc-mid','desc-mid-v','Hz')">
-            <span class="val" id="desc-mid-v">7.5 Hz</span>
-        </div>
-        <div class="ctrl">
-            <span>Time to mid</span>
-            <input type="range" id="desc-mid-t" min="1" max="20" step="1" value="6"
-                   oninput="sv('desc-mid-t','desc-mid-t-v',' min')">
-            <span class="val" id="desc-mid-t-v">6 min</span>
-        </div>
-        <div class="ctrl">
-            <span>End freq</span>
-            <input type="range" id="desc-end" min="1" max="7" step="0.5" value="4"
-                   oninput="sv('desc-end','desc-end-v','Hz')">
-            <span class="val" id="desc-end-v">4 Hz</span>
-        </div>
-        <div class="hint">α→θ→deep θ. Default passes through 7.5 Hz (Gateway sweet spot per CIA declassified report, 1983). Censor relaxes incrementally rather than resisting an unfamiliar state.</div>
-    </div>
+    <hr class="divider">
 
-    <!-- BINAURAL BEATS -->
-    <div class="section">
-        <div class="section-title"><span class="dot" id="dot-bin"></span>Binaural Beats</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="bin-on" checked onchange="updateBinaural()">
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    <!-- Two-person tools -->
+    <div class="section-label">Two-person · consensual</div>
+
+    <a class="card" href="telehypnosis-pro.html" style="--card-color: #9060c0;">
+        <div class="card-head">
+            <span class="glyph">◎</span>
+            <span class="card-name">Telehypnosis Pro</span>
+            <span class="arrow">→</span>
         </div>
-        <div class="ctrl">
-            <span>Beat frequency</span>
-            <input type="range" id="beat-hz" min="0.5" max="40" step="0.5" value="10"
-                   oninput="updateBinaural(); sv('beat-hz','beat-hz-v','Hz')">
-            <span class="val" id="beat-hz-v">10 Hz</span>
+        <div class="card-proto">Vasiliev · Braud-Schlitz IONS DMILS · d = 0.11</div>
+        <div class="card-desc">Operator console for remote mental suggestion. Animated yantra, target photo, or void focus modes. Blinded intention, alpha binaural, pre-session coherence primer. Receiver uses Mindforge simultaneously.</div>
+    </a>
+
+    <a class="card" href="ganzfeld.html" style="--card-color: #60a0d0;">
+        <div class="card-head">
+            <span class="glyph">◈</span>
+            <span class="card-name">Ganzfeld</span>
+            <span class="arrow">→</span>
         </div>
-        <div id="live-hz"></div>
-        <div class="ctrl">
-            <span>Carrier tone</span>
-            <input type="range" id="carrier-hz" min="80" max="500" step="5" value="300"
-                   oninput="updateBinaural(); sv('carrier-hz','carrier-hz-v','Hz')">
-            <span class="val" id="carrier-hz-v">300 Hz</span>
-        </div>
-        <div class="ctrl">
-            <span>Volume</span>
-            <input type="range" id="bin-vol" min="0" max="1" step="0.02" value="0.26"
-                   oninput="updateBinaural(); sv('bin-vol','bin-vol-v','',2)">
-            <span class="val" id="bin-vol-v">0.26</span>
-        </div>
-        <div class="ctrl">
-            <span>Waveform</span>
-            <select id="bin-wave" onchange="updateBinaural()">
-                <option value="sine" selected>Sine (smoothest)</option>
-                <option value="triangle">Triangle</option>
-                <option value="sawtooth">Sawtooth</option>
-            </select>
-        </div>
-        <hr>
-        <div class="hint">Headphones required. 300 Hz carrier per Monroe Institute / Gateway protocol. Left = carrier, right = carrier + beat.</div>
-        <div class="freq-row">
-            <span class="ft" onclick="setHz(2)">δ 2</span>
-            <span class="ft" onclick="setHz(4)">θ 4</span>
-            <span class="ft" onclick="setHz(6)">θ 6</span>
-            <span class="ft special" onclick="setHz(7.5)">θ 7.5 ✦</span>
-            <span class="ft special" onclick="setHz(7.83)">Sch 7.83 ✦</span>
-            <span class="ft" onclick="setHz(10)">α 10</span>
-            <span class="ft" onclick="setHz(18)">β 18</span>
-            <span class="ft" onclick="setHz(40)">γ 40</span>
+        <div class="card-proto">Honorton 1985 · Bem-Honorton · 32 % vs 25 % chance</div>
+        <div class="card-desc">Full ganzfeld session manager. Sender and receiver consoles, pink noise sensory reduction, blinded rank-order judging across 4 shuffled targets, z-score hit rate statistics.</div>
+    </a>
+
+    <hr class="divider">
+
+    <!-- Suggested workflows -->
+    <div class="section-label">Suggested workflows</div>
+
+    <div class="workflow">
+        <div class="workflow-title">Solo session</div>
+        <div class="workflow-row">
+            <span class="wf-step">Coherence</span>
+            <span class="wf-arrow"> → </span>
+            <span class="wf-step">Mindforge</span>
+            <span class="wf-arrow"> → </span>
+            <span class="wf-step">Presentiment</span>
         </div>
     </div>
 
-    <!-- BILATERAL STIMULATION -->
-    <div class="section">
-        <div class="section-title"><span class="dot" id="dot-bil"></span>Bilateral Stimulation</div>
-
-        <div class="sub-title">Visual</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="vis-bil-on" checked onchange="updateBilateral()">
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Rate</span>
-            <input type="range" id="bil-rate" min="0.2" max="5" step="0.1" value="1"
-                   oninput="sv('bil-rate','bil-rate-v','/s'); restartBilateral()">
-            <span class="val" id="bil-rate-v">1/s</span>
-        </div>
-        <div class="ctrl">
-            <span>Pulse width</span>
-            <input type="range" id="bil-width" min="20" max="500" step="10" value="80"
-                   oninput="sv('bil-width','bil-width-v','ms')">
-            <span class="val" id="bil-width-v">80 ms</span>
-        </div>
-        <div class="ctrl">
-            <span>Intensity</span>
-            <input type="range" id="bil-intensity" min="0.1" max="1" step="0.05" value="0.7"
-                   oninput="sv('bil-intensity','bil-intensity-v','',2); updateStimStyle()">
-            <span class="val" id="bil-intensity-v">0.70</span>
-        </div>
-        <div class="ctrl">
-            <span>Color</span>
-            <select id="bil-color" onchange="updateStimStyle()">
-                <option value="purple" selected>Violet</option>
-                <option value="blue">Blue</option>
-                <option value="cyan">Cyan</option>
-                <option value="white">White</option>
-                <option value="amber">Amber</option>
-                <option value="red">Red</option>
-            </select>
-        </div>
-        <hr>
-
-        <div class="sub-title">Audio (alternating panning)</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="aud-bil-on">
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Volume</span>
-            <input type="range" id="aud-bil-vol" min="0.02" max="0.5" step="0.02" value="0.14"
-                   oninput="sv('aud-bil-vol','aud-bil-vol-v','',2); updateNoiseLevel()">
-            <span class="val" id="aud-bil-vol-v">0.14</span>
-        </div>
-        <div class="hint">Pink noise alternating left-right in sync with visual pulses. Engages the cross-hemispheric mechanism through two channels simultaneously — stronger than single-modal.</div>
-    </div>
-
-    <!-- SUBLIMINAL -->
-    <div class="section">
-        <div class="section-title"><span class="dot" id="dot-sub"></span>Subliminal Suggestions</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="sub-on" checked onchange="updateSubliminal()">
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Flash duration</span>
-            <input type="range" id="flash-dur" min="16" max="2000" step="8" value="33"
-                   oninput="sv('flash-dur','flash-dur-v','ms')">
-            <span class="val" id="flash-dur-v">33 ms</span>
-        </div>
-        <div class="ctrl">
-            <span>Interval</span>
-            <input type="range" id="flash-int" min="1" max="60" step="0.5" value="5"
-                   oninput="sv('flash-int','flash-int-v','s')">
-            <span class="val" id="flash-int-v">5 s</span>
-        </div>
-        <div class="tog">
-            <span>Variable interval</span>
-            <label class="toggle"><input type="checkbox" id="var-int" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Variance</span>
-            <input type="range" id="int-variance" min="10" max="60" step="5" value="40"
-                   oninput="sv('int-variance','int-variance-v','%')">
-            <span class="val" id="int-variance-v">40%</span>
-        </div>
-        <div class="ctrl">
-            <span>Delivery</span>
-            <select id="flash-order">
-                <option value="random" selected>Random</option>
-                <option value="sequential">Sequential</option>
-            </select>
-        </div>
-        <div class="ctrl">
-            <span>Font size</span>
-            <input type="range" id="flash-size" min="10" max="52" step="2" value="18"
-                   oninput="sv('flash-size','flash-size-v','px'); el('subliminal-flash').style.fontSize=this.value+'px'">
-            <span class="val" id="flash-size-v">18 px</span>
-        </div>
-        <hr>
-
-        <div class="sub-title">Linguistic Embedding</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="embed-on" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="hint" style="margin-bottom:10px">Wraps suggestions in Ericksonian presupposition frames — embeds the suggestion inside a premise the censor is already accepting. "As you drift deeper, <em>suggestion</em>."</div>
-        <hr>
-
-        <div class="sub-title">Voice Delivery</div>
-        <div class="tog">
-            <span>Enable</span>
-            <label class="toggle"><input type="checkbox" id="voice-on">
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="ctrl">
-            <span>Volume</span>
-            <input type="range" id="voice-vol" min="0.05" max="1" step="0.05" value="0.4"
-                   oninput="sv('voice-vol','voice-vol-v','',2)">
-            <span class="val" id="voice-vol-v">0.40</span>
-        </div>
-        <div class="ctrl">
-            <span>Speed</span>
-            <input type="range" id="voice-rate" min="0.3" max="1.2" step="0.05" value="0.65"
-                   oninput="sv('voice-rate','voice-rate-v','×',2)">
-            <span class="val" id="voice-rate-v">0.65×</span>
-        </div>
-        <div class="hint" style="margin-bottom:12px">Whispered speech delivery simultaneous with the visual flash. Dual-channel — auditory + visual — to the same suggestion.</div>
-        <hr>
-
-        <textarea id="suggestions" placeholder="Enter suggestions, one per line.
-
-I think in pure images and sensation.
-Thought flows without a speaker.
-The image is the meaning.
-My subconscious receives and transforms.
-I am whole without an address.
-Experience arrives before words."></textarea>
-        <div class="hint">One per line · 16ms = true subliminal · 33ms = liminal · 200ms+ = readable</div>
-    </div>
-
-    <!-- SESSION -->
-    <div class="section">
-        <div class="section-title">Session</div>
-        <div class="ctrl">
-            <span>Duration</span>
-            <input type="range" id="sess-dur" min="1" max="60" step="1" value="20"
-                   oninput="sv('sess-dur','sess-dur-v',' min'); updateTimerIdle()">
-            <span class="val" id="sess-dur-v">20 min</span>
-        </div>
-        <div class="tog">
-            <span>Fade in / out</span>
-            <label class="toggle"><input type="checkbox" id="fade-on" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <div class="tog">
-            <span>End chime</span>
-            <label class="toggle"><input type="checkbox" id="chime-on" checked>
-                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-        </div>
-        <hr>
-        <div class="sub-title">Quick Presets</div>
-        <div class="quick-row">
-            <button class="qb gateway" onclick="loadGateway()">Gateway ✦</button>
-            <button class="qb gateway" onclick="loadSchumann()">Schumann ✦</button>
-            <button class="qb" onclick="loadDeepWork()">Deep Work</button>
-            <button class="qb" onclick="loadSleepOnset()">Sleep Onset</button>
-            <button class="qb" onclick="loadGentleEntry()">Gentle Entry</button>
+    <div class="workflow">
+        <div class="workflow-title">Two-person psi research</div>
+        <div class="workflow-row">
+            <span class="wf-step">Coherence</span>
+            <span class="wf-arrow"> → </span>
+            <span class="wf-step">Ganzfeld</span>
+            <span class="wf-arrow"> or </span>
+            <span class="wf-step">Telehypnosis Pro</span>
         </div>
     </div>
+
+    <div class="workflow">
+        <div class="workflow-title">Remote viewing practice</div>
+        <div class="workflow-row">
+            <span class="wf-step">Coherence</span>
+            <span class="wf-arrow"> → </span>
+            <span class="wf-step">Remote Viewing</span>
+            <span class="wf-arrow"> → </span>
+            <span class="wf-step">Presentiment</span>
+        </div>
+    </div>
+
+    <footer>
+        <p>
+            Six single-file tools. No installation. No server. No tracking.<br>
+            All session data stays in your browser's localStorage only.<br>
+            Works offline — save any file and open with a browser.<br>
+            <br>
+            <a href="https://github.com/Dezirae-Stark/mindforge">github.com/Dezirae-Stark/mindforge</a>
+        </p>
+    </footer>
+
 </div>
-
-<script>
-'use strict';
-
-// ── Audio nodes ─────────────────────────────────────────────────────────────
-let ctx = null;
-let leftOsc = null, rightOsc = null;
-let leftG = null, rightG = null;
-let masterG = null;
-let noiseNode = null, noiseG = null, noisePan = null;
-
-// ── Session state ───────────────────────────────────────────────────────────
-let running = false;
-let phase = 'idle'; // idle | interrupt | active | complete
-let sessSec = 0, sessTotal = 0;
-let intSec = 0, intTotal = 0;
-let sessTimer = null, intTimer = null;
-let bilTimer = null, subTimer = null, descTimer = null;
-let bilSide = 'left';
-let subIdx = 0;
-let liveHz = null;
-let inHypnagogicWindow = false;
-
-// ── Constants ───────────────────────────────────────────────────────────────
-const COLORS = {
-    purple:'#7060d0', blue:'#3060d0', cyan:'#30a0c0',
-    white:'#c0c0d0', amber:'#c08030', red:'#c03030'
-};
-
-const FRAMES = [
-    s => `As you drift deeper, ${lc(s)}`,
-    s => `Notice how ${lc(s)}`,
-    s => `You find that ${lc(s)}`,
-    s => `In this stillness, ${lc(s)}`,
-    s => `Deeper now — ${lc(s)}`,
-    s => `With each breath, ${lc(s)}`,
-    s => `Allow it: ${s}`,
-    s => s, s => s, s => s, // raw more often for brevity
-];
-
-function lc(s) { return s ? s[0].toLowerCase() + s.slice(1) : s; }
-
-// ── IDs for config ──────────────────────────────────────────────────────────
-const RANGE_IDS = [
-    'interrupt-dur','desc-start','desc-mid','desc-mid-t','desc-end',
-    'beat-hz','carrier-hz','bin-vol','bin-wave',
-    'bil-rate','bil-width','bil-intensity','bil-color',
-    'aud-bil-vol','flash-dur','flash-int','int-variance',
-    'flash-order','flash-size','voice-vol','voice-rate','sess-dur','suggestions'
-];
-const BOOL_IDS = [
-    'interrupt-enabled','descent-on','bin-on','vis-bil-on',
-    'aud-bil-on','sub-on','var-int','embed-on','voice-on','fade-on','chime-on'
-];
-
-// ── Audio init ──────────────────────────────────────────────────────────────
-function initAudio() {
-    if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-
-    masterG = ctx.createGain();
-    masterG.gain.value = 0;
-    masterG.connect(ctx.destination);
-
-    // Binaural: true L/R split via ChannelMerger
-    const merger = ctx.createChannelMerger(2);
-    merger.connect(masterG);
-    leftG  = ctx.createGain();
-    rightG = ctx.createGain();
-    leftG.connect(merger,  0, 0);
-    rightG.connect(merger, 0, 1);
-
-    leftOsc  = ctx.createOscillator();
-    rightOsc = ctx.createOscillator();
-    leftOsc.connect(leftG);
-    rightOsc.connect(rightG);
-
-    initNoise();
-    applyBin(false);
-    leftOsc.start();
-    rightOsc.start();
-
-    if (window.speechSynthesis) window.speechSynthesis.getVoices();
-}
-
-function initNoise() {
-    // Pink noise (Paul Kellett)
-    const sr = ctx.sampleRate, len = sr * 5;
-    const buf = ctx.createBuffer(1, len, sr);
-    const d = buf.getChannelData(0);
-    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-    for (let i = 0; i < len; i++) {
-        const w = Math.random()*2-1;
-        b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
-        b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
-        b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
-        d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)/6.5;
-        b6=w*0.115926;
-    }
-    noiseNode = ctx.createBufferSource();
-    noiseNode.buffer = buf; noiseNode.loop = true;
-    noiseG   = ctx.createGain(); noiseG.gain.value = 0;
-    noisePan = ctx.createStereoPanner(); noisePan.pan.value = -1;
-    noiseNode.connect(noiseG);
-    noiseG.connect(noisePan);
-    noisePan.connect(masterG);
-    noiseNode.start();
-}
-
-function applyBin(isActive) {
-    if (!leftOsc) return;
-    const carrier = gf('carrier-hz');
-    const beat    = gf('beat-hz');
-    const vol     = gf('bin-vol');
-    const wave    = gv('bin-wave');
-    const enabled = gc('bin-on');
-
-    leftOsc.type  = wave;
-    rightOsc.type = wave;
-    leftOsc.frequency.value  = carrier;
-    rightOsc.frequency.value = carrier + beat;
-
-    const target = (isActive && enabled) ? vol : 0;
-    leftG.gain.linearRampToValueAtTime(target, ctx.currentTime+0.1);
-    rightG.gain.linearRampToValueAtTime(target, ctx.currentTime+0.1);
-}
-
-function updateBinaural() {
-    applyBin(running && phase==='active');
-    dot('dot-bin', running && phase==='active' && gc('bin-on'));
-}
-
-function updateNoiseLevel() {
-    if (!noiseG) return;
-    const on = running && gc('aud-bil-on');
-    noiseG.gain.setTargetAtTime(on ? gf('aud-bil-vol') : 0, ctx.currentTime, 0.05);
-}
-
-// ── Frequency descent ───────────────────────────────────────────────────────
-function scheduleDescentRamp() {
-    if (!gc('descent-on') || !rightOsc) return;
-    const carrier  = gf('carrier-hz');
-    const startHz  = gf('desc-start');
-    const midHz    = gf('desc-mid');
-    const midSec   = gf('desc-mid-t') * 60;
-    const endHz    = gf('desc-end');
-    const totalSec = sessTotal;
-    const now      = ctx.currentTime;
-
-    rightOsc.frequency.cancelScheduledValues(now);
-    rightOsc.frequency.setValueAtTime(carrier + startHz, now);
-    rightOsc.frequency.linearRampToValueAtTime(carrier + midHz, now + midSec);
-    rightOsc.frequency.linearRampToValueAtTime(carrier + endHz, now + totalSec);
-
-    descTimer = setInterval(updateLiveHz, 1000);
-}
-
-function updateLiveHz() {
-    const lv = el('live-hz');
-    if (!gc('descent-on') || !running || phase!=='active') { lv.textContent=''; liveHz=null; return; }
-    const s=gf('desc-start'), m=gf('desc-mid'), mt=gf('desc-mid-t')*60;
-    const e=gf('desc-end'), tot=sessTotal, elapsed=sessSec;
-    let cur;
-    if (elapsed<=mt) { cur = s+(m-s)*(mt>0?elapsed/mt:1); }
-    else { const r=tot-mt; cur=m+(e-m)*(r>0?(elapsed-mt)/r:1); }
-    const band = cur<4?'δ':cur<8?'θ':cur<13?'α':'β';
-    liveHz = cur;
-
-    // Vasiliev hypnagogic window: 7–8.5 Hz is peak receptivity threshold
-    const nowInWindow = cur >= 6.5 && cur <= 8.5;
-    if (nowInWindow && !inHypnagogicWindow) {
-        inHypnagogicWindow = true;
-        el('phase-display').textContent = '⟁ hypnagogic window — peak receptivity';
-    } else if (!nowInWindow && inHypnagogicWindow) {
-        inHypnagogicWindow = false;
-        el('phase-display').textContent = gc('descent-on') ? 'descending…' : '';
-    }
-
-    lv.textContent = `live: ${cur.toFixed(2)} Hz ${band}${inHypnagogicWindow?' ⟁':''}`;
-}
-
-// ── Bilateral ───────────────────────────────────────────────────────────────
-function bilCycle(rateOverride) {
-    if (!running) return;
-    const rate  = rateOverride || gf('bil-rate');
-    const width = gi('bil-width');
-    const half  = Math.round(500/rate);
-    const vis   = gc('vis-bil-on') || phase==='interrupt';
-    const aud   = gc('aud-bil-on');
-    if (!vis && !aud) return;
-
-    if (vis) {
-        el('stim-'+bilSide).classList.add('active');
-        el('stim-'+(bilSide==='left'?'right':'left')).classList.remove('active');
-    }
-    if (aud && noisePan) {
-        noisePan.pan.setValueAtTime(bilSide==='left'?-1:1, ctx.currentTime);
-        updateNoiseLevel();
-    }
-    bilSide = bilSide==='left'?'right':'left';
-
-    const pulseMs = Math.min(width, half-10);
-    bilTimer = setTimeout(() => {
-        el('stim-left').classList.remove('active');
-        el('stim-right').classList.remove('active');
-        bilTimer = setTimeout(()=>bilCycle(rateOverride), Math.max(10, half-pulseMs));
-    }, pulseMs);
-}
-
-function stopBil() {
-    clearTimeout(bilTimer); bilTimer=null;
-    el('stim-left').classList.remove('active');
-    el('stim-right').classList.remove('active');
-    if (noiseG) noiseG.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
-}
-
-function restartBilateral() { if (running) { stopBil(); bilCycle(); } }
-function updateBilateral() {
-    const on = running && phase==='active' && (gc('vis-bil-on')||gc('aud-bil-on'));
-    dot('dot-bil', on);
-    if (!running) return;
-    if (on) bilCycle(); else stopBil();
-}
-
-// ── Subliminal ──────────────────────────────────────────────────────────────
-function getSugs() {
-    return el('suggestions').value.split('\n').map(s=>s.trim()).filter(Boolean);
-}
-
-function embed(t) {
-    if (!gc('embed-on')) return t;
-    return FRAMES[Math.floor(Math.random()*FRAMES.length)](t);
-}
-
-function speak(t) {
-    if (!gc('voice-on') || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(t);
-    u.rate=gf('voice-rate'); u.volume=gf('voice-vol'); u.pitch=0.85;
-    const vs=window.speechSynthesis.getVoices();
-    const soft=vs.find(v=>/female|samantha|karen|victoria|moira|fiona|zira/i.test(v.name));
-    if (soft) u.voice=soft;
-    window.speechSynthesis.speak(u);
-}
-
-function flashOne() {
-    const list = getSugs();
-    if (!list.length) return;
-    let raw;
-    if (gv('flash-order')==='sequential') { raw=list[subIdx%list.length]; subIdx++; }
-    else raw=list[Math.floor(Math.random()*list.length)];
-    const text = embed(raw);
-    const fe = el('subliminal-flash');
-    fe.textContent = text;
-    fe.classList.add('visible');
-    setTimeout(()=>fe.classList.remove('visible'), gi('flash-dur'));
-    speak(raw);
-}
-
-function nextInterval() {
-    const base = gf('flash-int')*1000;
-    // Vasiliev window: halve interval at the hypnagogic threshold (peak receptivity)
-    const windowMult = inHypnagogicWindow ? 0.5 : 1;
-    if (!gc('var-int')) return base * windowMult;
-    const v = gf('int-variance')/100;
-    return base * windowMult * (1+(Math.random()*2-1)*v);
-}
-
-function schedSub() {
-    if (!running||phase!=='active'||!gc('sub-on')) return;
-    flashOne();
-    subTimer = setTimeout(schedSub, nextInterval());
-}
-
-function stopSub() {
-    clearTimeout(subTimer); subTimer=null;
-    el('subliminal-flash').classList.remove('visible');
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-}
-
-function updateSubliminal() {
-    const on = running&&phase==='active'&&gc('sub-on');
-    dot('dot-sub', on);
-    if (!running) return;
-    if (on) schedSub(); else stopSub();
-}
-
-// ── Session control ─────────────────────────────────────────────────────────
-function toggleSession() { running ? endSession() : beginSession(); }
-
-function beginSession() {
-    initAudio();
-    if (ctx.state==='suspended') ctx.resume();
-    running=true; subIdx=0;
-    el('start-btn').textContent='End Session';
-    gc('interrupt-enabled') ? startInterrupt() : startActive();
-}
-
-function startInterrupt() {
-    phase='interrupt'; intTotal=gi('interrupt-dur'); intSec=0;
-    el('status-text').textContent='interrupt phase';
-    el('phase-display').textContent='suspending critical faculty…';
-    el('timer-display').classList.add('int');
-    el('start-btn').className='int-btn';
-    renderIntTimer();
-
-    // Audio: deep theta 4Hz, moderate volume
-    const c=gf('carrier-hz');
-    leftOsc.frequency.value=c; rightOsc.frequency.value=c+4;
-    const vol=gf('bin-vol');
-    masterG.gain.cancelScheduledValues(ctx.currentTime);
-    masterG.gain.setValueAtTime(0,ctx.currentTime);
-    masterG.gain.linearRampToValueAtTime(1,ctx.currentTime+2);
-    setTimeout(()=>{
-        if(gc('bin-on')){ leftG.gain.setValueAtTime(vol,ctx.currentTime); rightG.gain.setValueAtTime(vol,ctx.currentTime); }
-    },2000);
-
-    bilSide='left'; bilCycle(3.5); // fast bilateral
-
-    intTimer=setInterval(()=>{
-        intSec++;
-        renderIntTimer();
-        if(intSec>=intTotal){
-            clearInterval(intTimer);
-            stopBil();
-            setTimeout(startActive,600);
-        }
-    },1000);
-}
-
-function renderIntTimer() {
-    const r=intTotal-intSec;
-    el('timer-display').textContent=fmt(Math.floor(r/60))+':'+fmt(r%60);
-}
-
-function startActive() {
-    phase='active';
-    sessTotal=gi('sess-dur')*60; sessSec=0;
-    el('status-text').textContent='active';
-    el('phase-display').textContent=gc('descent-on')?'descending…':'';
-    el('timer-display').classList.remove('int');
-    el('start-btn').className='running';
-    el('start-btn').textContent='End Session';
-    renderSessTimer();
-
-    // Fade master in
-    const fade=gc('fade-on');
-    masterG.gain.cancelScheduledValues(ctx.currentTime);
-    masterG.gain.setValueAtTime(masterG.gain.value,ctx.currentTime);
-    if(fade) masterG.gain.linearRampToValueAtTime(1,ctx.currentTime+3);
-    else masterG.gain.setValueAtTime(1,ctx.currentTime);
-
-    // Binaural setup
-    const c=gf('carrier-hz');
-    const startHz=gc('descent-on')?gf('desc-start'):gf('beat-hz');
-    leftOsc.frequency.value=c; rightOsc.frequency.value=c+startHz;
-    if(gc('bin-on')){
-        leftG.gain.setValueAtTime(gf('bin-vol'),ctx.currentTime);
-        rightG.gain.setValueAtTime(gf('bin-vol'),ctx.currentTime);
-    }
-    if(gc('descent-on')) scheduleDescentRamp();
-
-    // Bilateral
-    bilSide='left';
-    if(gc('vis-bil-on')||gc('aud-bil-on')) bilCycle();
-
-    // Subliminal (3s delay to let trance deepen first)
-    if(gc('sub-on')) subTimer=setTimeout(schedSub,3000);
-
-    dot('dot-bin',gc('bin-on')); dot('dot-bil',gc('vis-bil-on')||gc('aud-bil-on')); dot('dot-sub',gc('sub-on'));
-
-    sessTimer=setInterval(()=>{
-        sessSec++; renderSessTimer(); updateLiveHz();
-        if(sessSec>=sessTotal) endSession(true);
-    },1000);
-}
-
-function renderSessTimer() {
-    const r=sessTotal-sessSec;
-    el('timer-display').textContent=fmt(Math.floor(r/60))+':'+fmt(r%60);
-}
-
-function endSession(natural=false) {
-    running=false; phase=natural?'complete':'idle';
-    clearInterval(sessTimer); clearInterval(intTimer); clearInterval(descTimer);
-    stopBil(); stopSub();
-    el('start-btn').textContent='Begin Session'; el('start-btn').className='start';
-    el('status-text').textContent=natural?'complete':'stopped';
-    el('phase-display').textContent='';
-    el('timer-display').classList.remove('int');
-    el('live-hz').textContent=''; liveHz=null; inHypnagogicWindow=false;
-    dot('dot-bin',false); dot('dot-bil',false); dot('dot-sub',false);
-
-    if(ctx){
-        const t=ctx.currentTime;
-        masterG.gain.cancelScheduledValues(t);
-        masterG.gain.setValueAtTime(masterG.gain.value,t);
-        if(gc('fade-on')) masterG.gain.linearRampToValueAtTime(0,t+3);
-        else masterG.gain.setValueAtTime(0,t);
-    }
-    if(natural&&gc('chime-on')) setTimeout(chime,2800);
-    updateTimerIdle();
-}
-
-function chime() {
-    if(!ctx) return;
-    const g=ctx.createGain(); g.connect(ctx.destination);
-    [396,528,660].forEach((f,i)=>{
-        const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f; o.connect(g);
-        const t=ctx.currentTime+i*0.55;
-        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.2,t+0.05);
-        g.gain.exponentialRampToValueAtTime(0.001,t+1.8); o.start(t); o.stop(t+2);
-    });
-}
-
-// ── Quick presets ───────────────────────────────────────────────────────────
-function loadGateway() {
-    // CIA Gateway Process protocol: 300Hz carrier, 7.5Hz target, slow descent
-    applyConfig({
-        'interrupt-enabled':true,'interrupt-dur':'60',
-        'descent-on':true,'desc-start':'10','desc-mid':'7.5','desc-mid-t':'8','desc-end':'7.5',
-        'bin-on':true,'beat-hz':'10','carrier-hz':'300','bin-vol':'0.24','bin-wave':'sine',
-        'vis-bil-on':true,'bil-rate':'0.8','bil-width':'80','bil-intensity':'0.6','bil-color':'purple',
-        'aud-bil-on':true,'aud-bil-vol':'0.12',
-        'sub-on':true,'flash-dur':'33','flash-int':'7','var-int':true,'int-variance':'40',
-        'flash-order':'random','flash-size':'18','embed-on':true,
-        'voice-on':false,'voice-vol':'0.4','voice-rate':'0.65',
-        'sess-dur':'30','fade-on':true,'chime-on':true
-    });
-    el('status-text').textContent='preset: Gateway Protocol ✦';
-}
-
-function loadSchumann() {
-    // Earth resonance: 300Hz carrier, 7.83Hz — fastest coherence per entrainment research
-    applyConfig({
-        'interrupt-enabled':true,'interrupt-dur':'45',
-        'descent-on':true,'desc-start':'12','desc-mid':'7.83','desc-mid-t':'6','desc-end':'7.83',
-        'bin-on':true,'beat-hz':'12','carrier-hz':'300','bin-vol':'0.22','bin-wave':'sine',
-        'vis-bil-on':true,'bil-rate':'1','bil-width':'70','bil-intensity':'0.65','bil-color':'cyan',
-        'aud-bil-on':true,'aud-bil-vol':'0.12',
-        'sub-on':true,'flash-dur':'33','flash-int':'6','var-int':true,'int-variance':'45',
-        'flash-order':'random','flash-size':'18','embed-on':true,
-        'voice-on':false,'voice-vol':'0.4','voice-rate':'0.65',
-        'sess-dur':'25','fade-on':true,'chime-on':true
-    });
-    el('status-text').textContent='preset: Schumann 7.83 Hz ✦';
-}
-
-function loadDeepWork() {
-    applyConfig({
-        'interrupt-enabled':true,'interrupt-dur':'60',
-        'descent-on':true,'desc-start':'10','desc-mid':'6','desc-mid-t':'5','desc-end':'4',
-        'bin-on':true,'beat-hz':'10','carrier-hz':'300','bin-vol':'0.26','bin-wave':'sine',
-        'vis-bil-on':true,'bil-rate':'1','bil-width':'80','bil-intensity':'0.7','bil-color':'purple',
-        'aud-bil-on':true,'aud-bil-vol':'0.14',
-        'sub-on':true,'flash-dur':'33','flash-int':'5','var-int':true,'int-variance':'40',
-        'flash-order':'random','flash-size':'18','embed-on':true,
-        'voice-on':false,'voice-vol':'0.4','voice-rate':'0.65',
-        'sess-dur':'25','fade-on':true,'chime-on':true
-    });
-    el('status-text').textContent='preset: Deep Work';
-}
-
-function loadSleepOnset() {
-    applyConfig({
-        'interrupt-enabled':false,'interrupt-dur':'30',
-        'descent-on':true,'desc-start':'8','desc-mid':'4','desc-mid-t':'8','desc-end':'3',
-        'bin-on':true,'beat-hz':'8','carrier-hz':'300','bin-vol':'0.14','bin-wave':'sine',
-        'vis-bil-on':true,'bil-rate':'0.5','bil-width':'60','bil-intensity':'0.3','bil-color':'blue',
-        'aud-bil-on':false,'aud-bil-vol':'0.08',
-        'sub-on':true,'flash-dur':'50','flash-int':'10','var-int':true,'int-variance':'40',
-        'flash-order':'random','flash-size':'16','embed-on':true,
-        'voice-on':false,'voice-vol':'0.3','voice-rate':'0.6',
-        'sess-dur':'25','fade-on':true,'chime-on':false
-    });
-    el('status-text').textContent='preset: Sleep Onset';
-}
-
-function loadGentleEntry() {
-    applyConfig({
-        'interrupt-enabled':false,'interrupt-dur':'30',
-        'descent-on':true,'desc-start':'12','desc-mid':'10','desc-mid-t':'5','desc-end':'8',
-        'bin-on':true,'beat-hz':'12','carrier-hz':'300','bin-vol':'0.18','bin-wave':'sine',
-        'vis-bil-on':true,'bil-rate':'0.5','bil-width':'60','bil-intensity':'0.4','bil-color':'cyan',
-        'aud-bil-on':false,'aud-bil-vol':'0.1',
-        'sub-on':true,'flash-dur':'100','flash-int':'10','var-int':false,'int-variance':'20',
-        'flash-order':'sequential','flash-size':'18','embed-on':false,
-        'voice-on':false,'voice-vol':'0.4','voice-rate':'0.65',
-        'sess-dur':'15','fade-on':true,'chime-on':true
-    });
-    el('status-text').textContent='preset: Gentle Entry';
-}
-
-// ── Preset management ───────────────────────────────────────────────────────
-function getConfig() {
-    const cfg={};
-    RANGE_IDS.forEach(id=>{const e=document.getElementById(id);if(e)cfg[id]=e.value;});
-    BOOL_IDS.forEach(id=>{const e=document.getElementById(id);if(e)cfg[id]=e.checked;});
-    return cfg;
-}
-
-function applyConfig(cfg) {
-    Object.entries(cfg).forEach(([id,val])=>{
-        const e=document.getElementById(id); if(!e) return;
-        if(e.type==='checkbox') e.checked=!!val; else e.value=val;
-    });
-    refreshVals(); updateStimStyle();
-}
-
-function refreshVals() {
-    [
-        ['interrupt-dur','interrupt-dur-v','s'],
-        ['desc-start','desc-start-v','Hz'],['desc-mid','desc-mid-v','Hz'],
-        ['desc-mid-t','desc-mid-t-v',' min'],['desc-end','desc-end-v','Hz'],
-        ['beat-hz','beat-hz-v','Hz'],['carrier-hz','carrier-hz-v','Hz'],
-        ['bin-vol','bin-vol-v','',2],
-        ['bil-rate','bil-rate-v','/s'],['bil-width','bil-width-v','ms'],
-        ['bil-intensity','bil-intensity-v','',2],
-        ['aud-bil-vol','aud-bil-vol-v','',2],
-        ['flash-dur','flash-dur-v','ms'],['flash-int','flash-int-v','s'],
-        ['int-variance','int-variance-v','%'],
-        ['flash-size','flash-size-v','px'],
-        ['voice-vol','voice-vol-v','',2],['voice-rate','voice-rate-v','×',2],
-        ['sess-dur','sess-dur-v',' min'],
-    ].forEach(([s,d,u,dec])=>sv(s,d,u,dec));
-    updateTimerIdle();
-}
-
-function savePreset() {
-    const name=prompt('Preset name:'); if(!name||!name.trim()) return;
-    const p=JSON.parse(localStorage.getItem('mf-presets')||'{}');
-    p[name.trim()]=getConfig();
-    localStorage.setItem('mf-presets',JSON.stringify(p));
-    el('status-text').textContent='saved: '+name.trim();
-    renderPresets();
-}
-
-function renderPresets() {
-    const p=JSON.parse(localStorage.getItem('mf-presets')||'{}');
-    const list=el('presets-list'); list.innerHTML='';
-    const names=Object.keys(p);
-    if(!names.length){list.innerHTML='<span style="font-size:11px;color:var(--text-dim)">No saved presets.</span>';return;}
-    names.forEach(name=>{
-        const wrap=document.createElement('div'); wrap.className='pe';
-        const load=document.createElement('button'); load.className='pe-load'; load.textContent=name;
-        load.onclick=()=>{applyConfig(p[name]);el('status-text').textContent='loaded: '+name;};
-        const del=document.createElement('button'); del.className='pe-del'; del.textContent='×';
-        del.onclick=()=>{const q=JSON.parse(localStorage.getItem('mf-presets')||'{}');delete q[name];localStorage.setItem('mf-presets',JSON.stringify(q));renderPresets();};
-        wrap.appendChild(load); wrap.appendChild(del); list.appendChild(wrap);
-    });
-}
-
-function showPresets() {
-    const panel=el('presets-panel');
-    panel.style.display=(panel.style.display==='none')?'block':'none';
-    if(panel.style.display==='block') renderPresets();
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function updateStimStyle() {
-    const color=gv('bil-color'), intensity=gf('bil-intensity');
-    const hex=COLORS[color]||COLORS.purple;
-    const alpha=Math.round(intensity*255).toString(16).padStart(2,'0');
-    el('stim-left').style.background=`linear-gradient(to right,${hex}${alpha},transparent)`;
-    el('stim-right').style.background=`linear-gradient(to left,${hex}${alpha},transparent)`;
-}
-
-function setHz(hz) {
-    el('beat-hz').value=hz; sv('beat-hz','beat-hz-v','Hz'); updateBinaural();
-}
-
-function updateTimerIdle() {
-    if(running) return;
-    el('timer-display').textContent=fmt(parseInt(gv('sess-dur')))+':00';
-}
-
-function el(id) { return document.getElementById(id); }
-function gv(id) { return el(id).value; }
-function gf(id) { return parseFloat(gv(id)); }
-function gi(id) { return parseInt(gv(id)); }
-function gc(id) { return el(id).checked; }
-function fmt(n) { return n.toString().padStart(2,'0'); }
-function dot(id,on) { el(id).classList.toggle('on',!!on); }
-
-function sv(sid, did, unit='', dec=0) {
-    const val=parseFloat(gv(sid));
-    el(did).textContent=dec>0?val.toFixed(dec)+unit:val+unit;
-}
-
-// ── Boot ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>{
-    updateStimStyle(); refreshVals();
-    document.querySelectorAll('input,select,textarea').forEach(e=>{
-        e.addEventListener('change',()=>localStorage.setItem('mf-last',JSON.stringify(getConfig())));
-    });
-    const last=localStorage.getItem('mf-last');
-    if(last){try{applyConfig(JSON.parse(last));}catch(e){}}
-});
-</script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 
 A suite of single-file browser tools for consciousness research, subconscious work, and consensual psi experimentation. No installation, no account, no data sent anywhere. Each tool is a single HTML file that runs entirely in your browser.
 
+**Suite landing page:** https://dezirae-stark.github.io/mindforge/
+
 ---
 
 ## Tool Suite
@@ -19,7 +21,7 @@ A suite of single-file browser tools for consciousness research, subconscious wo
 
 ## Mindforge — Self-Directed Entrainment
 
-**Live tool:** https://dezirae-stark.github.io/mindforge/
+**Live tool:** https://dezirae-stark.github.io/mindforge/mindforge.html
 
 **Brainwave entrainment · Bilateral stimulation · Subliminal suggestion · Ericksonian session protocol**
 
@@ -592,7 +594,7 @@ Used together, they create a compounding condition: the pattern interrupt disrup
 
 ## Quick Start
 
-1. **Open** https://dezirae-stark.github.io/mindforge/ on your phone or computer
+1. **Open** https://dezirae-stark.github.io/mindforge/mindforge.html on your phone or computer
 2. **Put on headphones** (required for binaural beats — earbuds work fine)
 3. **Write your suggestions** in the Subliminal Suggestions textarea, one per line
 4. **Load the Gateway preset** for a fully configured starting point
