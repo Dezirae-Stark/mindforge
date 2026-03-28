@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Remote Healing — Mindforge</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #50a878;
+            --accent2: #70c898;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5; }
+        .app { max-width: 520px; margin: 0 auto; padding: 12px; }
+        header { text-align: center; padding: 20px 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        header h1 { font-size: 20px; color: var(--accent2); letter-spacing: 0.1em; font-weight: normal; }
+        header .subtitle { font-size: 10px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.05em; }
+        .nav-link { font-size: 10px; color: var(--text-dim); text-decoration: none; margin-top: 8px; display: inline-block; }
+        .nav-link:hover { color: var(--accent2); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 14px; margin-bottom: 10px; }
+        .panel-title { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .ctrl { margin-bottom: 10px; }
+        .ctrl label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; height: 4px; }
+        input[type="text"], input[type="url"], textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Courier New', monospace; font-size: 12px; padding: 7px 9px; border-radius: 3px; resize: vertical; }
+        input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+        input[type="file"] { display: none; }
+        .toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: 12px; user-select: none; }
+        input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+        .btn-main { width: 100%; background: var(--accent); color: var(--bg); border: none; padding: 11px; font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; letter-spacing: 0.05em; cursor: pointer; border-radius: 3px; margin-top: 4px; }
+        .btn-main:hover { background: var(--accent2); }
+        .btn-end { width: 100%; background: transparent; color: var(--warn); border: 1px solid var(--warn); padding: 8px; font-family: 'Courier New', monospace; font-size: 12px; cursor: pointer; border-radius: 3px; margin-top: 8px; }
+        .btn-end:hover { background: rgba(192,112,64,0.1); }
+        .btn-sm { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .btn-sm:hover { color: var(--text); border-color: var(--text-dim); }
+        .btn-add { background: var(--surface2); color: var(--accent2); border: 1px solid var(--accent); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .btn-add:hover { background: rgba(80,168,120,0.1); }
+        .btn-danger { color: var(--warn) !important; }
+        .btn-danger:hover { border-color: var(--warn) !important; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .dur-btn { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; flex: 1; }
+        .dur-btn:hover { color: var(--text); }
+        .dur-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: bold; }
+        .upload-btn { width: 100%; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 7px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; text-align: left; }
+        .upload-btn:hover { color: var(--text); border-color: var(--text-dim); }
+        .upload-btn.loaded { color: var(--on); border-color: var(--on); }
+        hr.sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .hint { font-size: 10px; color: var(--text-dim); margin-top: 3px; font-style: italic; }
+        /* Mode toggle */
+        .mode-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+        .mode-btn { flex: 1; padding: 7px; background: var(--surface2); color: var(--text-dim); border: none; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; }
+        .mode-btn.active { background: var(--accent); color: var(--bg); font-weight: bold; }
+        /* Healer list */
+        .healer-list { margin: 6px 0; }
+        .healer-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; margin-bottom: 4px; font-size: 12px; }
+        .healer-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+        .healer-remove:hover { color: var(--warn); }
+        .healer-current { color: var(--accent2); font-weight: bold; }
+        /* Rotation radio */
+        .radio-row { display: flex; gap: 14px; margin-top: 6px; }
+        .radio-label { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+        input[type="radio"] { accent-color: var(--accent); cursor: pointer; }
+        /* Photo */
+        #target-photo-preview { max-width: 100%; max-height: 160px; border-radius: 3px; margin-top: 8px; border: 1px solid var(--border); display: none; }
+        /* Intention stream */
+        .stream-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .stream-body { padding-left: 22px; }
+        /* Coherence overlay */
+        #coh-overlay { position: fixed; inset: 0; background: rgba(10,10,15,0.96); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        .coh-circle-wrap { position: relative; width: 160px; height: 160px; }
+        #coh-circle { transition: none; }
+        .coh-label { font-size: 14px; color: var(--accent2); letter-spacing: 0.12em; text-align: center; min-height: 22px; }
+        .coh-cycles { font-size: 11px; color: var(--text-dim); text-align: center; }
+        .coh-skip { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 18px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .coh-skip:hover { color: var(--text); }
+        /* Timer */
+        .timer-display { font-size: 40px; text-align: center; color: var(--accent2); letter-spacing: 0.1em; margin: 10px 0 4px; font-weight: bold; }
+        .phase-display { text-align: center; font-size: 11px; color: var(--text-dim); letter-spacing: 0.06em; margin-bottom: 6px; min-height: 18px; }
+        /* Stars */
+        .star-row { display: flex; gap: 8px; margin-top: 6px; }
+        .star { font-size: 22px; cursor: pointer; color: var(--off); line-height: 1; }
+        .star.lit { color: var(--accent2); }
+        /* Reframe */
+        .reframe-btn-row { margin-top: 5px; }
+        .reframe-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .reframe-btn:hover { color: var(--accent2); border-color: var(--accent); }
+        .reframe-preview { margin-top: 8px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 3px; padding: 10px; font-size: 11px; }
+        .reframe-original { color: var(--text-dim); margin-bottom: 6px; }
+        .reframe-result { color: var(--accent2); margin-bottom: 10px; font-style: italic; line-height: 1.6; }
+        .reframe-actions { display: flex; gap: 8px; }
+        .reframe-accept { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--on); background: transparent; color: var(--on); }
+        .reframe-accept:hover { background: rgba(64,192,128,0.1); }
+        .reframe-keep { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); }
+        .reframe-keep:hover { color: var(--text); }
+        /* Post */
+        .post-info { font-size: 12px; color: var(--accent2); margin-bottom: 12px; text-align: center; padding: 6px; background: var(--surface2); border-radius: 3px; }
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
+        th { color: var(--text-dim); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); font-weight: normal; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+        td { padding: 5px 6px; border-bottom: 1px solid var(--surface2); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        .stats-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 10px; margin-top: 10px; }
+        .stat-line { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+        .stat-key { color: var(--text-dim); }
+        .stat-val { color: var(--text); font-weight: bold; }
+        .hidden { display: none !important; }
+        footer { text-align: center; padding: 16px 0; font-size: 10px; color: var(--text-dim); border-top: 1px solid var(--border); margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<!-- Coherence Primer Overlay -->
+<div id="coh-overlay" class="hidden">
+    <div style="font-size:13px;color:var(--text-dim);letter-spacing:0.1em;">Coherence Primer</div>
+    <div class="coh-circle-wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="20" fill="none" stroke="var(--border)" stroke-width="1"/>
+            <circle id="coh-circle" cx="80" cy="80" r="20" fill="rgba(80,168,120,0.12)" stroke="var(--accent2)" stroke-width="2"/>
+        </svg>
+    </div>
+    <div class="coh-label" id="coh-label">Inhale</div>
+    <div class="coh-cycles" id="coh-cycles-disp">cycle 1</div>
+    <button class="coh-skip" onclick="skipCoherence()">Skip →</button>
+</div>
+
+<div class="app">
+
+    <header>
+        <h1>Remote Healing</h1>
+        <div class="subtitle">Targ protocol · Distant intention · Multi-healer coordination</div>
+        <a class="nav-link" href="index.html">← Mindforge Suite</a>
+    </header>
+
+    <!-- Healer Mode -->
+    <div class="panel" id="mode-panel">
+        <div class="panel-title">Healer Mode</div>
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="mode-single-btn" onclick="setMode('single')">Single healer</button>
+            <button class="mode-btn" id="mode-multi-btn" onclick="setMode('multi')">Multi-healer</button>
+        </div>
+        <div id="multi-section" class="hidden">
+            <div class="ctrl">
+                <label>Add healer</label>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="healer-input" placeholder="Healer name" style="flex:1;">
+                    <button class="btn-add" onclick="addHealer()">+ Add</button>
+                </div>
+            </div>
+            <div class="healer-list" id="healer-list"></div>
+            <div class="ctrl">
+                <label>Coordination mode</label>
+                <div class="radio-row">
+                    <label class="radio-label">
+                        <input type="radio" name="rotation" id="rot-rotation" checked onchange="saveConfig()"> Rotation (5-min slots)
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="rotation" id="rot-simultaneous" onchange="saveConfig()"> Simultaneous
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target -->
+    <div class="panel" id="target-panel">
+        <div class="panel-title">Target</div>
+        <div class="ctrl">
+            <label>Target name / identifier</label>
+            <input type="text" id="target-name" placeholder="Name or identifier" oninput="saveConfig()">
+        </div>
+        <div class="ctrl">
+            <label>Condition / situation (optional)</label>
+            <input type="text" id="target-condition" placeholder="Brief description" oninput="saveConfig()">
+        </div>
+        <div class="ctrl">
+            <label>Target photo (session only — never saved)</label>
+            <input type="file" id="photo-file" accept="image/*">
+            <button class="upload-btn" id="photo-btn" onclick="el('photo-file').click()">↑ Upload photo</button>
+            <img id="target-photo-preview" alt="target photo">
+        </div>
+    </div>
+
+    <!-- Intention Streams -->
+    <div class="panel" id="intention-panel">
+        <div class="panel-title">Intention Streams</div>
+        <div class="hint" style="margin-bottom:10px;">Select one or more streams. All checked streams run simultaneously.</div>
+
+        <!-- Healing -->
+        <div class="ctrl">
+            <div class="stream-header">
+                <input type="checkbox" id="stream-healing" checked onchange="toggleStream('healing'); saveConfig();">
+                <label for="stream-healing" style="margin:0;color:var(--text);font-size:12px;cursor:pointer;">Healing intention <span style="color:var(--text-dim);font-size:10px;">· Targ protocol</span></label>
+            </div>
+            <div class="stream-body" id="stream-healing-body">
+                <div class="ctrl">
+                    <label>Body / condition targeted</label>
+                    <textarea id="healing-condition" rows="2" placeholder="e.g., immune system, chronic pain, emotional balance..."></textarea>
+                    <div class="reframe-btn-row">
+                        <button class="reframe-btn" onclick="doReframe('healing-condition','healing')">✦ Reframe for maximum impact</button>
+                    </div>
+                    <div class="reframe-preview hidden" id="healing-condition-reframe"></div>
+                </div>
+                <div class="ctrl">
+                    <label>Healer's method</label>
+                    <textarea id="healing-method" rows="2" placeholder="Describe your approach — visualization, energy work, prayer, sound..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Outcome -->
+        <div class="ctrl">
+            <div class="stream-header">
+                <input type="checkbox" id="stream-outcome" onchange="toggleStream('outcome'); saveConfig();">
+                <label for="stream-outcome" style="margin:0;color:var(--text);font-size:12px;cursor:pointer;">Outcome / situation influencing</label>
+            </div>
+            <div class="stream-body hidden" id="stream-outcome-body">
+                <div class="ctrl">
+                    <label>Situation description</label>
+                    <textarea id="outcome-situation" rows="2" placeholder="Describe the situation to be influenced..."></textarea>
+                </div>
+                <div class="ctrl">
+                    <label>Desired outcome</label>
+                    <textarea id="outcome-desired" rows="2" placeholder="Describe the intended outcome..."></textarea>
+                    <div class="reframe-btn-row">
+                        <button class="reframe-btn" onclick="doReframe('outcome-desired','outcome')">✦ Reframe for maximum impact</button>
+                    </div>
+                    <div class="reframe-preview hidden" id="outcome-desired-reframe"></div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Habit -->
+        <div class="ctrl">
+            <div class="stream-header">
+                <input type="checkbox" id="stream-habit" onchange="toggleStream('habit'); saveConfig();">
+                <label for="stream-habit" style="margin:0;color:var(--text);font-size:12px;cursor:pointer;">Habit substitution</label>
+            </div>
+            <div class="stream-body hidden" id="stream-habit-body">
+                <div class="ctrl">
+                    <label>Non-useful habit to replace</label>
+                    <textarea id="habit-old" rows="2" placeholder="The pattern to be overridden..."></textarea>
+                </div>
+                <div class="ctrl">
+                    <label>Beneficial pattern to install</label>
+                    <textarea id="habit-new" rows="2" placeholder="The new pattern to take root..."></textarea>
+                    <div class="reframe-btn-row">
+                        <button class="reframe-btn" onclick="doReframe('habit-new','habit')">✦ Reframe for maximum impact</button>
+                    </div>
+                    <div class="reframe-preview hidden" id="habit-new-reframe"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Healer Audio -->
+    <div class="panel" id="audio-panel">
+        <div class="panel-title">Healer State Audio</div>
+        <div class="ctrl">
+            <label class="toggle-label">
+                <input type="checkbox" id="bin-on" checked onchange="toggleBinControls(); saveConfig();"> Alpha/theta binaural
+            </label>
+        </div>
+        <div id="bin-controls">
+            <div class="ctrl">
+                <label>Beat frequency <span id="beat-val">7.5</span> Hz</label>
+                <input type="range" id="beat-hz" min="4" max="12" step="0.1" value="7.5"
+                    oninput="sv('beat-hz','beat-val','',1); saveConfig();">
+            </div>
+            <div class="ctrl">
+                <label>Binaural volume <span id="bin-vol-val">0.20</span></label>
+                <input type="range" id="bin-vol" min="0" max="0.4" step="0.01" value="0.2"
+                    oninput="sv('bin-vol','bin-vol-val','',2); saveConfig();">
+            </div>
+        </div>
+        <hr class="sep">
+        <div class="ctrl">
+            <label class="toggle-label">
+                <input type="checkbox" id="noise-on" onchange="toggleNoiseControls(); saveConfig();"> Pink noise
+            </label>
+        </div>
+        <div id="noise-controls" class="hidden">
+            <div class="ctrl">
+                <label>Noise volume <span id="noise-vol-val">0.08</span></label>
+                <input type="range" id="noise-vol" min="0" max="0.2" step="0.005" value="0.08"
+                    oninput="sv('noise-vol','noise-vol-val','',3); if(noiseGain) noiseGain.gain.value=gf('noise-vol'); saveConfig();">
+            </div>
+        </div>
+    </div>
+
+    <!-- Pre-Session Coherence -->
+    <div class="panel" id="coherence-panel">
+        <div class="panel-title">Pre-Session Coherence</div>
+        <div class="ctrl">
+            <label class="toggle-label">
+                <input type="checkbox" id="coh-on" checked onchange="saveConfig();"> Coherence primer
+            </label>
+            <div class="hint">HeartMath 5.5s breathing · Healer coherence is the strongest predictor of effect size</div>
+        </div>
+        <div class="ctrl">
+            <label>Cycles</label>
+            <div class="btn-row">
+                <button class="dur-btn" onclick="setCycles(3)">3 cycles</button>
+                <button class="dur-btn active" onclick="setCycles(5)">5 cycles</button>
+                <button class="dur-btn" onclick="setCycles(7)">7 cycles</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session -->
+    <div class="panel" id="session-panel">
+        <div class="panel-title">Session</div>
+        <div id="session-setup">
+            <div class="ctrl">
+                <label>Duration</label>
+                <div class="btn-row">
+                    <button class="dur-btn" onclick="setDur(20)">20 min</button>
+                    <button class="dur-btn active" onclick="setDur(30)">30 min</button>
+                    <button class="dur-btn" onclick="setDur(45)">45 min</button>
+                    <button class="dur-btn" onclick="setDur(60)">60 min</button>
+                </div>
+            </div>
+            <button class="btn-main" onclick="beginSession()">Begin Session</button>
+        </div>
+        <div id="session-active" class="hidden">
+            <div class="timer-display" id="timer-display">00:00</div>
+            <div class="phase-display" id="phase-display">transmitting</div>
+            <button class="btn-end" onclick="endSessionEarly()">End Session</button>
+        </div>
+    </div>
+
+    <!-- Post-Session -->
+    <div class="panel hidden" id="post-panel">
+        <div class="panel-title">Post-Session</div>
+        <div class="post-info" id="post-info">—</div>
+        <div class="ctrl">
+            <label>Healer notes</label>
+            <textarea id="post-notes" rows="4" placeholder="Observations, impressions, sensations during the session..."></textarea>
+        </div>
+        <div class="ctrl">
+            <label>Effectiveness rating</label>
+            <div class="star-row" id="star-row">
+                <span class="star" onclick="setRating(1)">★</span>
+                <span class="star" onclick="setRating(2)">★</span>
+                <span class="star" onclick="setRating(3)">★</span>
+                <span class="star" onclick="setRating(4)">★</span>
+                <span class="star" onclick="setRating(5)">★</span>
+            </div>
+        </div>
+        <button class="btn-main" onclick="saveSession()">Save to Log</button>
+    </div>
+
+    <!-- Session Log -->
+    <div class="panel" id="log-panel">
+        <div class="panel-title">Session Log</div>
+        <div class="btn-row" style="margin-bottom:10px;">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm btn-danger" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div id="log-empty" style="font-size:11px;color:var(--off);padding:8px 0;">No sessions recorded yet.</div>
+        <div id="log-table-wrap" class="hidden">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Target</th>
+                        <th>Streams</th>
+                        <th>Min</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+            <div class="stats-box">
+                <div class="stat-line">
+                    <span class="stat-key">Total sessions</span>
+                    <span class="stat-val" id="stat-total">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-key">Average rating</span>
+                    <span class="stat-val" id="stat-avg">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>Remote Healing · Mindforge Suite · All data stays in your browser only</footer>
+
+</div>
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const el  = id => document.getElementById(id);
+const gv  = id => el(id).value;
+const gf  = id => parseFloat(gv(id));
+const gc  = id => el(id).checked;
+const fmt = n  => String(n).padStart(2,'0');
+
+function sv(srcId, dispId, unit='', dec=2) {
+    el(dispId).textContent = parseFloat(gv(srcId)).toFixed(dec)+(unit?' '+unit:'');
+}
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function truncate(s,n) { if(!s) return '—'; return s.length>n ? s.slice(0,n)+'…':s; }
+
+// ── Suggestion Rewriter ───────────────────────────────────────────────────────
+const ANTONYMS = {
+    'anxiety':'calm and at ease','anxious':'calm and at ease',
+    'fear':'courage and groundedness','afraid':'brave and grounded',
+    'pain':'ease and comfort','painful':'comfortable and at ease',
+    'doubt':'clarity and certainty','uncertain':'clear and certain',
+    'anger':'peace and centeredness','angry':'peaceful and centered',
+    'confusion':'clarity and focus','confused':'clear and focused',
+    'weakness':'strength and vitality','weak':'strong and capable',
+    'fatigue':'energy and vitality','tired':'energized and alive',
+    'sadness':'joy and peace','sad':'joyful and at peace',
+    'resistance':'flow and ease','stuck':'flowing freely forward',
+    'stress':'ease and calm','stressed':'calm and centered',
+    'worry':'trust and peace','worried':'trusting the process fully',
+    'loneliness':'deep connection','lonely':'deeply connected',
+    'shame':'self-worth and wholeness','ashamed':'worthy and whole',
+    'lost':'guided and aligned','illness':'vibrant health',
+    'disease':'wholeness and ease','sick':'healthy and vital',
+    'inflammation':'calm and healing','chronic':'resolved and at ease',
+};
+const FRAMES = [
+    s => `As ${s}, this truth deepens with every breath.`,
+    s => `${s} — and this becomes more real with each passing moment.`,
+    s => `${s}. This is the natural state returning.`,
+    s => `With each heartbeat, ${s}.`,
+    s => `${s}, and every cell knows this is so.`,
+];
+const HEALING_FRAMES = [
+    s => `${s}, and every cell moves toward wholeness now.`,
+    s => `With each breath sent, ${s}.`,
+    s => `${s} — the body knows how to heal, and it does so now.`,
+    s => `${s}. This healing intention flows without obstruction.`,
+];
+let frameIdx = 0;
+
+function reframeSuggestion(text, context) {
+    if (!text||!text.trim()) return null;
+    let s = text.trim();
+    s = s.replace(/\bwill be\b/gi,'is').replace(/\bwill have\b/gi,'has')
+         .replace(/\bwill feel\b/gi,'feels').replace(/\bI want to\b/gi,'I')
+         .replace(/\bI hope to\b/gi,'I').replace(/\bI need to\b/gi,'I')
+         .replace(/\bthey want to\b/gi,'they').replace(/\bthey will\b/gi,'they')
+         .replace(/\bhe will\b/gi,'he').replace(/\bshe will\b/gi,'she')
+         .replace(/\bI will\b/gi,'I');
+    const lower = s.toLowerCase();
+    const negWords = ["don't ","doesn't ","won't ","can't ","cannot ","not ","never ","no longer ","stop ","quit ","avoid "];
+    if (negWords.some(n=>lower.includes(n))) {
+        let replaced = false;
+        for (const [neg,pos] of Object.entries(ANTONYMS)) {
+            if (lower.includes(neg)) { s=`is ${pos}`; replaced=true; break; }
+        }
+        if (!replaced) {
+            s = s.replace(/\bdon't\b/gi,'').replace(/\bdoesn't\b/gi,'')
+                 .replace(/\bwon't\b/gi,'').replace(/\bcan't\b/gi,'')
+                 .replace(/\bcannot\b/gi,'').replace(/\bnot\b/gi,'')
+                 .replace(/\bnever\b/gi,'always').replace(/\s{2,}/g,' ').trim();
+        }
+    }
+    s = s.trim();
+    s = s.charAt(0).toUpperCase()+s.slice(1);
+    const core = s.replace(/[.!?]+$/,'').trim();
+    const coreL = core.charAt(0).toLowerCase()+core.slice(1);
+    let result;
+    if (context==='healing'||context==='habit') {
+        const hf = HEALING_FRAMES[frameIdx % HEALING_FRAMES.length];
+        frameIdx++;
+        result = hf(coreL);
+    } else {
+        const f = FRAMES[frameIdx % FRAMES.length];
+        frameIdx++;
+        result = f(coreL);
+    }
+    result = result.charAt(0).toUpperCase()+result.slice(1);
+    if (context==='healing'||context==='habit') {
+        result += ' I feel this alive in every cell.';
+    }
+    return result;
+}
+
+function doReframe(textareaId, context) {
+    const ta = el(textareaId);
+    const pv = el(textareaId+'-reframe');
+    if (!pv) return;
+    const original = ta.value.trim();
+    if (!original) { pv.classList.add('hidden'); return; }
+    const reframed = reframeSuggestion(original, context);
+    if (!reframed||reframed===original) { pv.classList.add('hidden'); return; }
+    pv.dataset.reframed = reframed;
+    pv.dataset.tid = textareaId;
+    pv.innerHTML = `
+        <div class="reframe-original">Original: "${escHtml(truncate(original,80))}"</div>
+        <div class="reframe-result">${escHtml(reframed)}</div>
+        <div class="reframe-actions">
+            <button class="reframe-accept" onclick="acceptReframe(this)">Accept</button>
+            <button class="reframe-keep" onclick="this.closest('.reframe-preview').classList.add('hidden')">Keep original</button>
+        </div>`;
+    pv.classList.remove('hidden');
+}
+
+function acceptReframe(btn) {
+    const pv = btn.closest('.reframe-preview');
+    el(pv.dataset.tid).value = pv.dataset.reframed;
+    pv.classList.add('hidden');
+    saveConfig();
+}
+
+// ── Healer Mode ───────────────────────────────────────────────────────────────
+let multiMode = false;
+let healers = [];
+let rotationMode = true;
+let currentHealerIndex = 0;
+
+function setMode(mode) {
+    multiMode = (mode==='multi');
+    el('mode-single-btn').classList.toggle('active', !multiMode);
+    el('mode-multi-btn').classList.toggle('active', multiMode);
+    el('multi-section').classList.toggle('hidden', !multiMode);
+    saveConfig();
+}
+
+function addHealer() {
+    const name = gv('healer-input').trim();
+    if (!name) return;
+    if (healers.includes(name)) { el('healer-input').value=''; return; }
+    healers.push(name);
+    el('healer-input').value='';
+    renderHealerList();
+    saveConfig();
+}
+
+function removeHealer(i) {
+    healers.splice(i,1);
+    renderHealerList();
+    saveConfig();
+}
+
+function renderHealerList() {
+    const list = el('healer-list');
+    list.innerHTML = '';
+    healers.forEach((h,i) => {
+        const div = document.createElement('div');
+        div.className = 'healer-item';
+        div.innerHTML = `<span${i===currentHealerIndex&&running?' class="healer-current"':''}>${escHtml(h)}</span><button class="healer-remove" onclick="removeHealer(${i})">✕</button>`;
+        list.appendChild(div);
+    });
+}
+
+// ── Photo ─────────────────────────────────────────────────────────────────────
+let targetPhotoData = null; // session-only
+
+function loadPhoto(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        targetPhotoData = e.target.result;
+        el('target-photo-preview').src = targetPhotoData;
+        el('target-photo-preview').style.display = 'block';
+        el('photo-btn').textContent = '✓ Photo loaded — '+file.name;
+        el('photo-btn').classList.add('loaded');
+    };
+    reader.readAsDataURL(file);
+}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let ctx=null, masterGain=null;
+let leftOsc=null, rightOsc=null, leftGain=null, rightGain=null, merger=null;
+let noiseNode=null, noiseGain=null;
+
+function initAudio() {
+    if (ctx) return;
+    try { ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e) { alert('Web Audio API not available.'); return; }
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(ctx.destination);
+}
+
+function startBinaural() {
+    if (!gc('bin-on')||!ctx) return;
+    stopBinaural();
+    const carrier=300, beat=gf('beat-hz'), vol=gf('bin-vol');
+    merger = ctx.createChannelMerger(2);
+    const mg = ctx.createGain(); mg.gain.value=0;
+    merger.connect(mg); mg.connect(masterGain);
+    leftGain=ctx.createGain(); rightGain=ctx.createGain();
+    leftGain.gain.value=rightGain.gain.value=1;
+    leftGain.connect(merger,0,0); rightGain.connect(merger,0,1);
+    leftOsc=ctx.createOscillator(); rightOsc=ctx.createOscillator();
+    leftOsc.type=rightOsc.type='sine';
+    leftOsc.frequency.value=carrier; rightOsc.frequency.value=carrier+beat;
+    leftOsc.connect(leftGain); rightOsc.connect(rightGain);
+    leftOsc.start(); rightOsc.start();
+    mg.gain.linearRampToValueAtTime(vol, ctx.currentTime+3);
+    // store mg reference for stop
+    merger._gainNode = mg;
+}
+
+function stopBinaural() {
+    if (leftOsc)  { try{leftOsc.stop();}catch(e){} leftOsc=null; }
+    if (rightOsc) { try{rightOsc.stop();}catch(e){} rightOsc=null; }
+    if (merger && merger._gainNode) { try{merger._gainNode.disconnect();}catch(e){} }
+    if (merger) { try{merger.disconnect();}catch(e){} merger=null; }
+    leftGain=null; rightGain=null;
+}
+
+function startNoise() {
+    if (!gc('noise-on')||!ctx) return;
+    stopNoise();
+    const sr=ctx.sampleRate, len=sr*5;
+    const buf=ctx.createBuffer(1,len,sr);
+    const d=buf.getChannelData(0);
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for(let i=0;i<len;i++){
+        const w=Math.random()*2-1;
+        b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+        b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+        b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+        d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11;
+        b6=w*0.115926;
+    }
+    noiseNode=ctx.createBufferSource();
+    noiseNode.buffer=buf; noiseNode.loop=true;
+    noiseGain=ctx.createGain(); noiseGain.gain.value=gf('noise-vol');
+    noiseNode.connect(noiseGain); noiseGain.connect(masterGain);
+    noiseNode.start();
+}
+
+function stopNoise() {
+    if (noiseNode) { try{noiseNode.stop();}catch(e){} noiseNode=null; }
+    if (noiseGain) { try{noiseGain.disconnect();}catch(e){} noiseGain=null; }
+}
+
+// ── Coherence Primer ──────────────────────────────────────────────────────────
+let cohCyclesTotal = 5, cohCyclesRemaining = 0;
+let cohRAF = null, cohPhase = 'inhale', cohT = 0, cohLastTime = 0;
+const COH_CYCLE = 5500; // ms per phase
+
+function setCycles(n) {
+    cohCyclesTotal = n;
+    document.querySelectorAll('#coherence-panel .dur-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.textContent) === n);
+    });
+    saveConfig();
+}
+
+function startCoherence(onComplete) {
+    cohCyclesRemaining = cohCyclesTotal * 2; // each inhale+exhale = 2 half-cycles
+    cohPhase = 'inhale'; cohT = 0;
+    el('coh-overlay').classList.remove('hidden');
+    el('coh-label').textContent = 'Inhale';
+    updateCohDisplay();
+    cohLastTime = performance.now();
+    cohRAF = requestAnimationFrame(t => cohTick(t, onComplete));
+}
+
+function cohTick(now, onComplete) {
+    const dt = now - cohLastTime; cohLastTime = now;
+    cohT += dt / COH_CYCLE;
+    if (cohT >= 1) {
+        cohT = 0; cohCyclesRemaining--;
+        cohPhase = cohPhase === 'inhale' ? 'exhale' : 'inhale';
+        el('coh-label').textContent = cohPhase === 'inhale' ? 'Inhale' : 'Exhale';
+        updateCohDisplay();
+        if (cohCyclesRemaining <= 0) { skipCoherence(onComplete); return; }
+    }
+    const ease = cohPhase==='inhale' ? (0.5-0.5*Math.cos(Math.PI*cohT)) : (0.5+0.5*Math.cos(Math.PI*cohT));
+    const r = 20 + ease * 60;
+    el('coh-circle').setAttribute('r', r);
+    el('coh-circle').style.fill = `rgba(80,168,120,${0.08+ease*0.15})`;
+    cohRAF = requestAnimationFrame(t => cohTick(t, onComplete));
+}
+
+function updateCohDisplay() {
+    const cycle = Math.ceil((cohCyclesTotal*2-cohCyclesRemaining+1)/2);
+    el('coh-cycles-disp').textContent = 'cycle '+Math.min(cycle,cohCyclesTotal)+' of '+cohCyclesTotal;
+}
+
+function skipCoherence(onComplete) {
+    if (cohRAF) { cancelAnimationFrame(cohRAF); cohRAF=null; }
+    el('coh-overlay').classList.add('hidden');
+    if (typeof onComplete==='function') onComplete();
+    else startActiveSession();
+}
+
+// ── Session Control ───────────────────────────────────────────────────────────
+let running=false, elapsed=0, sessionDuration=30;
+let sessionInterval=null, rotationInterval=null;
+let endTarget=null, endDuration=null, endIntentions=[];
+let sessionRating=0;
+
+function setDur(min) {
+    sessionDuration=min;
+    document.querySelectorAll('#session-panel .dur-btn').forEach(b => b.classList.toggle('active', parseInt(b.textContent)===min));
+    saveConfig();
+}
+
+function beginSession() {
+    if (!gc('stream-healing')&&!gc('stream-outcome')&&!gc('stream-habit')) {
+        alert('Select at least one intention stream.'); return;
+    }
+    if (multiMode && healers.length < 2) {
+        alert('Add at least 2 healers for multi-healer mode, or switch to single healer.'); return;
+    }
+    if (!ctx) initAudio();
+    if (!ctx) return;
+    if (ctx.state==='suspended') ctx.resume();
+    sessionRating=0; renderStars();
+    if (gc('coh-on')) {
+        startCoherence(startActiveSession);
+    } else {
+        startActiveSession();
+    }
+}
+
+function startActiveSession() {
+    running=true; elapsed=0; currentHealerIndex=0;
+    el('session-setup').classList.add('hidden');
+    el('session-active').classList.remove('hidden');
+    ['mode-panel','target-panel','intention-panel','audio-panel','coherence-panel'].forEach(id => {
+        el(id).style.opacity='0.45'; el(id).style.pointerEvents='none';
+    });
+    masterGain.gain.cancelScheduledValues(ctx.currentTime);
+    masterGain.gain.setValueAtTime(0, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(1, ctx.currentTime+3);
+    if (gc('bin-on')) startBinaural();
+    if (gc('noise-on')) startNoise();
+    updatePhase();
+    el('timer-display').textContent='00:00';
+    sessionInterval=setInterval(tick,1000);
+    if (multiMode && !el('rot-simultaneous').checked) {
+        rotationInterval=setInterval(rotateHealer, 300000);
+    }
+}
+
+function tick() {
+    elapsed++;
+    el('timer-display').textContent=fmt(Math.floor(elapsed/60))+':'+fmt(elapsed%60);
+    if (elapsed >= sessionDuration*60) endSession();
+}
+
+function rotateHealer() {
+    currentHealerIndex=(currentHealerIndex+1)%healers.length;
+    renderHealerList();
+    updatePhase();
+}
+
+function updatePhase() {
+    const target = gv('target-name').trim()||'target';
+    if (multiMode && !el('rot-simultaneous').checked) {
+        el('phase-display').textContent='transmitting · '+healers[currentHealerIndex];
+    } else if (multiMode) {
+        el('phase-display').textContent='transmitting · '+healers.join(' · ');
+    } else {
+        el('phase-display').textContent='transmitting · '+target;
+    }
+}
+
+function endSession() {
+    clearInterval(sessionInterval); sessionInterval=null;
+    if (rotationInterval) { clearInterval(rotationInterval); rotationInterval=null; }
+    running=false;
+    endTarget=gv('target-name').trim();
+    endDuration=sessionDuration;
+    endIntentions=[];
+    if (gc('stream-healing')) endIntentions.push('healing');
+    if (gc('stream-outcome')) endIntentions.push('outcome');
+    if (gc('stream-habit'))   endIntentions.push('habit');
+    stopBinaural(); stopNoise();
+    if (masterGain&&ctx) {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(masterGain.gain.value,ctx.currentTime);
+        masterGain.gain.linearRampToValueAtTime(0,ctx.currentTime+3);
+    }
+    setTimeout(playChime,3300);
+    el('session-active').classList.add('hidden');
+    el('session-setup').classList.remove('hidden');
+    ['mode-panel','target-panel','intention-panel','audio-panel','coherence-panel'].forEach(id=>{
+        el(id).style.opacity=''; el(id).style.pointerEvents='';
+    });
+    el('phase-display').textContent='session complete';
+    el('post-info').textContent=(endTarget||'—')+' · '+endDuration+' min · '+endIntentions.join(', ');
+    el('post-panel').classList.remove('hidden');
+    setTimeout(()=>el('post-panel').scrollIntoView({behavior:'smooth'}),300);
+}
+
+function endSessionEarly() {
+    if (!confirm('End the session now?')) return;
+    endSession();
+}
+
+function playChime() {
+    if (!ctx) return;
+    [396,528,660].forEach((f,i)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='sine'; o.frequency.value=f;
+        const t=ctx.currentTime+i*0.7;
+        g.gain.setValueAtTime(0,t);
+        g.gain.linearRampToValueAtTime(0.15,t+0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+1.8);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t+1.85);
+    });
+}
+
+// ── Rating ────────────────────────────────────────────────────────────────────
+function setRating(n) { sessionRating=n; renderStars(); }
+function renderStars() {
+    el('star-row').querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',i<sessionRating));
+}
+
+// ── Post-Session Save ─────────────────────────────────────────────────────────
+function saveSession() {
+    const intentions = endIntentions||[];
+    const details = {};
+    if (intentions.includes('healing')) details.healing={ condition:el('healing-condition').value.trim(), method:el('healing-method').value.trim() };
+    if (intentions.includes('outcome')) details.outcome={ situation:el('outcome-situation').value.trim(), desired:el('outcome-desired').value.trim() };
+    if (intentions.includes('habit'))   details.habit={ old:el('habit-old').value.trim(), new:el('habit-new').value.trim() };
+    const entry={
+        id:   Math.random().toString(36).slice(2),
+        date: new Date().toISOString(),
+        target: endTarget||'—',
+        healers: multiMode?[...healers]:[(gv('target-name').trim()||'self')],
+        mode: multiMode?(el('rot-simultaneous').checked?'multi-simultaneous':'multi-rotation'):'single',
+        intentions,
+        intentionDetails: details,
+        duration: endDuration||sessionDuration,
+        rating: sessionRating||null,
+        notes: el('post-notes').value.trim(),
+    };
+    const log=loadLog(); log.push(entry); saveLog(log); renderLog();
+    el('post-notes').value='';
+    sessionRating=0; renderStars();
+    el('post-panel').classList.add('hidden');
+    el('log-panel').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Session Log ───────────────────────────────────────────────────────────────
+const LOG_KEY='heal-log', LAST_KEY='heal-last';
+function loadLog() { try{return JSON.parse(localStorage.getItem(LOG_KEY)||'[]');}catch(e){return [];} }
+function saveLog(log) { try{localStorage.setItem(LOG_KEY,JSON.stringify(log));}catch(e){} }
+
+function renderLog() {
+    const log=loadLog();
+    if (!log.length) {
+        el('log-empty').style.display='block';
+        el('log-table-wrap').classList.add('hidden');
+        return;
+    }
+    el('log-empty').style.display='none';
+    el('log-table-wrap').classList.remove('hidden');
+    const tbody=el('log-tbody');
+    tbody.innerHTML='';
+    [...log].reverse().forEach(e=>{
+        const d=new Date(e.date);
+        const ds=d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        const rating=e.rating?'★'.repeat(e.rating):'—';
+        const streams=(e.intentions||[]).map(s=>s.charAt(0).toUpperCase()+s.slice(1,3)).join('+');
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+            <td style="white-space:nowrap;font-size:10px;">${escHtml(ds)}</td>
+            <td style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(truncate(e.target,18))}</td>
+            <td style="font-size:10px;color:var(--text-dim);">${escHtml(streams||'—')}</td>
+            <td>${e.duration||'—'}</td>
+            <td style="color:var(--accent2);">${escHtml(rating)}</td>`;
+        tbody.appendChild(tr);
+    });
+    el('stat-total').textContent=log.length;
+    const rated=log.filter(e=>e.rating);
+    if (rated.length) {
+        const avg=(rated.reduce((s,e)=>s+e.rating,0)/rated.length).toFixed(1);
+        el('stat-avg').textContent=avg+' / 5';
+    } else { el('stat-avg').textContent='—'; }
+}
+
+function exportLog() {
+    const log=loadLog();
+    if (!log.length){alert('No sessions to export.');return;}
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(log,null,2)],{type:'application/json'}));
+    a.download='remote-healing-'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all session records? This cannot be undone.')) return;
+    localStorage.removeItem(LOG_KEY); renderLog();
+}
+
+// ── Config Persistence ────────────────────────────────────────────────────────
+function saveConfig() {
+    try {
+        localStorage.setItem(LAST_KEY, JSON.stringify({
+            'multi-mode':multiMode, 'healers':healers, 'rotation':el('rot-rotation').checked,
+            'target-name':gv('target-name'), 'target-condition':gv('target-condition'),
+            'stream-healing':gc('stream-healing'), 'stream-outcome':gc('stream-outcome'), 'stream-habit':gc('stream-habit'),
+            'bin-on':gc('bin-on'), 'beat-hz':gv('beat-hz'), 'bin-vol':gv('bin-vol'),
+            'noise-on':gc('noise-on'), 'noise-vol':gv('noise-vol'),
+            'coh-on':gc('coh-on'), 'coh-cycles':cohCyclesTotal, 'duration':sessionDuration,
+        }));
+    } catch(e) {}
+}
+
+function loadConfig() {
+    try {
+        const c=JSON.parse(localStorage.getItem(LAST_KEY)||'{}');
+        const s=(id,v)=>{ if(v!==undefined&&el(id)) el(id).value=v; };
+        const b=(id,v)=>{ if(v!==undefined&&el(id)) el(id).checked=v; };
+        if (c['multi-mode']) setMode('multi');
+        if (c['healers']&&Array.isArray(c['healers'])) { healers=c['healers']; renderHealerList(); }
+        if (c['rotation']===false) el('rot-simultaneous').checked=true; else el('rot-rotation').checked=true;
+        s('target-name',    c['target-name']);
+        s('target-condition',c['target-condition']);
+        b('stream-healing', c['stream-healing']??true);
+        b('stream-outcome', c['stream-outcome']??false);
+        b('stream-habit',   c['stream-habit']  ??false);
+        b('bin-on',   c['bin-on']  ??true);
+        s('beat-hz',  c['beat-hz'] ??'7.5');
+        s('bin-vol',  c['bin-vol'] ??'0.2');
+        b('noise-on', c['noise-on']??false);
+        s('noise-vol',c['noise-vol']??'0.08');
+        b('coh-on',   c['coh-on']  ??true);
+        if (c['coh-cycles']) setCycles(c['coh-cycles']);
+        if (c['duration']) setDur(c['duration']);
+        ['healing','outcome','habit'].forEach(k=>toggleStream(k));
+        sv('beat-hz','beat-val','',1); sv('bin-vol','bin-vol-val','',2); sv('noise-vol','noise-vol-val','',3);
+        toggleBinControls(); toggleNoiseControls();
+    } catch(e) {}
+}
+
+function toggleStream(name) {
+    el('stream-'+name+'-body').classList.toggle('hidden', !gc('stream-'+name));
+}
+function toggleBinControls()   { el('bin-controls').classList.toggle('hidden',!gc('bin-on')); }
+function toggleNoiseControls() { el('noise-controls').classList.toggle('hidden',!gc('noise-on')); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadConfig();
+    renderLog();
+    el('photo-file').addEventListener('change', function() { if(this.files[0]) loadPhoto(this.files[0]); });
+    el('healer-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addHealer(); });
+});
+</script>
+</body>
+</html>

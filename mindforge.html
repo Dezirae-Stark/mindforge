@@ -175,6 +175,20 @@
         .ft.special:hover { background: #806090; color: #fff; }
 
         #live-hz { font-size: 10px; color: var(--accent); text-align: right; margin-top: -6px; margin-bottom: 8px; min-height: 14px; }
+
+        /* ── Suggestion Reframe ───────────────────────── */
+        .reframe-btn-row { margin-top: 5px; }
+        .reframe-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .reframe-btn:hover { color: #c8a050; border-color: var(--accent); }
+        .reframe-preview { margin-top: 8px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 3px; padding: 10px; font-size: 11px; }
+        .reframe-original { color: var(--text-dim); margin-bottom: 6px; }
+        .reframe-result { color: var(--text); margin-bottom: 10px; font-style: italic; line-height: 1.6; }
+        .reframe-actions { display: flex; gap: 8px; }
+        .reframe-accept { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--on); background: transparent; color: var(--on); }
+        .reframe-accept:hover { background: rgba(64,192,128,0.1); }
+        .reframe-keep { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); }
+        .reframe-keep:hover { color: var(--text); }
+        .rf-hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -450,6 +464,10 @@ My subconscious receives and transforms.
 I am whole without an address.
 Experience arrives before words."></textarea>
         <div class="hint">One per line · 16ms = true subliminal · 33ms = liminal · 200ms+ = readable</div>
+        <div class="reframe-btn-row">
+            <button class="reframe-btn" onclick="doReframe('suggestions','subliminal')">✦ Reframe for maximum impact</button>
+        </div>
+        <div class="reframe-preview rf-hidden" id="suggestions-reframe"></div>
     </div>
 
     <!-- SESSION -->
@@ -1080,6 +1098,95 @@ window.addEventListener('DOMContentLoaded',()=>{
     const last=localStorage.getItem('mf-last');
     if(last){try{applyConfig(JSON.parse(last));}catch(e){}}
 });
+
+// ── Suggestion Rewriter ───────────────────────────────────────────────────────
+const _ANTONYMS = {
+    'anxiety':'calm and at ease','anxious':'calm and at ease',
+    'fear':'courage and groundedness','afraid':'brave and grounded',
+    'pain':'ease and comfort','painful':'comfortable and at ease',
+    'doubt':'clarity and certainty','uncertain':'clear and certain',
+    'anger':'peace and centeredness','angry':'peaceful and centered',
+    'confusion':'clarity and focus','confused':'clear and focused',
+    'weakness':'strength and vitality','weak':'strong and capable',
+    'fatigue':'energy and vitality','tired':'energized and alive',
+    'sadness':'joy and peace','sad':'joyful and at peace',
+    'resistance':'flow and ease','stuck':'flowing freely forward',
+    'stress':'ease and calm','stressed':'calm and centered',
+    'worry':'trust and peace','worried':'trusting the process fully',
+    'loneliness':'deep connection','lonely':'deeply connected',
+    'shame':'self-worth and wholeness','ashamed':'worthy and whole',
+    'lost':'guided and aligned',
+};
+const _FRAMES = [
+    s => `As ${s}, this truth deepens with every breath.`,
+    s => `${s} — and this becomes more real with each passing moment.`,
+    s => `${s}. This is my natural state returning.`,
+    s => `With each heartbeat, ${s}.`,
+    s => `${s}, and every part of me knows this is so.`,
+];
+let _rfIdx = 0;
+
+function _reframeOne(text) {
+    let s = text.trim();
+    if (!s) return null;
+    s = s.replace(/\bwill be\b/gi,'am').replace(/\bwill have\b/gi,'have')
+         .replace(/\bwill feel\b/gi,'feel').replace(/\bI want to\b/gi,'I')
+         .replace(/\bI hope to\b/gi,'I').replace(/\bI need to\b/gi,'I')
+         .replace(/\bI will\b/gi,'I');
+    const lower = s.toLowerCase();
+    const negWords = ["don't ","doesn't ","won't ","can't ","cannot ","not ","never ","no longer ","stop ","quit ","avoid "];
+    if (negWords.some(n=>lower.includes(n))) {
+        let replaced = false;
+        for (const [neg,pos] of Object.entries(_ANTONYMS)) {
+            if (lower.includes(neg)) { s=`I am ${pos}`; replaced=true; break; }
+        }
+        if (!replaced) {
+            s = s.replace(/\bdon't\b/gi,'').replace(/\bdoesn't\b/gi,'')
+                 .replace(/\bwon't\b/gi,'').replace(/\bcan't\b/gi,'')
+                 .replace(/\bcannot\b/gi,'').replace(/\bnot\b/gi,'')
+                 .replace(/\bnever\b/gi,'always').replace(/\s{2,}/g,' ').trim();
+            if (!/^(i |my )/i.test(s)) s = 'I ' + s;
+        }
+    }
+    s = s.trim();
+    s = s.charAt(0).toUpperCase()+s.slice(1);
+    const core = s.replace(/[.!?]+$/,'').trim();
+    const coreL = core.charAt(0).toLowerCase()+core.slice(1);
+    const frame = _FRAMES[_rfIdx % _FRAMES.length]; _rfIdx++;
+    s = frame(coreL);
+    return s.charAt(0).toUpperCase()+s.slice(1);
+}
+
+function _escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function doReframe(textareaId, context) {
+    const ta = document.getElementById(textareaId);
+    const pv = document.getElementById(textareaId+'-reframe');
+    if (!pv||!ta) return;
+    const lines = ta.value.split('\n').map(l=>l.trim()).filter(Boolean);
+    if (!lines.length) { pv.classList.add('rf-hidden'); return; }
+    const reframed = lines.map(l=>_reframeOne(l)).filter(Boolean);
+    if (!reframed.length) { pv.classList.add('rf-hidden'); return; }
+    pv.dataset.reframed = reframed.join('\n');
+    pv.dataset.tid = textareaId;
+    const count = reframed.length;
+    pv.innerHTML = `
+        <div class="reframe-original">Reframed ${count} suggestion${count>1?'s':''}:</div>
+        <div class="reframe-result">${reframed.map(r=>_escHtml(r)).join('<br>')}</div>
+        <div class="reframe-actions">
+            <button class="reframe-accept" onclick="acceptReframe(this)">Accept${count>1?' all':''}</button>
+            <button class="reframe-keep" onclick="this.closest('.reframe-preview').classList.add('rf-hidden')">Keep original</button>
+        </div>`;
+    pv.classList.remove('rf-hidden');
+}
+
+function acceptReframe(btn) {
+    const pv = btn.closest('.reframe-preview');
+    document.getElementById(pv.dataset.tid).value = pv.dataset.reframed;
+    pv.classList.add('rf-hidden');
+}
 </script>
 </body>
 </html>

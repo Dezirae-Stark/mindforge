@@ -360,6 +360,45 @@
         #intention-guide-body .guide-good { color: var(--on); }
         #intention-guide-body .guide-bad  { color: #804040; }
         #intention-guide-body .guide-note { color: var(--off); margin-top: 8px; display: block; }
+
+        /* ── Suggestion rewriter ── */
+        .reframe-btn-row { margin-top: 6px; }
+        .reframe-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            padding: 4px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .reframe-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .reframe-preview {
+            margin-top: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--accent);
+            border-radius: 3px;
+            padding: 10px 12px;
+            font-size: 11px;
+        }
+        .reframe-original { color: var(--text-dim); margin-bottom: 6px; }
+        .reframe-original span { color: var(--text); }
+        .reframe-result { color: var(--on); margin-bottom: 8px; line-height: 1.5; }
+        .reframe-result strong { display: block; color: var(--text-dim); font-weight: normal; margin-bottom: 2px; font-size: 10px; letter-spacing: 0.1em; }
+        .reframe-actions { display: flex; gap: 8px; }
+        .reframe-accept {
+            background: var(--accent); color: #fff; border: none;
+            font-family: 'Courier New', monospace; font-size: 10px;
+            letter-spacing: 0.1em; padding: 4px 12px; border-radius: 3px; cursor: pointer;
+        }
+        .reframe-keep {
+            background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+            font-family: 'Courier New', monospace; font-size: 10px;
+            letter-spacing: 0.1em; padding: 4px 12px; border-radius: 3px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -410,6 +449,10 @@
         </div>
         <textarea id="intention-text" rows="3" placeholder="What are you transmitting? One clear image, impression, or concept."></textarea>
         <div class="hint">Keep it simple and concrete. Abstract concepts transmit poorly. A colour, a shape, an emotion, a scene.</div>
+        <div class="reframe-btn-row">
+            <button class="reframe-btn" onclick="rfDoReframe('intention-text','intention')">&#10022; Reframe for maximum impact</button>
+        </div>
+        <div class="reframe-preview hidden" id="intention-text-reframe"></div>
 
         <!-- Enhancement 3: Intention framing guide -->
         <button id="intention-guide-toggle" onclick="toggleIntentionGuide()">
@@ -1113,6 +1156,108 @@ el('relationship').addEventListener('change', () => { updateRelationshipHint(); 
     syncFocusContent();
     renderLog();
 })();
+
+// ── Suggestion Rewriter ───────────────────────────────────────────────────────
+
+const _RF_ANTONYMS = {
+    anxiety:'calm', anxious:'calm', fear:'courage', afraid:'courageous',
+    pain:'ease', painful:'comfortable', doubt:'certainty', doubt:'confidence',
+    anger:'peace', angry:'peaceful', confusion:'clarity', confused:'clear',
+    weakness:'strength', weak:'strong', fatigue:'vitality', tired:'energised',
+    sadness:'joy', sad:'joyful', resistance:'flow', resistant:'open',
+    stress:'ease', stressed:'at ease', worry:'trust', worried:'trusting',
+    lack:'abundance', lonely:'connected', lost:'guided', stuck:'flowing'
+};
+
+const _RF_FRAMES = [
+    (s) => `${s}, and this becomes more true with each passing moment.`,
+    (s) => `As ${s.charAt(0).toLowerCase()+s.slice(1)}, it naturally deepens with every breath.`,
+    (s) => `${s} — this is their natural state returning.`,
+    (s) => `With each heartbeat, ${s.charAt(0).toLowerCase()+s.slice(1)}.`,
+    (s) => `${s} This settles deeper with every exhale.`
+];
+
+function _rfReframeOne(text, context) {
+    let t = text.trim();
+    if (!t) return '';
+
+    // 1. Convert future/desire to present
+    t = t.replace(/\bwill be\b/gi, 'is')
+         .replace(/\bwill have\b/gi, 'has')
+         .replace(/\bwill feel\b/gi, 'feels')
+         .replace(/\bI want to\b/gi, 'I am')
+         .replace(/\bI hope to\b/gi, 'I')
+         .replace(/\bI want\b/gi, 'I have')
+         .replace(/\bthey want to\b/gi, 'they are')
+         .replace(/\bthey hope to\b/gi, 'they');
+
+    // 2. Detect negations and attempt positive flip
+    const negPat = /\b(don'?t|won'?t|can'?t|cannot|not|never|no longer|stop|quit|avoid)\b/i;
+    if (negPat.test(t)) {
+        // Find antonym for last significant noun/adj
+        const words = t.toLowerCase().split(/\s+/);
+        let flipped = null;
+        for (let i = words.length - 1; i >= 0; i--) {
+            const w = words[i].replace(/[^a-z]/g, '');
+            if (_RF_ANTONYMS[w]) { flipped = _RF_ANTONYMS[w]; break; }
+        }
+        if (flipped) {
+            // Build positive version: subject + "is/feels/experiences" + antonym
+            const subj = /\bthey\b/i.test(t) ? 'They' : (/\b(he|him)\b/i.test(t) ? 'He' : (/\b(she|her)\b/i.test(t) ? 'She' : 'They'));
+            t = `${subj} feel${subj==='They'?'':'s'} ${flipped}, grounded, and at ease.`;
+        }
+    }
+
+    // 3. Ensure capitalisation
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    if (!/[.!?]$/.test(t)) t += '.';
+
+    // 4. Apply Ericksonian frame (rotating by text length for variety)
+    const frameIdx = t.length % _RF_FRAMES.length;
+    const framed = _RF_FRAMES[frameIdx](t.replace(/\.$/, ''));
+
+    // 5. Intention context: append somatic anchor
+    if (context === 'intention') {
+        return framed + ' This transmission carries warmth and care.';
+    }
+
+    return framed;
+}
+
+function _rfEscHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function rfDoReframe(textareaId, context) {
+    const ta = document.getElementById(textareaId);
+    const pv = document.getElementById(textareaId + '-reframe');
+    if (!ta || !pv) return;
+    const raw = ta.value.trim();
+    if (!raw) { pv.classList.add('hidden'); return; }
+
+    const reframed = _rfReframeOne(raw, context);
+
+    pv.innerHTML =
+        '<div class="reframe-original">Original: <span>' + _rfEscHtml(raw) + '</span></div>' +
+        '<div class="reframe-result"><strong>REFRAMED</strong>' + _rfEscHtml(reframed) + '</div>' +
+        '<div class="reframe-actions">' +
+        '<button class="reframe-accept" onclick="rfAccept(this)">Accept</button>' +
+        '<button class="reframe-keep" onclick="rfKeep(this)">Keep original</button>' +
+        '</div>';
+    pv.dataset.tid = textareaId;
+    pv.dataset.reframed = reframed;
+    pv.classList.remove('hidden');
+}
+
+function rfAccept(btn) {
+    const pv = btn.closest('.reframe-preview');
+    document.getElementById(pv.dataset.tid).value = pv.dataset.reframed;
+    pv.classList.add('hidden');
+}
+
+function rfKeep(btn) {
+    btn.closest('.reframe-preview').classList.add('hidden');
+}
 </script>
 </body>
 </html>

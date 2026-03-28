@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Seiðr — Mindforge</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a28;
+            --border: #2a2a40;
+            --text: #c8c8e0;
+            --text-dim: #6060a0;
+            --accent: #a07830;
+            --accent2: #c8a050;
+            --warn: #c07040;
+            --on: #40c080;
+            --off: #404060;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5; }
+        .app { max-width: 520px; margin: 0 auto; padding: 12px; }
+        header { text-align: center; padding: 20px 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        header h1 { font-size: 22px; color: var(--accent2); letter-spacing: 0.1em; font-weight: normal; }
+        header .subtitle { font-size: 10px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.05em; }
+        .nav-link { font-size: 10px; color: var(--text-dim); text-decoration: none; margin-top: 8px; display: inline-block; }
+        .nav-link:hover { color: var(--accent2); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 14px; margin-bottom: 10px; }
+        .panel-title { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .ctrl { margin-bottom: 10px; }
+        .ctrl label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; height: 4px; }
+        input[type="text"], textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Courier New', monospace; font-size: 12px; padding: 7px 9px; border-radius: 3px; resize: vertical; }
+        input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+        .toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: 12px; user-select: none; }
+        input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+        input[type="file"] { display: none; }
+        .btn-main { width: 100%; background: var(--accent); color: var(--bg); border: none; padding: 11px; font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; letter-spacing: 0.05em; cursor: pointer; border-radius: 3px; margin-top: 4px; }
+        .btn-main:hover { background: var(--accent2); }
+        .btn-end { width: 100%; background: transparent; color: var(--warn); border: 1px solid var(--warn); padding: 8px; font-family: 'Courier New', monospace; font-size: 12px; cursor: pointer; border-radius: 3px; margin-top: 8px; }
+        .btn-end:hover { background: rgba(192,112,64,0.1); }
+        .btn-callback { width: 100%; background: transparent; color: var(--accent2); border: 2px solid var(--accent2); padding: 10px; font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 3px; margin-top: 8px; letter-spacing: 0.08em; animation: callback-pulse 1.8s ease-in-out infinite; }
+        @keyframes callback-pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        .btn-sm { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .btn-sm:hover { color: var(--text); border-color: var(--text-dim); }
+        .btn-danger { color: var(--warn) !important; }
+        .btn-danger:hover { border-color: var(--warn) !important; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .dur-btn { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; flex: 1; }
+        .dur-btn:hover { color: var(--text); }
+        .dur-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: bold; }
+        .upload-btn { width: 100%; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); padding: 7px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; text-align: left; }
+        .upload-btn:hover { color: var(--text); border-color: var(--text-dim); }
+        .upload-btn.loaded { color: var(--on); border-color: var(--on); }
+        hr.sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .hint { font-size: 10px; color: var(--text-dim); margin-top: 3px; font-style: italic; }
+        /* Nine Worlds */
+        .worlds-section { margin-bottom: 12px; }
+        .worlds-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .worlds-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .world-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 8px 4px; font-family: 'Courier New', monospace; cursor: pointer; border-radius: 3px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: border-color 0.15s; }
+        .world-btn:hover { border-color: var(--accent); }
+        .world-btn.selected { background: rgba(160,120,48,0.15); border-color: var(--accent2); color: var(--accent2); }
+        .world-name { font-size: 12px; font-weight: bold; }
+        .world-realm { font-size: 9px; color: var(--text-dim); }
+        .world-current { margin-top: 10px; text-align: center; font-size: 11px; color: var(--text-dim); padding: 8px; background: var(--surface2); border-radius: 3px; border: 1px solid var(--border); }
+        .world-current strong { color: var(--accent2); }
+        /* Timer */
+        .timer-display { font-size: 40px; text-align: center; color: var(--accent2); letter-spacing: 0.1em; margin: 10px 0 4px; font-weight: bold; }
+        .phase-display { text-align: center; font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 6px; min-height: 18px; }
+        .phase-display.callback-mode { color: var(--accent2); font-weight: bold; }
+        /* Reframe */
+        .reframe-btn-row { margin-top: 5px; }
+        .reframe-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 10px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; }
+        .reframe-btn:hover { color: var(--accent2); border-color: var(--accent); }
+        .reframe-preview { margin-top: 8px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 3px; padding: 10px; font-size: 11px; }
+        .reframe-original { color: var(--text-dim); margin-bottom: 6px; }
+        .reframe-result { color: var(--accent2); margin-bottom: 10px; font-style: italic; line-height: 1.6; }
+        .reframe-actions { display: flex; gap: 8px; }
+        .reframe-accept { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--on); background: transparent; color: var(--on); }
+        .reframe-accept:hover { background: rgba(64,192,128,0.1); }
+        .reframe-keep { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); }
+        .reframe-keep:hover { color: var(--text); }
+        /* Post */
+        .post-info { font-size: 12px; color: var(--accent2); margin-bottom: 12px; text-align: center; padding: 6px; background: var(--surface2); border-radius: 3px; }
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
+        th { color: var(--text-dim); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); font-weight: normal; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+        td { padding: 5px 6px; border-bottom: 1px solid var(--surface2); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        .stats-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 10px; margin-top: 10px; }
+        .stat-line { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+        .stat-key { color: var(--text-dim); }
+        .stat-val { color: var(--text); font-weight: bold; }
+        .hidden { display: none !important; }
+        footer { text-align: center; padding: 16px 0; font-size: 10px; color: var(--text-dim); border-top: 1px solid var(--border); margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header>
+        <h1>Seiðr</h1>
+        <div class="subtitle">Shamanic journey · Nine Worlds · Norse seiðkona tradition</div>
+        <a class="nav-link" href="index.html">← Mindforge Suite</a>
+    </header>
+
+    <!-- Varðlokkur -->
+    <div class="panel" id="vardlokkur-panel">
+        <div class="panel-title">Varðlokkur · Calling Song</div>
+        <div class="ctrl">
+            <label>Old Norse calling text (editable · displayed during journey)</label>
+            <textarea id="vardlokkur-text" rows="7" spellcheck="false">Kom norðre
+Kom austre
+Kom suðre
+Kom Vestre Valfreyja
+Kom valkjur der I ski
+Døkke á vegen álfar
+Kom Vanadís</textarea>
+        </div>
+        <hr class="sep">
+        <div class="ctrl">
+            <label>Upload your varðlokkur recording</label>
+            <input type="file" id="vard-file" accept="audio/*">
+            <button class="upload-btn" id="vard-upload-btn" onclick="el('vard-file').click()">↑ Upload audio file</button>
+            <div class="hint">Session only — never saved to device storage</div>
+        </div>
+        <div class="ctrl hidden" id="spatial-row">
+            <label class="toggle-label">
+                <input type="checkbox" id="spatial-on" onchange="saveConfig()"> Spatial processing
+            </label>
+            <div class="hint">Adds stereo width via L/R delay offset</div>
+        </div>
+        <div class="ctrl">
+            <label>Varðlokkur volume <span id="vard-vol-val">0.60</span></label>
+            <input type="range" id="vard-vol" min="0" max="1" step="0.01" value="0.6"
+                oninput="sv('vard-vol','vard-vol-val','',2); if(vardlokkurGain) vardlokkurGain.gain.value=gf('vard-vol');">
+        </div>
+    </div>
+
+    <!-- Journey Audio -->
+    <div class="panel" id="audio-panel">
+        <div class="panel-title">Journey Audio</div>
+        <div class="ctrl">
+            <label class="toggle-label">
+                <input type="checkbox" id="drum-on" checked onchange="toggleDrumControls(); saveConfig();"> Ceremonial drumming
+            </label>
+        </div>
+        <div id="drum-controls">
+            <div class="ctrl">
+                <label>Tempo <span id="bpm-val">200</span> BPM</label>
+                <input type="range" id="bpm" min="180" max="220" step="1" value="200"
+                    oninput="sv('bpm','bpm-val','',0); saveConfig();">
+            </div>
+            <div class="ctrl">
+                <label>Drum volume <span id="drum-vol-val">0.70</span></label>
+                <input type="range" id="drum-vol" min="0" max="1" step="0.01" value="0.7"
+                    oninput="sv('drum-vol','drum-vol-val','',2); saveConfig();">
+            </div>
+        </div>
+        <hr class="sep">
+        <div class="ctrl">
+            <label class="toggle-label">
+                <input type="checkbox" id="bin-on" onchange="toggleBinControls(); saveConfig();"> Theta binaural beneath drumming
+            </label>
+        </div>
+        <div id="bin-controls" class="hidden">
+            <div class="ctrl">
+                <label>Beat frequency <span id="beat-val">5.5</span> Hz &nbsp;<span class="hint" style="display:inline;">(theta: 4–7 Hz)</span></label>
+                <input type="range" id="beat-hz" min="4" max="7" step="0.1" value="5.5"
+                    oninput="sv('beat-hz','beat-val','',1); saveConfig();">
+            </div>
+            <div class="ctrl">
+                <label>Binaural volume <span id="bin-vol-val">0.15</span></label>
+                <input type="range" id="bin-vol" min="0" max="0.3" step="0.01" value="0.15"
+                    oninput="sv('bin-vol','bin-vol-val','',2); saveConfig();">
+            </div>
+        </div>
+        <hr class="sep">
+        <div class="ctrl">
+            <label>Master volume <span id="master-vol-val">0.80</span></label>
+            <input type="range" id="master-vol" min="0" max="1" step="0.01" value="0.8"
+                oninput="sv('master-vol','master-vol-val','',2); if(masterGain) masterGain.gain.value=gf('master-vol'); saveConfig();">
+        </div>
+    </div>
+
+    <!-- Nine Worlds -->
+    <div class="panel" id="worlds-panel">
+        <div class="panel-title">Nine Worlds · Yggdrasil</div>
+
+        <div class="worlds-section">
+            <div class="worlds-label">Ofanverðr · Upper Branches</div>
+            <div class="worlds-row">
+                <button class="world-btn" data-world="Asgard" onclick="selectWorld('Asgard')">
+                    <span class="world-name">Asgard</span>
+                    <span class="world-realm">Realm of the Æsir</span>
+                </button>
+                <button class="world-btn" data-world="Vanaheim" onclick="selectWorld('Vanaheim')">
+                    <span class="world-name">Vanaheim</span>
+                    <span class="world-realm">Realm of the Vanir</span>
+                </button>
+                <button class="world-btn" data-world="Ljósálfheim" onclick="selectWorld('Ljósálfheim')">
+                    <span class="world-name">Ljósálfheim</span>
+                    <span class="world-realm">Light elf realm</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="worlds-section">
+            <div class="worlds-label">Miðgarðr · Middle Trunk</div>
+            <div class="worlds-row">
+                <button class="world-btn" data-world="Midgard" onclick="selectWorld('Midgard')">
+                    <span class="world-name">Midgard</span>
+                    <span class="world-realm">Realm of humans</span>
+                </button>
+                <button class="world-btn" data-world="Jotunheim" onclick="selectWorld('Jotunheim')">
+                    <span class="world-name">Jotunheim</span>
+                    <span class="world-realm">Realm of giants</span>
+                </button>
+                <button class="world-btn" data-world="Nidavellir" onclick="selectWorld('Nidavellir')">
+                    <span class="world-name">Nidavellir</span>
+                    <span class="world-realm">Realm of dwarves</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="worlds-section">
+            <div class="worlds-label">Niðanverðr · Lower Roots</div>
+            <div class="worlds-row">
+                <button class="world-btn" data-world="Niflheim" onclick="selectWorld('Niflheim')">
+                    <span class="world-name">Niflheim</span>
+                    <span class="world-realm">Primordial mist</span>
+                </button>
+                <button class="world-btn" data-world="Muspelheim" onclick="selectWorld('Muspelheim')">
+                    <span class="world-name">Muspelheim</span>
+                    <span class="world-realm">Realm of fire</span>
+                </button>
+                <button class="world-btn" data-world="Helheim" onclick="selectWorld('Helheim')">
+                    <span class="world-name">Helheim</span>
+                    <span class="world-realm">Hel's domain</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="world-current hidden" id="world-current">
+            journeying to <strong id="world-current-name"></strong>
+        </div>
+    </div>
+
+    <!-- Session -->
+    <div class="panel" id="session-panel">
+        <div class="panel-title">Session</div>
+        <div id="session-setup">
+            <div class="ctrl">
+                <label>Duration</label>
+                <div class="btn-row">
+                    <button class="dur-btn" onclick="setDur(10)">10 min</button>
+                    <button class="dur-btn active" onclick="setDur(20)">20 min</button>
+                    <button class="dur-btn" onclick="setDur(30)">30 min</button>
+                    <button class="dur-btn" onclick="setDur(40)">40 min</button>
+                    <button class="dur-btn" onclick="setDur(60)">60 min</button>
+                </div>
+            </div>
+            <button class="btn-main" onclick="beginSession()">Begin Journey</button>
+        </div>
+        <div id="session-active" class="hidden">
+            <div class="timer-display" id="timer-display">00:00</div>
+            <div class="phase-display" id="phase-display">preparing</div>
+            <button class="btn-callback hidden" id="callback-btn" onclick="triggerCallback()">↯ Signal Callback — Return</button>
+            <button class="btn-end" onclick="endSessionEarly()">End Journey</button>
+        </div>
+    </div>
+
+    <!-- Post-Journey -->
+    <div class="panel hidden" id="post-panel">
+        <div class="panel-title">Post-Journey Record</div>
+        <div class="post-info" id="post-info">—</div>
+        <div class="ctrl">
+            <label>Intent / purpose</label>
+            <textarea id="post-intent" rows="2" placeholder="What called you to journey?"></textarea>
+            <div class="reframe-btn-row">
+                <button class="reframe-btn" onclick="doReframe('post-intent','seidr')">✦ Reframe for maximum impact</button>
+            </div>
+            <div class="reframe-preview hidden" id="post-intent-reframe"></div>
+        </div>
+        <div class="ctrl">
+            <label>Entities encountered</label>
+            <textarea id="post-entities" rows="3" placeholder="Spirits, guides, beings, presences..."></textarea>
+        </div>
+        <div class="ctrl">
+            <label>Gifts / messages received</label>
+            <textarea id="post-gifts" rows="3" placeholder="What was given, shown, or spoken..."></textarea>
+        </div>
+        <div class="ctrl">
+            <label>Offering made</label>
+            <textarea id="post-offering" rows="2" placeholder="What was given in exchange..."></textarea>
+        </div>
+        <div class="ctrl">
+            <label>Notes</label>
+            <textarea id="post-notes" rows="3" placeholder="Additional observations..."></textarea>
+        </div>
+        <button class="btn-main" onclick="saveSession()">Save to Log</button>
+    </div>
+
+    <!-- Session Log -->
+    <div class="panel" id="log-panel">
+        <div class="panel-title">Session Log</div>
+        <div class="btn-row" style="margin-bottom:10px;">
+            <button class="btn-sm" onclick="exportLog()">Export JSON</button>
+            <button class="btn-sm btn-danger" onclick="clearLog()">Clear Log</button>
+        </div>
+        <div id="log-empty" style="font-size:11px;color:var(--off);padding:8px 0;">No journeys recorded yet.</div>
+        <div id="log-table-wrap" class="hidden">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>World</th>
+                        <th>Min</th>
+                        <th>Intent</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="log-tbody"></tbody>
+            </table>
+            <div class="stats-box">
+                <div class="stat-line">
+                    <span class="stat-key">Total journeys</span>
+                    <span class="stat-val" id="stat-total">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-key">Worlds visited</span>
+                    <span class="stat-val" id="stat-worlds">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>Seiðr · Mindforge Suite · All data stays in your browser only</footer>
+
+</div>
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const el  = id => document.getElementById(id);
+const gv  = id => el(id).value;
+const gf  = id => parseFloat(gv(id));
+const gc  = id => el(id).checked;
+const fmt = n  => String(n).padStart(2, '0');
+
+function sv(srcId, dispId, unit='', dec=2) {
+    const v = parseFloat(gv(srcId));
+    el(dispId).textContent = v.toFixed(dec) + (unit ? ' '+unit : '');
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function truncate(s, n) {
+    if (!s) return '—';
+    return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ── Suggestion Rewriter ───────────────────────────────────────────────────────
+const ANTONYMS = {
+    'anxiety':'calm and at ease','anxious':'calm and at ease',
+    'fear':'courage and groundedness','afraid':'brave and grounded',
+    'pain':'ease and comfort','painful':'comfortable and at ease',
+    'doubt':'clarity and certainty','uncertain':'clear and certain',
+    'anger':'peace and centeredness','angry':'peaceful and centered',
+    'confusion':'clarity and focus','confused':'clear and focused',
+    'weakness':'strength and vitality','weak':'strong and capable',
+    'fatigue':'energy and vitality','tired':'energized and alive',
+    'sadness':'joy and peace','sad':'joyful and at peace',
+    'resistance':'flow and ease','stuck':'flowing freely forward',
+    'stress':'ease and calm','stressed':'calm and centered',
+    'worry':'trust and peace','worried':'trusting the process fully',
+    'loneliness':'deep connection','lonely':'deeply connected',
+    'shame':'self-worth and wholeness','ashamed':'worthy and whole',
+    'lost':'guided and aligned',
+};
+
+const FRAMES = [
+    s => `As ${s}, this truth deepens with every breath.`,
+    s => `${s} — and this becomes more real with each passing moment.`,
+    s => `${s}. This is my natural state returning.`,
+    s => `With each heartbeat, ${s}.`,
+    s => `${s}, and every part of me knows this is so.`,
+];
+let frameIdx = 0;
+
+function reframeSuggestion(text, context) {
+    if (!text || !text.trim()) return null;
+    let s = text.trim();
+
+    // Future → present
+    s = s.replace(/\bwill be\b/gi,'am').replace(/\bwill have\b/gi,'have')
+         .replace(/\bwill feel\b/gi,'feel').replace(/\bI want to\b/gi,'I')
+         .replace(/\bI hope to\b/gi,'I').replace(/\bI need to\b/gi,'I')
+         .replace(/\bI wish to\b/gi,'I').replace(/\bI will\b/gi,'I');
+
+    // Detect negation
+    const lower = s.toLowerCase();
+    const negWords = ["don't ","doesn't ","won't ","can't ","cannot ","not ","never ","no longer ","stop ","quit ","avoid "];
+    const hasNeg = negWords.some(n => lower.includes(n));
+
+    if (hasNeg) {
+        let replaced = false;
+        for (const [neg, pos] of Object.entries(ANTONYMS)) {
+            if (lower.includes(neg)) { s = `I am ${pos}`; replaced = true; break; }
+        }
+        if (!replaced) {
+            s = s.replace(/\bdon't\b/gi,'').replace(/\bdoesn't\b/gi,'')
+                 .replace(/\bwon't\b/gi,'').replace(/\bcan't\b/gi,'')
+                 .replace(/\bcannot\b/gi,'').replace(/\bnot\b/gi,'')
+                 .replace(/\bnever\b/gi,'always').replace(/\s{2,}/g,' ').trim();
+            if (!/^(i |my )/i.test(s)) s = 'I ' + s;
+        }
+    }
+
+    s = s.trim();
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+    const core = s.replace(/[.!?]+$/, '').trim();
+    const coreL = core.charAt(0).toLowerCase() + core.slice(1);
+
+    if (context === 'seidr' && currentWorld) {
+        const intent = coreL.replace(/^i\s+/i, '');
+        s = `I journey to ${currentWorld} to ${intent}. I return with what is needed.`;
+        s += ' I feel this alive in every cell.';
+    } else {
+        const frame = FRAMES[frameIdx % FRAMES.length];
+        frameIdx++;
+        s = frame(coreL);
+        s = s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    return s;
+}
+
+function doReframe(textareaId, context) {
+    const ta = el(textareaId);
+    const pv = el(textareaId + '-reframe');
+    if (!pv) return;
+    const original = ta.value.trim();
+    if (!original) { pv.classList.add('hidden'); return; }
+    const reframed = reframeSuggestion(original, context);
+    if (!reframed || reframed === original) { pv.classList.add('hidden'); return; }
+    pv.dataset.reframed = reframed;
+    pv.dataset.tid = textareaId;
+    pv.innerHTML = `
+        <div class="reframe-original">Original: "${escHtml(truncate(original, 80))}"</div>
+        <div class="reframe-result">${escHtml(reframed)}</div>
+        <div class="reframe-actions">
+            <button class="reframe-accept" onclick="acceptReframe(this)">Accept</button>
+            <button class="reframe-keep" onclick="this.closest('.reframe-preview').classList.add('hidden')">Keep original</button>
+        </div>`;
+    pv.classList.remove('hidden');
+}
+
+function acceptReframe(btn) {
+    const pv = btn.closest('.reframe-preview');
+    el(pv.dataset.tid).value = pv.dataset.reframed;
+    pv.classList.add('hidden');
+    saveConfig();
+}
+
+// ── Audio Globals ─────────────────────────────────────────────────────────────
+let ctx = null, masterGain = null, drumGain = null;
+let drumTimerId = null, currentBPM = 200;
+let leftOsc = null, rightOsc = null, leftGain = null, rightGain = null, binMerger = null, binGain = null;
+let vardlokkurBuffer = null, vardlokkurSource = null, vardlokkurGain = null;
+
+function initAudio() {
+    if (ctx) return;
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { alert('Web Audio API not available.'); return; }
+    masterGain = ctx.createGain();
+    masterGain.gain.value = gf('master-vol');
+    masterGain.connect(ctx.destination);
+    drumGain = ctx.createGain();
+    drumGain.connect(masterGain);
+}
+
+// ── Drum Synthesis ────────────────────────────────────────────────────────────
+function scheduleDrumHit() {
+    if (!running || !gc('drum-on')) return;
+    const now = ctx.currentTime;
+    const vol = gf('drum-vol');
+
+    // Tonal body: pitch-dropping sine (frame drum resonance)
+    const osc = ctx.createOscillator();
+    const oscEnv = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+    oscEnv.gain.setValueAtTime(vol * 0.85, now + 0.002);
+    oscEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+    osc.connect(oscEnv); oscEnv.connect(drumGain);
+    osc.start(now); osc.stop(now + 0.4);
+
+    // Attack transient: noise burst with lowpass
+    const nLen = Math.floor(ctx.sampleRate * 0.05);
+    const nBuf = ctx.createBuffer(1, nLen, ctx.sampleRate);
+    const nData = nBuf.getChannelData(0);
+    for (let i = 0; i < nLen; i++) nData[i] = Math.random() * 2 - 1;
+    const nSrc = ctx.createBufferSource();
+    nSrc.buffer = nBuf;
+    const nFilt = ctx.createBiquadFilter();
+    nFilt.type = 'lowpass'; nFilt.frequency.value = 280;
+    const nEnv = ctx.createGain();
+    nEnv.gain.setValueAtTime(vol * 0.4, now);
+    nEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+    nSrc.connect(nFilt); nFilt.connect(nEnv); nEnv.connect(drumGain);
+    nSrc.start(now); nSrc.stop(now + 0.05);
+
+    drumTimerId = setTimeout(scheduleDrumHit, 60000 / currentBPM);
+}
+
+function startDrumming() {
+    if (!gc('drum-on') || !ctx) return;
+    stopDrumming();
+    currentBPM = gf('bpm');
+    scheduleDrumHit();
+}
+
+function stopDrumming() {
+    if (drumTimerId) { clearTimeout(drumTimerId); drumTimerId = null; }
+}
+
+// ── Binaural Beats ────────────────────────────────────────────────────────────
+function startBinaural() {
+    if (!gc('bin-on') || !ctx) return;
+    stopBinaural();
+    const carrier = 300, beat = gf('beat-hz'), vol = gf('bin-vol');
+    binMerger = ctx.createChannelMerger(2);
+    binGain = ctx.createGain(); binGain.gain.value = 0;
+    binMerger.connect(binGain); binGain.connect(masterGain);
+    leftGain = ctx.createGain(); leftGain.gain.value = 1;
+    rightGain = ctx.createGain(); rightGain.gain.value = 1;
+    leftGain.connect(binMerger, 0, 0);
+    rightGain.connect(binMerger, 0, 1);
+    leftOsc = ctx.createOscillator(); rightOsc = ctx.createOscillator();
+    leftOsc.type = rightOsc.type = 'sine';
+    leftOsc.frequency.value = carrier;
+    rightOsc.frequency.value = carrier + beat;
+    leftOsc.connect(leftGain); rightOsc.connect(rightGain);
+    leftOsc.start(); rightOsc.start();
+    binGain.gain.linearRampToValueAtTime(vol, ctx.currentTime + 3);
+}
+
+function stopBinaural() {
+    if (leftOsc)  { try { leftOsc.stop(); } catch(e){} leftOsc = null; }
+    if (rightOsc) { try { rightOsc.stop(); } catch(e){} rightOsc = null; }
+    if (binGain)  { try { binGain.disconnect(); } catch(e){} binGain = null; }
+    if (binMerger){ try { binMerger.disconnect(); } catch(e){} binMerger = null; }
+    leftGain = null; rightGain = null;
+}
+
+// ── Varðlokkur Upload ─────────────────────────────────────────────────────────
+function loadVardlokkurAudio(file) {
+    if (!file) return;
+    if (!ctx) initAudio();
+    if (!ctx) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        ctx.decodeAudioData(e.target.result.slice(0))
+            .then(buf => {
+                vardlokkurBuffer = buf;
+                el('vard-upload-btn').textContent = '✓ Loaded — ' + file.name;
+                el('vard-upload-btn').classList.add('loaded');
+                el('spatial-row').classList.remove('hidden');
+            })
+            .catch(() => alert('Could not decode audio. Try MP3, WAV, or OGG.'));
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function startVardlokkur() {
+    if (!vardlokkurBuffer || !ctx) return;
+    stopVardlokkur();
+    vardlokkurSource = ctx.createBufferSource();
+    vardlokkurSource.buffer = vardlokkurBuffer;
+    vardlokkurSource.loop = true;
+    vardlokkurGain = ctx.createGain();
+    vardlokkurGain.gain.value = gf('vard-vol');
+    vardlokkurGain.connect(masterGain);
+    if (gc('spatial-on')) {
+        const dL = ctx.createDelay(0.05), dR = ctx.createDelay(0.05);
+        dL.delayTime.value = 0.011; dR.delayTime.value = 0.019;
+        const pL = ctx.createStereoPanner(), pR = ctx.createStereoPanner();
+        pL.pan.value = -0.65; pR.pan.value = 0.65;
+        if (vardlokkurBuffer.numberOfChannels >= 2) {
+            const sp = ctx.createChannelSplitter(2);
+            vardlokkurSource.connect(sp);
+            sp.connect(dL, 0); sp.connect(dR, 1);
+        } else {
+            vardlokkurSource.connect(dL);
+            vardlokkurSource.connect(dR);
+        }
+        dL.connect(pL); dR.connect(pR);
+        pL.connect(vardlokkurGain); pR.connect(vardlokkurGain);
+    } else {
+        vardlokkurSource.connect(vardlokkurGain);
+    }
+    vardlokkurSource.start();
+}
+
+function stopVardlokkur() {
+    if (vardlokkurSource) { try { vardlokkurSource.stop(); } catch(e){} vardlokkurSource = null; }
+    if (vardlokkurGain)   { try { vardlokkurGain.disconnect(); } catch(e){} vardlokkurGain = null; }
+}
+
+// ── Nine Worlds ───────────────────────────────────────────────────────────────
+let currentWorld = null;
+
+function selectWorld(world) {
+    currentWorld = world;
+    document.querySelectorAll('.world-btn').forEach(b => b.classList.toggle('selected', b.dataset.world === world));
+    el('world-current-name').textContent = world;
+    el('world-current').classList.remove('hidden');
+    if (running) updatePhase();
+    saveConfig();
+}
+
+// ── Session Control ───────────────────────────────────────────────────────────
+let running = false, elapsed = 0, sessionDuration = 20;
+let sessionInterval = null, callbackTriggered = false;
+let endWorld = null, endDuration = null;
+
+function setDur(min) {
+    sessionDuration = min;
+    document.querySelectorAll('.dur-btn').forEach(b => b.classList.toggle('active', parseInt(b.textContent) === min));
+    saveConfig();
+}
+
+function beginSession() {
+    if (!currentWorld) { alert('Select a world to journey to first.'); return; }
+    if (!ctx) initAudio();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    running = true; elapsed = 0; callbackTriggered = false;
+    currentBPM = gf('bpm');
+    el('session-setup').classList.add('hidden');
+    el('session-active').classList.remove('hidden');
+    el('callback-btn').classList.remove('hidden');
+    ['vardlokkur-panel','audio-panel','worlds-panel'].forEach(id => {
+        el(id).style.opacity = '0.45'; el(id).style.pointerEvents = 'none';
+    });
+    masterGain.gain.cancelScheduledValues(ctx.currentTime);
+    masterGain.gain.setValueAtTime(0, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(gf('master-vol'), ctx.currentTime + 3);
+    if (gc('drum-on'))   startDrumming();
+    if (gc('bin-on'))    startBinaural();
+    if (vardlokkurBuffer) startVardlokkur();
+    updatePhase();
+    el('timer-display').textContent = '00:00';
+    sessionInterval = setInterval(tick, 1000);
+}
+
+function tick() {
+    elapsed++;
+    const total = sessionDuration * 60;
+    el('timer-display').textContent = fmt(Math.floor(elapsed/60)) + ':' + fmt(elapsed%60);
+    if (!callbackTriggered && (total - elapsed) <= 60) triggerCallback();
+    if (elapsed >= total) endSession();
+}
+
+function updatePhase() {
+    const pd = el('phase-display');
+    if (callbackTriggered) {
+        pd.textContent = '↯ callback · return signal';
+        pd.classList.add('callback-mode');
+    } else {
+        pd.textContent = 'journeying · ' + (currentWorld || '—');
+        pd.classList.remove('callback-mode');
+    }
+}
+
+function triggerCallback() {
+    if (callbackTriggered) return;
+    callbackTriggered = true;
+    currentBPM = 400;
+    stopDrumming();
+    if (gc('drum-on')) startDrumming();
+    el('callback-btn').classList.add('hidden');
+    updatePhase();
+}
+
+function endSession() {
+    clearInterval(sessionInterval); sessionInterval = null;
+    running = false;
+    endWorld = currentWorld; endDuration = sessionDuration;
+    stopDrumming(); stopBinaural(); stopVardlokkur();
+    if (masterGain && ctx) {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
+        masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 3);
+    }
+    setTimeout(playChime, 3300);
+    el('session-active').classList.add('hidden');
+    el('session-setup').classList.remove('hidden');
+    ['vardlokkur-panel','audio-panel','worlds-panel'].forEach(id => {
+        el(id).style.opacity = ''; el(id).style.pointerEvents = '';
+    });
+    el('phase-display').textContent = 'journey complete';
+    el('phase-display').classList.remove('callback-mode');
+    el('post-info').textContent = (endWorld||'—') + ' · ' + (endDuration||sessionDuration) + ' min';
+    el('post-panel').classList.remove('hidden');
+    setTimeout(() => el('post-panel').scrollIntoView({ behavior:'smooth' }), 300);
+}
+
+function endSessionEarly() {
+    if (!confirm('End the journey now?')) return;
+    endSession();
+}
+
+function playChime() {
+    if (!ctx) return;
+    [396,528,660].forEach((f,i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        const t = ctx.currentTime + i * 0.7;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.15, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + 1.85);
+    });
+}
+
+// ── Post-Journey Save ─────────────────────────────────────────────────────────
+function saveSession() {
+    const entry = {
+        id:       Math.random().toString(36).slice(2),
+        date:     new Date().toISOString(),
+        world:    endWorld || currentWorld || '—',
+        duration: endDuration || sessionDuration,
+        intent:   el('post-intent').value.trim(),
+        entities: el('post-entities').value.trim(),
+        gifts:    el('post-gifts').value.trim(),
+        offering: el('post-offering').value.trim(),
+        notes:    el('post-notes').value.trim(),
+    };
+    const log = loadLog(); log.push(entry); saveLog(log); renderLog();
+    ['post-intent','post-entities','post-gifts','post-offering','post-notes'].forEach(id => el(id).value = '');
+    el('post-intent-reframe').classList.add('hidden');
+    el('post-panel').classList.add('hidden');
+    el('log-panel').scrollIntoView({ behavior:'smooth' });
+}
+
+// ── Session Log ───────────────────────────────────────────────────────────────
+const LOG_KEY = 'seidr-log', LAST_KEY = 'seidr-last';
+
+function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY)||'[]'); } catch(e) { return []; } }
+function saveLog(log) { try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch(e){} }
+
+function renderLog() {
+    const log = loadLog();
+    if (!log.length) {
+        el('log-empty').style.display = 'block';
+        el('log-table-wrap').classList.add('hidden');
+        return;
+    }
+    el('log-empty').style.display = 'none';
+    el('log-table-wrap').classList.remove('hidden');
+    const tbody = el('log-tbody');
+    tbody.innerHTML = '';
+    [...log].reverse().forEach(e => {
+        const d = new Date(e.date);
+        const ds = d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="white-space:nowrap;font-size:10px;">${escHtml(ds)}</td>
+            <td style="color:var(--accent2);">${escHtml(e.world||'—')}</td>
+            <td>${e.duration||'—'}</td>
+            <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);" title="${escHtml(e.intent||'')}">${escHtml(truncate(e.intent,28))}</td>
+            <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);" title="${escHtml(e.notes||'')}">${escHtml(truncate(e.notes,28))}</td>`;
+        tbody.appendChild(tr);
+    });
+    el('stat-total').textContent = log.length;
+    const worlds = [...new Set(log.map(e=>e.world).filter(Boolean))];
+    el('stat-worlds').textContent = worlds.length ? worlds.join(', ') : '—';
+}
+
+function exportLog() {
+    const log = loadLog();
+    if (!log.length) { alert('No sessions to export.'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(log,null,2)],{type:'application/json'}));
+    a.download = 'seidr-journeys-'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();
+}
+
+function clearLog() {
+    if (!confirm('Delete all journey records? This cannot be undone.')) return;
+    localStorage.removeItem(LOG_KEY); renderLog();
+}
+
+// ── Config Persistence ────────────────────────────────────────────────────────
+function saveConfig() {
+    try {
+        localStorage.setItem(LAST_KEY, JSON.stringify({
+            'drum-on': gc('drum-on'), 'bpm': gv('bpm'), 'drum-vol': gv('drum-vol'),
+            'bin-on': gc('bin-on'), 'beat-hz': gv('beat-hz'), 'bin-vol': gv('bin-vol'),
+            'master-vol': gv('master-vol'), 'vard-vol': gv('vard-vol'),
+            'spatial-on': gc('spatial-on'), 'duration': sessionDuration,
+            'world': currentWorld, 'vardlokkur-text': gv('vardlokkur-text'),
+        }));
+    } catch(e) {}
+}
+
+function loadConfig() {
+    try {
+        const c = JSON.parse(localStorage.getItem(LAST_KEY)||'{}');
+        const s = (id,v) => { if (v!==undefined && el(id)) el(id).value=v; };
+        const b = (id,v) => { if (v!==undefined && el(id)) el(id).checked=v; };
+        b('drum-on',  c['drum-on']  ?? true);
+        s('bpm',      c['bpm']      ?? '200');
+        s('drum-vol', c['drum-vol'] ?? '0.7');
+        b('bin-on',   c['bin-on']   ?? false);
+        s('beat-hz',  c['beat-hz']  ?? '5.5');
+        s('bin-vol',  c['bin-vol']  ?? '0.15');
+        s('master-vol',c['master-vol']?? '0.8');
+        s('vard-vol', c['vard-vol'] ?? '0.6');
+        b('spatial-on',c['spatial-on']??false);
+        if (c['vardlokkur-text']) el('vardlokkur-text').value = c['vardlokkur-text'];
+        if (c['duration']) setDur(parseInt(c['duration']));
+        if (c['world']) selectWorld(c['world']);
+        sv('bpm','bpm-val','',0); sv('drum-vol','drum-vol-val','',2);
+        sv('beat-hz','beat-val','',1); sv('bin-vol','bin-vol-val','',2);
+        sv('master-vol','master-vol-val','',2); sv('vard-vol','vard-vol-val','',2);
+        toggleBinControls(); toggleDrumControls();
+    } catch(e) {}
+}
+
+function toggleBinControls()  { el('bin-controls').classList.toggle('hidden', !gc('bin-on')); }
+function toggleDrumControls() { el('drum-controls').style.opacity = gc('drum-on') ? '1' : '0.45'; }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadConfig();
+    renderLog();
+    el('vard-file').addEventListener('change', function() {
+        if (this.files[0]) loadVardlokkurAudio(this.files[0]);
+    });
+});
+</script>
+</body>
+</html>
