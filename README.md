@@ -16,6 +16,8 @@ A suite of single-file browser tools for consciousness research, subconscious wo
 | [Coherence](#coherence--heart-brain-trainer) | Heart-brain coherence breathing trainer | HeartMath Institute / McCraty |
 | [Presentiment](#presentiment--pre-stimulus-awareness-trainer) | Pre-stimulus anticipatory response trainer | Radin / Bierman IONS |
 | [Remote Viewing](#remote-viewing--sriarvprotocol-manager) | SRI/ARV session log and protocol manager | Targ & Puthoff SRI / SAIC |
+| [Seiðr](#seiðr--shamanic-journey-tool) | Shamanic journey tool with drumming, Nine Worlds navigation, and varðlokkur | Norse tradition / Völva practice |
+| [Remote Healing](#remote-healing--intention-based-healing) | Intention-based healing and influencing with multi-healer coordination | Elisabeth Targ / IONS distant healing |
 
 ---
 
@@ -325,6 +327,125 @@ Color-coded in the session log (0=dim → 4=accent2 → 7=green).
 
 ---
 
+## Seiðr — Shamanic Journey Tool
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/seidr.html
+
+**Norse shamanic tradition · Völva/seiðkona practice · Nine Worlds Yggdrasil navigation · Varðlokkur**
+
+A ceremonial journey tool built on the Norse seiðr tradition. Seiðr is the shamanic practice associated with Freyja and the völva — seers and shamanic practitioners who traveled the Nine Worlds, communed with spirits, and returned with information. This tool provides audio and ceremonial structure for that practice without dogma.
+
+### Audio architecture
+
+**Frame drum synthesis (no audio files — generated in-browser):**
+
+The drum is synthesized per hit using two overlapping nodes:
+- A sine oscillator pitching down from 80 Hz to 40 Hz over 120ms — the tonal body of a frame drum resonance
+- A filtered noise burst (lowpass at 280 Hz, 50ms) for the attack transient
+
+Both decay exponentially to silence. New nodes are created for each hit and garbage-collected automatically. BPM range: 180–220, default 200 BPM.
+
+**Callback signal:** Session end approach triggers acceleration to 400 BPM. Auto-fires at 60 seconds remaining. Manual "Signal Callback" button also available during session. This corresponds to the return signal in traditional shamanic journey practice.
+
+**Theta binaural (optional, layered under drumming):**
+- 4–7 Hz beat frequency, default 5.5 Hz
+- 300 Hz carrier, dual oscillator via `ChannelMerger(2)`
+
+### Varðlokkur
+
+The varðlokkur is the calling song used in seiðr practice to call in the spirits and establish the working frame. This tool includes the following text pre-loaded in Old Norse (editable):
+
+```
+Kom norðre
+Kom austre
+Kom suðre
+Kom Vestre Valfreyja
+Kom valkjur der I ski
+Døkke á vegen álfar
+Kom Vanadís
+```
+
+**Audio upload:** Record your own varðlokkur and upload it. The file is loaded via FileReader API, decoded by Web Audio, and played on loop during the session. It is never written to localStorage — session-only. Optional spatial processing widens the stereo image using per-channel delay (11ms / 19ms) and panning (±0.65), creating a surrounding presence.
+
+### Nine Worlds navigation
+
+Three-tier Yggdrasil cosmology, nine clickable world buttons:
+
+| Tier | Worlds |
+|------|--------|
+| Ofanverðr (Upper — Branches) | Asgard · Vanaheim · Ljósálfheim |
+| Miðgarðr (Middle — Trunk) | Midgard · Jotunheim · Nidavellir |
+| Niðanverðr (Lower — Roots) | Niflheim · Muspelheim · Helheim |
+
+Selected world is highlighted and shown prominently during session. World selection is saved to the post-journey record.
+
+### Post-journey record
+
+After each session: intent/purpose, entities encountered, gifts/messages received, offering made, and session notes. All fields saved to `seidr-log` in localStorage.
+
+### Suggestion rewriter
+
+The intent/purpose field includes a `✦ Reframe for maximum impact` button that applies Ericksonian journey framing: *"I journey to [World] to [intent]. I return with [gift/insight]."* Standard negation-to-positive and future-to-present transformations are applied first.
+
+---
+
+## Remote Healing — Intention-Based Healing
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/healing.html
+
+**Elisabeth Targ protocol · IONS distant healing · Braud-Schlitz DMILS · Multi-healer coordination**
+
+Intention-based healing tool for remote healing, outcome influencing, and habit substitution work. Based on Dr. Elisabeth Targ's AIDS healing studies (1998, *Western Journal of Medicine*), the Braud/Schlitz IONS DMILS research on remote biological influence, and the multi-healer coordination protocols used in IONS-funded studies. Healer-side tool only — the receiver is not present.
+
+### Intention streams
+
+Three streams, combinable in any combination:
+
+| Stream | Purpose | Fields |
+|--------|---------|--------|
+| **Healing (Targ protocol)** | Body/condition-targeted healing intention | Condition targeted · Healer's method |
+| **Outcome / situation** | Influencing a situation or event toward a desired outcome | Situation description · Desired outcome |
+| **Habit substitution** | Replacing a non-useful habit with a beneficial one | Habit to replace · Beneficial pattern to install |
+
+All intention content is saved to the session log for longitudinal tracking.
+
+### Multi-healer coordination
+
+- **Single healer** (default) — one operator runs the session
+- **Multi-healer rotation** — multiple healers added by name; 5-minute rotation slots via `setInterval`. Phase display updates: *"rotation · [healer name]"*
+- **Simultaneous** — all healers hold intention at once; all names displayed during session
+
+### Pre-session coherence primer
+
+Integrated HeartMath breathing overlay: 5.5s inhale / 5.5s exhale, animated breathing circle with sine easing. HeartMath research (Braud/Schlitz 1991) identifies sender HRV coherence as a predictor of remote influence effect size. Configurable for 3, 4, or 5 cycles before session begins. Skippable.
+
+### Healer state audio
+
+- Alpha/theta binaural: 4–12 Hz beat, 300 Hz carrier (default 7.5 Hz — relaxed-alert state, per Braud/Schlitz finding that mid-alpha sender state produces strongest effects)
+- Optional pink noise (Paul Kellett IIR, low volume)
+
+### Target
+
+- Name/identifier field
+- Optional photo upload (FileReader, session-only, never written to localStorage)
+- Optional condition/situation note
+
+### Post-session record
+
+Healer notes textarea plus 1–5 star effectiveness rating. Rating and all intention details saved to `heal-log`.
+
+### Suggestion rewriter
+
+All three intention stream textareas include the `✦ Reframe for maximum impact` button. Healing context appends a somatic anchor ("This settles deeper with every exhale."). Outcome and habit contexts apply standard positive/present-tense framing.
+
+### Research basis
+
+> Targ, E., et al. (1998). Efficacy of distant healing: a randomized, double-blind trial. *Western Journal of Medicine*, 169(6), 356–363.
+>
+> Braud, W., & Schlitz, M. (1991). Consciousness interactions with remote biological systems. *Subtle Energies*, 2(1), 1–46.
+
+---
+
 ## Combining the Tools
 
 These tools are designed to complement each other in a research workflow:
@@ -344,11 +465,19 @@ These tools are designed to complement each other in a research workflow:
 2. **Remote Viewing** — coordinate session with CRV stage guide
 3. **Presentiment** — cross-train pre-stimulus sensitivity between RV sessions
 
+**For shamanic journey (seiðr practice):**
+1. **Coherence** (3–5 min) — establish heart-brain coherence, clear the field
+2. **Seiðr** — journey with drumming, Nine Worlds navigation, and varðlokkur
+
+**For remote healing or influencing:**
+1. **Coherence** (3 min, or use the built-in coherence primer in the tool itself)
+2. **Remote Healing** — set target, choose intention streams, begin session
+
 ---
 
 ## Architecture & Privacy
 
-All six tools share the same design principles:
+All eight tools share the same design principles:
 
 - **Single HTML file, zero external dependencies** — no frameworks, no CDN calls, no fonts fetched from the network. Each file contains all CSS, JavaScript, and SVG inline.
 - **No server communication** — nothing is transmitted anywhere. All session logs and settings are stored in browser `localStorage` only.
@@ -366,8 +495,21 @@ All six tools share the same design principles:
 | Coherence | `coh-last` | `coh-log` |
 | Presentiment | `pre-last` | `pre-log` |
 | Remote Viewing | `rv-last` | `rv-log` |
+| Seiðr | `seidr-last` | `seidr-log` |
+| Remote Healing | `heal-last` | `heal-log` |
 
 All log entries are exportable as JSON from within each tool.
+
+### Suggestion rewriter
+
+Four tools (Mindforge, Telehypnosis Pro, Seiðr, Remote Healing) include a `✦ Reframe for maximum impact` button on intention/suggestion fields. It applies a sequence of transformations entirely in client-side JavaScript — no network request:
+
+1. **Future/desire → present tense** — "I will be calm" → "I am calm"; "I want to feel" → "I feel"
+2. **Negation → positive** — detects `don't / won't / can't / not / never / avoid`, finds the core noun or adjective, looks it up in a hardcoded antonym table (anxiety→calm, fear→courage, pain→ease, etc.), and reconstructs a positive statement
+3. **Ericksonian presupposition frame** — wraps the result in one of five rotating frames: *"[suggestion], and this becomes more true with each passing moment."* / *"As [suggestion], it naturally deepens with every breath."* / etc.
+4. **Context-specific anchor** — Telehypnosis Pro intention context appends *"This transmission carries warmth and care."*; Seiðr context uses journey framing; healing context appends a somatic anchor
+
+A diff-style preview shows original and reframed text. Accept replaces the field; Keep original dismisses without changes.
 
 ---
 
@@ -412,6 +554,16 @@ All log entries are exportable as JSON from within each tool.
 - Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607.
 - Utts, J. (1995). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 9(4), 351–396.
 - McMoneagle, J. (1997). *Mind Trek*. Hampton Roads Publishing.
+
+### Shamanic Drumming & Journey States
+- Harner, M. (1980). *The Way of the Shaman*. Harper & Row.
+- Neher, A. (1962). A physiological explanation of unusual behavior in ceremonies involving drums. *Human Biology*, 34(2), 151–160.
+- Flor-Henry, P., et al. (2017). Brain changes during a shamanic trance: altered modes of consciousness, hemispheric laterality, and systemic psychobiology. *Cogent Psychology*, 4(1).
+
+### Distant Healing & Remote Influence
+- Targ, E., Schlitz, M., & Irwin, H.J. (2000). Psi-related experiences. In *Varieties of Anomalous Experience*. American Psychological Association.
+- Astin, J.A., Harkness, E., & Ernst, E. (2000). The efficacy of distant healing: a systematic review of randomized trials. *Annals of Internal Medicine*, 132(11), 903–910.
+- Dossey, L. (1993). *Healing Words: The Power of Prayer and the Practice of Medicine*. HarperSanFrancisco.
 
 ### Bilateral Stimulation (EMDR)
 - Shapiro, F. (1989). Eye movement desensitization: a new treatment for post-traumatic stress disorder. *Journal of Behavior Therapy and Experimental Psychiatry*, 20(3), 211–217.
@@ -787,7 +939,7 @@ This tool creates conditions. You still do the work.
 
 ## Technical Notes
 
-All six tools are single HTML files with no external dependencies, no frameworks, no trackers, and no server communication. All configuration stored in browser `localStorage`.
+All eight tools are single HTML files with no external dependencies, no frameworks, no trackers, and no server communication. All configuration stored in browser `localStorage`.
 
 **Browser requirements:** Any modern browser with Web Audio API support (Chrome, Firefox, Safari, Edge — mobile and desktop, ~2018 onward). Web Speech API for Mindforge voice delivery (Chrome/Edge have most reliable voice selection).
 
