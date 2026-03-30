@@ -81,9 +81,24 @@ True stereo binaural via `ChannelMerger(2)`. Pink noise generated using Paul Kel
 
 Operator console for two-person consensual remote mental suggestion experiments. Based on Dr. L.L. Vasiliev's hypnagogic receptivity research (*Experiments in Mental Suggestion*, 1962) and the Braud/Schlitz IONS DMILS (Direct Mental Interaction with Living Systems) series, which yielded d=0.11 across 655 sessions.
 
-**Setup:** Both parties agree on a start time. The receiver opens Mindforge → Gateway or Sleep Onset preset for identical duration. The operator runs this tool.
+**Setup (Mindforge-assisted mode):** Both parties agree on a start time. The receiver opens Mindforge → Gateway or Sleep Onset preset for identical duration. The operator runs this tool.
+
+**Setup (Ambient mode):** The operator sends the receiver the [consent form](https://dezirae-stark.github.io/mindforge/consent.html). The receiver reads, agrees, and returns a confirmation token. No tool or trance state is required on the receiver side — they proceed with normal activity during the session window. This mode is designed for comparative no-entrainment trials alongside Mindforge-assisted sessions.
 
 ### Features
+
+**Receiver mode**
+Toggle in the Target panel selects between two receiver protocols:
+
+| Mode | Receiver requirement | Use |
+|------|---------------------|-----|
+| **Mindforge-assisted** (default) | Receiver runs Mindforge Gateway or Sleep Onset preset simultaneously | Standard Vasiliev-style session; highest documented receptivity |
+| **Ambient** | Receiver has consented via form; uses no tool; proceeds with normal activity | Comparative no-entrainment trials; real-world conditions |
+
+When Ambient is selected, the header note and an in-panel link both point to the consent form. Session log records the mode (`receiverMode: "mindforge" | "ambient"`) per entry — export JSON and group by `receiverMode` × match rating to compare entrainment-assisted vs ambient efficacy across your session history.
+
+**Consent form** (`consent.html`)
+Standalone receiver consent page. Covers study description, what the session involves and does not involve, receiver rights, and confidentiality. Receiver enters optional name, checks agreement, and clicks **Generate confirmation** to produce a timestamped confirmation string they copy and send back to the operator. No data is transmitted — runs entirely in the receiver's browser.
 
 **Pre-session coherence primer**
 An optional integrated 5-minute heart coherence breathing overlay (5.5s inhale / 5.5s exhale) based on HeartMath research showing that sender HRV coherence correlates with receiver response amplitude. Dismissable with Skip after completing.
@@ -123,8 +138,8 @@ Collapsible guide with specific framing approaches from Braud's DMILS protocol: 
 
 **Session log**
 - Persistent in `localStorage` (`thp-log`)
-- Table: date | receiver | duration | match rating | notes
-- JSON export for research records
+- Table: date | receiver | duration | mode (MF / Amb) | match rating | intention
+- JSON export for research records; `receiverMode` field enables comparative analytics
 
 ---
 
@@ -458,7 +473,8 @@ These tools are designed to complement each other in a research workflow:
 **For two-person psi research:**
 1. **Coherence** (both parties, 5 min) — synchronize physiological state before session
 2. **Ganzfeld** — consensual sender/receiver session with blinded judging and statistics
-   *or* **Telehypnosis Pro** — Vasiliev-style mental suggestion session (operator + Mindforge receiver)
+   *or* **Telehypnosis Pro (Mindforge-assisted)** — Vasiliev-style session; receiver runs Mindforge simultaneously
+   *or* **Telehypnosis Pro (Ambient)** — receiver consents via form only; no tool required; use for real-world or comparative no-entrainment trials
 
 **For remote viewing practice:**
 1. **Coherence** (3 min) — settle and center
