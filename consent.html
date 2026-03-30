@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Receiver Consent — Telehypnosis Pro</title>
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg:        #0a0a0f;
+        --surface:   #12121a;
+        --surface2:  #1a1a24;
+        --border:    #2a2a3a;
+        --text:      #c8c8d8;
+        --text-dim:  #6a6a7a;
+        --accent:    #7060a0;
+        --on:        #60a070;
+        --off:       #3a3a4a;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        min-height: 100vh;
+        padding: 24px 16px 60px;
+    }
+
+    .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+    }
+
+    header {
+        text-align: center;
+        margin-bottom: 32px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+        font-size: 17px;
+        font-weight: normal;
+        letter-spacing: 0.18em;
+        color: var(--accent);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    header .sub {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+    }
+
+    .section {
+        margin-bottom: 28px;
+    }
+
+    .section-title {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .section p {
+        color: var(--text);
+        margin-bottom: 8px;
+        font-size: 12px;
+        line-height: 1.75;
+    }
+
+    .section ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .section ul li {
+        font-size: 12px;
+        line-height: 1.7;
+        padding: 3px 0 3px 16px;
+        position: relative;
+        color: var(--text);
+    }
+
+    .section ul li::before {
+        content: '·';
+        position: absolute;
+        left: 4px;
+        color: var(--accent);
+    }
+
+    .section ul.no-list li::before {
+        content: '✗';
+        color: #804040;
+    }
+
+    .consent-form {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 18px;
+        margin-bottom: 28px;
+    }
+
+    .consent-form label.name-label {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .consent-form input[type="text"] {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        padding: 8px 10px;
+        border-radius: 3px;
+        outline: none;
+        margin-bottom: 16px;
+        transition: border-color 0.15s;
+    }
+
+    .consent-form input[type="text"]:focus {
+        border-color: var(--accent);
+    }
+
+    .consent-form input[type="text"]::placeholder {
+        color: var(--text-dim);
+    }
+
+    .check-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .check-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
+    .check-row label {
+        font-size: 12px;
+        line-height: 1.65;
+        color: var(--text);
+        cursor: pointer;
+    }
+
+    .consent-btn {
+        width: 100%;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 12px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .consent-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .consent-btn:not(:disabled):hover {
+        opacity: 0.85;
+    }
+
+    .confirmation {
+        background: var(--surface);
+        border: 1px solid var(--on);
+        border-radius: 4px;
+        padding: 18px;
+        margin-top: 20px;
+    }
+
+    .confirmation.hidden { display: none; }
+
+    .confirmation .conf-label {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        color: var(--on);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .conf-text {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 10px 12px;
+        font-size: 11px;
+        color: var(--text);
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+        word-break: break-all;
+        line-height: 1.6;
+    }
+
+    .copy-btn {
+        background: transparent;
+        border: 1px solid var(--on);
+        color: var(--on);
+        font-family: 'Courier New', monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        padding: 6px 14px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: background 0.15s;
+        margin-bottom: 12px;
+    }
+
+    .copy-btn:hover { background: rgba(96,160,112,0.12); }
+    .copy-btn.copied { color: var(--text-dim); border-color: var(--text-dim); }
+
+    .conf-instruction {
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.6;
+    }
+
+    footer {
+        margin-top: 48px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        font-size: 10px;
+        color: var(--text-dim);
+        letter-spacing: 0.08em;
+        line-height: 1.8;
+    }
+
+    footer a {
+        color: var(--text-dim);
+        text-decoration: none;
+    }
+
+    footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <header>
+        <h1>Receiver Consent</h1>
+        <div class="sub">Telehypnosis Pro &middot; Remote mental suggestion research &middot; Vasiliev protocol</div>
+    </header>
+
+    <div class="section">
+        <div class="section-title">About this study</div>
+        <p>
+            You have been invited to participate as a <em>receiver</em> in a remote mental suggestion
+            research session. The operator will attempt to transmit a specific mental impression
+            &mdash; an image, feeling, sensation, or concept &mdash; to you during a defined session window.
+        </p>
+        <p>
+            This is voluntary research following the Vasiliev protocol for distant mental influence.
+            Please read this form carefully before agreeing to participate.
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">What this involves</div>
+        <ul>
+            <li>You will be the intended target of a focused mental suggestion experiment</li>
+            <li>Session duration is typically 15&ndash;30 minutes</li>
+            <li>You are not required to do anything active during the session &mdash; rest normally</li>
+            <li>After the session, you may be asked to report any impressions, images, feelings,
+                or sensations you noticed during the session window</li>
+            <li>You do not need any device, app, or equipment</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">What this does not involve</div>
+        <ul class="no-list">
+            <li>No physical contact, device, electrode, or implant of any kind</li>
+            <li>No requirement to enter a trance, altered state, or hypnotic state</li>
+            <li>No medical intervention, diagnosis, or treatment claim</li>
+            <li>No collection or transmission of your personal data &mdash; this page
+                runs entirely in your browser; nothing is sent to any server</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Your rights</div>
+        <ul>
+            <li>Participation is entirely voluntary</li>
+            <li>You may withdraw consent at any time before or during the session
+                by notifying the operator</li>
+            <li>Declining or withdrawing will not affect your relationship with
+                the operator in any way</li>
+            <li>You may ask the operator any questions before agreeing</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Confidentiality</div>
+        <ul>
+            <li>Any session records are stored locally on the operator&rsquo;s device only
+                (browser local storage)</li>
+            <li>No data is transmitted to any external server</li>
+            <li>Your name below is optional and for your own record only</li>
+        </ul>
+    </div>
+
+    <div class="consent-form">
+        <label class="name-label" for="receiver-name">Your name (optional)</label>
+        <input type="text" id="receiver-name" placeholder="Leave blank for anonymous">
+
+        <div class="check-row">
+            <input type="checkbox" id="consent-check" onchange="onCheckChange()">
+            <label for="consent-check">
+                I have read and understood the above information. I agree to participate
+                as a receiver in a remote mental suggestion research session. I understand
+                I may withdraw at any time.
+            </label>
+        </div>
+
+        <button class="consent-btn" id="generate-btn" onclick="generateConfirmation()" disabled>
+            Generate confirmation
+        </button>
+
+        <div class="confirmation hidden" id="confirmation-block">
+            <div class="conf-label">&#10003; Consent confirmed</div>
+            <div class="conf-text" id="conf-text-display"></div>
+            <button class="copy-btn" id="copy-btn" onclick="copyConfirmation()">Copy confirmation text</button>
+            <div class="conf-instruction">
+                Send this text to your operator, or take a screenshot for your records.
+                The operator will log your consent before beginning the session.
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="index.html">Mindforge Suite</a> &middot;
+        <a href="telehypnosis-pro.html">Telehypnosis Pro</a><br>
+        Single-file tools for consciousness research. No data transmitted. No server.
+    </footer>
+
+</div>
+<script>
+function onCheckChange() {
+    document.getElementById('generate-btn').disabled =
+        !document.getElementById('consent-check').checked;
+}
+
+function generateConfirmation() {
+    const name = document.getElementById('receiver-name').value.trim() || 'Anonymous';
+    const ts = new Date().toISOString();
+    const text =
+        'CONSENT CONFIRMED\n' +
+        'Study: Remote Mental Suggestion Research (Vasiliev protocol)\n' +
+        'Receiver: ' + name + '\n' +
+        'Timestamp: ' + ts + '\n' +
+        'I have read the receiver consent form at dezirae-stark.github.io/mindforge/consent.html ' +
+        'and agree to participate as a receiver in a remote mental suggestion research session. ' +
+        'I understand I may withdraw at any time.';
+
+    document.getElementById('conf-text-display').textContent = text;
+    document.getElementById('confirmation-block').classList.remove('hidden');
+    document.getElementById('generate-btn').disabled = true;
+    document.getElementById('generate-btn').textContent = 'Confirmation generated';
+}
+
+function copyConfirmation() {
+    const text = document.getElementById('conf-text-display').textContent;
+    const btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = 'Copy confirmation text';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(() => {
+        // Fallback for browsers without clipboard API
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = 'Copy confirmation text';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+</script>
+</body>
+</html>

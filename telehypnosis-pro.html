@@ -407,7 +407,8 @@
     <header>
         <h1>Telehypnosis Pro</h1>
         <div class="sub">Remote mental suggestion &middot; Vasiliev protocol &middot; Research grade</div>
-        <div class="rec-note">Receiver: open <a href="mindforge.html">Mindforge</a> &rarr; Gateway or Sleep Onset preset &middot; same duration &middot; begin simultaneously</div>
+        <div class="rec-note" id="rec-note-mindforge">Receiver: open <a href="mindforge.html">Mindforge</a> &rarr; Gateway or Sleep Onset preset &middot; same duration &middot; begin simultaneously</div>
+        <div class="rec-note hidden" id="rec-note-ambient">Receiver: share <a href="consent.html" target="_blank">consent form</a> in advance &middot; no tool required &middot; receiver proceeds with normal activity during session window</div>
     </header>
 
     <!-- Target Setup -->
@@ -434,6 +435,20 @@
             </select>
         </div>
         <div id="relationship-hint"></div>
+
+        <!-- Receiver mode -->
+        <div class="ctrl" style="margin-top:10px; align-items:flex-start; flex-wrap:wrap; gap:6px;">
+            <label style="padding-top:4px;">Receiver mode</label>
+            <div style="display:flex; gap:6px; flex:1;">
+                <button class="btn-sm active" id="mode-rec-mindforge" onclick="setReceiverMode('mindforge')">Mindforge-assisted</button>
+                <button class="btn-sm" id="mode-rec-ambient" onclick="setReceiverMode('ambient')">Ambient</button>
+            </div>
+        </div>
+        <div id="receiver-mode-hint" class="hint" style="margin-top:2px;">Receiver runs Mindforge (Gateway or Sleep Onset) simultaneously. Highest documented receptivity.</div>
+        <div id="consent-link-row" class="hidden" style="margin-top:8px;">
+            <a href="consent.html" target="_blank" style="font-size:11px; color:var(--accent2); text-decoration:none; letter-spacing:0.04em;">&#8599; Open receiver consent form</a>
+            <span class="hint" style="display:inline; margin-left:8px;">Share with receiver before the session</span>
+        </div>
 
         <label id="photo-upload-btn" for="photo-file-input" style="margin-top:10px;">&#43; Upload target photo (optional)</label>
         <input type="file" id="photo-file-input" accept="image/*">
@@ -675,7 +690,7 @@
             <table id="log-table" class="hidden">
                 <thead>
                     <tr>
-                        <th>Date</th><th>Receiver</th><th>Min</th><th>Match</th><th>Intention</th>
+                        <th>Date</th><th>Receiver</th><th>Min</th><th>Mode</th><th>Match</th><th>Intention</th>
                     </tr>
                 </thead>
                 <tbody id="log-tbody"></tbody>
@@ -697,6 +712,9 @@ let photoData = null;   // base64, session-only — never in localStorage
 // Coherence overlay state
 let coherenceTimer = null;
 let coherenceOverlayEl = null;
+
+// Receiver mode: 'mindforge' | 'ambient'
+let currentReceiverMode = 'mindforge';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -724,6 +742,7 @@ function getConfig() {
     c['target-location'] = gv('target-location');
     c['focus-mode']      = currentFocusMode;
     c['relationship']    = gv('relationship');
+    c['receiver-mode']   = currentReceiverMode;
     return c;
 }
 
@@ -734,6 +753,7 @@ function applyConfig(c) {
     if (c['target-location']) el('target-location').value = c['target-location'];
     if (c['focus-mode'])      setFocusMode(c['focus-mode']);
     if (c['relationship'])    el('relationship').value    = c['relationship'];
+    if (c['receiver-mode'])   setReceiverMode(c['receiver-mode']);
     refreshVals();
     updateRelationshipHint();
 }
@@ -776,6 +796,33 @@ function syncFocusContent() {
         el('target-photo').style.display = 'none';
         el('photo-placeholder').style.display = '';
     }
+}
+
+// ── Receiver mode ─────────────────────────────────────────────────────────────
+
+const RECEIVER_MODE_HINTS = {
+    mindforge: 'Receiver runs Mindforge (Gateway or Sleep Onset) simultaneously. Highest documented receptivity.',
+    ambient:   'Receiver has consented via form and is going about normal activity — no tool required. Use for comparative no-entrainment trials.',
+};
+
+function setReceiverMode(mode) {
+    currentReceiverMode = mode;
+
+    // Toggle button active states
+    el('mode-rec-mindforge').classList.toggle('active', mode === 'mindforge');
+    el('mode-rec-ambient').classList.toggle('active', mode === 'ambient');
+
+    // Update hint text
+    el('receiver-mode-hint').textContent = RECEIVER_MODE_HINTS[mode] || '';
+
+    // Show/hide consent link row
+    el('consent-link-row').classList.toggle('hidden', mode !== 'ambient');
+
+    // Toggle header receiver note
+    el('rec-note-mindforge').classList.toggle('hidden', mode !== 'mindforge');
+    el('rec-note-ambient').classList.toggle('hidden', mode !== 'ambient');
+
+    saveConfig();
 }
 
 // ── Photo upload ──────────────────────────────────────────────────────────────
@@ -1048,6 +1095,7 @@ function saveSession() {
         receiver:     gv('target-name').trim(),
         location:     gv('target-location').trim(),
         relationship: gv('relationship'),
+        receiverMode: currentReceiverMode,
         duration:     parseInt(gv('sess-dur')),
         intention:    gv('intention-text').trim(),
         report:       el('post-report').value.trim(),
@@ -1077,12 +1125,15 @@ function renderLog() {
         const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
         const matchCls = 'match-' + e.match;
         const tr = document.createElement('tr');
+        const modeLabel = e.receiverMode === 'ambient' ? 'Amb' : 'MF';
+        const modeColor = e.receiverMode === 'ambient' ? 'var(--accent2)' : 'var(--accent)';
         tr.innerHTML = `
             <td style="white-space:nowrap;font-size:10px;">${dateStr}</td>
             <td>${e.receiver || '\u2014'}</td>
             <td>${e.duration}</td>
+            <td style="color:${modeColor};font-size:10px;">${modeLabel}</td>
             <td class="${matchCls}">${e.match} ${MATCH_LABELS[e.match]||''}</td>
-            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
+            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
                 title="${(e.intention||'').replace(/"/g,'&quot;')}">${e.intention || '\u2014'}</td>`;
         tbody.appendChild(tr);
     });
