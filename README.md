@@ -527,6 +527,14 @@ Four tools (Mindforge, Telehypnosis Pro, Seiðr, Remote Healing) include a `✦ 
 
 A diff-style preview shows original and reframed text. Accept replaces the field; Keep original dismisses without changes.
 
+### Suite mark
+
+The suite logo on the landing page is the **Mannaz rune (ᛗ)** from the Elder Futhark, overlaid with a vesica/almond eye at the central crossing point.
+
+Mannaz (*maðr*, "human being") is the rune of the self, the mind, and human consciousness — the inner nature of a person as distinct from their outward role. Its form is two vertical staves connected by crossing diagonals; the diagonals intersect at the exact centre of the glyph. That crossing point, marked here with a vesica eye and a central bindu, represents the Mind's Eye: the inward-facing faculty of perception that the suite's tools are designed to cultivate.
+
+The rune is rendered entirely as inline SVG — no image file, no font dependency.
+
 ---
 
 ## Safety Notes
