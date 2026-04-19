@@ -59,6 +59,25 @@ Your conscious mind acts as a gatekeeper — evaluating, criticizing, and filter
 - **Save/load presets** — all settings including suggestion text saved to `localStorage`, auto-restored on next open
 - **End chime** — three ascending sine tones (396/528/660 Hz) to gently signal session completion
 
+### Video Overlay
+
+An optional divided-attention mode: play any video in the background while the session operates. All four entrainment layers continue working over the video — bilateral bars flash at the screen edges, binaural tones play through headphones, and subliminal flashes appear center-screen. The control panel is hidden and replaced by a compact HUD in the corner showing the live timer and phase.
+
+**How to use:**
+1. Start your session (Begin Session)
+2. Enter a YouTube URL or select a local video file in the Video Overlay section
+3. Click **⧉ Launch Video Overlay** — the panel hides, the video fills the screen
+4. HUD in the bottom-right shows timer and current phase
+5. Click **✕ Return to Panel** in the HUD to exit
+
+**Supported sources:**
+- YouTube URLs (`youtube.com/watch?v=`, `youtu.be/`, or `youtube.com/embed/`) — embedded via `youtube-nocookie.com` for reduced tracking
+- Local video files — loaded via `URL.createObjectURL()`, never written to localStorage; revoked on exit to prevent memory leaks
+
+**Z-index architecture:** Video sits at z-index 5, behind all existing elements. Bilateral bars: z-index 1000. Subliminal flash: z-index 2000. HUD: z-index 3000.
+
+**Research basis:** Merikle et al. (2001) showed subliminal priming is stronger under divided attention — when conscious focus is engaged elsewhere, subconscious registration of the subliminal content is less filtered. Bilateral bars engage peripheral vision regardless of foveal focus on the video. Binaural beats are auditory and require no visual attention.
+
 ### Audio architecture
 
 ```

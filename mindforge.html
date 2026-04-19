@@ -189,6 +189,46 @@
         .reframe-keep { padding: 4px 12px; font-family: 'Courier New', monospace; font-size: 11px; cursor: pointer; border-radius: 3px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); }
         .reframe-keep:hover { color: var(--text); }
         .rf-hidden { display: none !important; }
+
+        /* ── Video Overlay ───────────────────────────────────────────────── */
+        #video-overlay {
+            display: none; position: fixed; inset: 0; z-index: 5; background: #000;
+        }
+        #video-overlay iframe, #video-overlay video {
+            width: 100%; height: 100%; border: none; object-fit: contain;
+        }
+        #overlay-hud {
+            display: none; position: fixed; bottom: 20px; right: 20px;
+            z-index: 3000; background: rgba(10,10,15,0.88);
+            border: 1px solid var(--border); border-radius: 4px;
+            padding: 10px 14px; min-width: 165px;
+            font-family: 'Courier New', monospace; font-size: 11px; color: var(--text);
+            backdrop-filter: blur(6px);
+        }
+        #overlay-hud .hud-timer {
+            font-size: 20px; color: var(--accent); letter-spacing: 0.12em;
+            margin-bottom: 3px; font-variant-numeric: tabular-nums;
+        }
+        #overlay-hud .hud-phase { font-size: 10px; color: var(--accent2); margin-bottom: 10px; }
+        #overlay-hud .hud-exit {
+            width: 100%; padding: 6px; background: transparent;
+            border: 1px solid var(--interrupt); color: var(--interrupt);
+            font-family: inherit; font-size: 10px; letter-spacing: 0.1em;
+            text-transform: uppercase; cursor: pointer; border-radius: 2px;
+        }
+        #overlay-hud .hud-exit:hover { background: var(--interrupt); color: #fff; }
+        .app.overlay-mode { display: none !important; }
+        .overlay-launch {
+            width: 100%; margin-top: 8px;
+            border-color: var(--accent2) !important; color: var(--accent2) !important;
+        }
+        .overlay-launch:hover { background: var(--accent2) !important; color: #000 !important; }
+        .overlay-url-input {
+            flex: 1; background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); padding: 5px 8px; border-radius: 2px;
+            font-size: 12px; font-family: inherit;
+        }
+        .overlay-url-input::placeholder { color: var(--text-dim); }
     </style>
 </head>
 <body>
@@ -196,6 +236,12 @@
 <div id="stim-left"></div>
 <div id="stim-right"></div>
 <div id="subliminal-flash"></div>
+<div id="video-overlay"></div>
+<div id="overlay-hud">
+    <div class="hud-timer" id="hud-timer">--:--</div>
+    <div class="hud-phase" id="hud-phase">ready</div>
+    <button class="hud-exit" onclick="exitOverlay()">✕ Return to Panel</button>
+</div>
 
 <div class="app">
     <header>
@@ -498,6 +544,22 @@ Experience arrives before words."></textarea>
             <button class="qb" onclick="loadSleepOnset()">Sleep Onset</button>
             <button class="qb" onclick="loadGentleEntry()">Gentle Entry</button>
         </div>
+    </div>
+
+    <!-- VIDEO OVERLAY -->
+    <div class="section">
+        <div class="section-title">Video Overlay</div>
+        <div class="hint" style="margin-bottom:12px">Play any video while the session runs. Bilateral bars, binaural tones, and subliminal flashes continue to operate over the video — engaging your conscious attention so the protocol works subconsciously without resistance.</div>
+        <div class="ctrl">
+            <span>YouTube URL</span>
+            <input type="text" id="overlay-url" class="overlay-url-input" placeholder="youtube.com/watch?v=…">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Local file</span>
+            <input type="file" id="overlay-file" accept="video/*" style="flex:1;font-size:11px;color:var(--text-dim)">
+        </div>
+        <button class="overlay-launch" onclick="launchOverlay()">⧉ Launch Video Overlay</button>
+        <div class="hint" style="margin-top:8px">Start session first, then launch overlay. Subliminals flash at z-2000 · Bars at z-1000 · Video at z-5. HUD shows timer and phase in corner.</div>
     </div>
 </div>
 
@@ -833,6 +895,7 @@ function startInterrupt() {
 function renderIntTimer() {
     const r=intTotal-intSec;
     el('timer-display').textContent=fmt(Math.floor(r/60))+':'+fmt(r%60);
+    updateOverlayHUD();
 }
 
 function startActive() {
@@ -880,6 +943,7 @@ function startActive() {
 function renderSessTimer() {
     const r=sessTotal-sessSec;
     el('timer-display').textContent=fmt(Math.floor(r/60))+':'+fmt(r%60);
+    updateOverlayHUD();
 }
 
 function endSession(natural=false) {
@@ -1087,6 +1151,62 @@ function dot(id,on) { el(id).classList.toggle('on',!!on); }
 function sv(sid, did, unit='', dec=0) {
     const val=parseFloat(gv(sid));
     el(did).textContent=dec>0?val.toFixed(dec)+unit:val+unit;
+}
+
+// ── Video Overlay ─────────────────────────────────────────────────────────────
+let _overlayBlobUrl = null;
+
+function parseYouTubeId(url) {
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+}
+
+function launchOverlay() {
+    const urlVal = el('overlay-url').value.trim();
+    const fileInput = el('overlay-file');
+    const ov = el('video-overlay');
+    while (ov.firstChild) ov.removeChild(ov.firstChild);
+
+    if (urlVal) {
+        const ytId = parseYouTubeId(urlVal);
+        if (!ytId) { alert('Could not find a YouTube video ID in that URL.'); return; }
+        const iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube-nocookie.com/embed/' + ytId + '?autoplay=1&controls=1&modestbranding=1&rel=0';
+        iframe.allow = 'autoplay; fullscreen';
+        iframe.allowFullscreen = true;
+        ov.appendChild(iframe);
+    } else if (fileInput.files && fileInput.files[0]) {
+        if (_overlayBlobUrl) { URL.revokeObjectURL(_overlayBlobUrl); _overlayBlobUrl = null; }
+        _overlayBlobUrl = URL.createObjectURL(fileInput.files[0]);
+        const vid = document.createElement('video');
+        vid.src = _overlayBlobUrl;
+        vid.controls = true;
+        vid.autoplay = true;
+        ov.appendChild(vid);
+    } else {
+        alert('Enter a YouTube URL or select a local video file first.');
+        return;
+    }
+
+    ov.style.display = 'block';
+    el('overlay-hud').style.display = 'block';
+    document.querySelector('.app').classList.add('overlay-mode');
+    updateOverlayHUD();
+}
+
+function exitOverlay() {
+    el('video-overlay').style.display = 'none';
+    el('overlay-hud').style.display = 'none';
+    const ov = el('video-overlay');
+    while (ov.firstChild) ov.removeChild(ov.firstChild);
+    document.querySelector('.app').classList.remove('overlay-mode');
+    if (_overlayBlobUrl) { URL.revokeObjectURL(_overlayBlobUrl); _overlayBlobUrl = null; }
+}
+
+function updateOverlayHUD() {
+    if (el('overlay-hud').style.display === 'none') return;
+    el('hud-timer').textContent = el('timer-display').textContent;
+    el('hud-phase').textContent = el('status-text').textContent;
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
