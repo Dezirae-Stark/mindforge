@@ -18,6 +18,7 @@ A suite of single-file browser tools for consciousness research, subconscious wo
 | [Remote Viewing](#remote-viewing--sriarvprotocol-manager) | SRI/ARV session log and protocol manager | Targ & Puthoff SRI / SAIC |
 | [Seiðr](#seiðr--shamanic-journey-tool) | Shamanic journey tool with drumming, Nine Worlds navigation, and varðlokkur | Norse tradition / Völva practice |
 | [Remote Healing](#remote-healing--intention-based-healing) | Intention-based healing and influencing with multi-healer coordination | Elisabeth Targ / IONS distant healing |
+| [Solfeggio](#solfeggio--sacred-frequency-sequence) | Ten Solfeggio tones in sequence with per-tone binaural entrainment | Sacred frequency tradition / bioacoustics |
 
 ---
 
@@ -461,6 +462,61 @@ All three intention stream textareas include the `✦ Reframe for maximum impact
 
 ---
 
+## Solfeggio — Sacred Frequency Sequence
+
+**Live tool:** https://dezirae-stark.github.io/mindforge/solfeggio.html
+
+**Solfeggio frequencies · Binaural entrainment layered per carrier · 10 tones · 53 min total**
+
+Sequential journey through the ten Solfeggio frequencies, each played for its research-specified duration with optional binaural beat entrainment layered on each carrier tone.
+
+### What it does
+
+Each Solfeggio frequency is played as the carrier tone itself — unlike Mindforge where a neutral 300 Hz carrier is separate from the binaural beat. This means the Solfeggio frequency is what you hear, and the binaural beat (if enabled) is added as an offset on the right channel:
+
+- Left ear: Solfeggio Hz (e.g. 528 Hz)
+- Right ear: Solfeggio Hz + beat offset (e.g. 528 + 10 = 538 Hz)
+- Brain perceives: the Solfeggio tone AND a 10 Hz alpha entrainment beat simultaneously
+
+### The ten tones
+
+| Hz | Name | Duration | Default beat pairing |
+|----|------|----------|---------------------|
+| 174 | Removes Pain | 6 min | 2.5 Hz δ — deep somatic relaxation |
+| 285 | Influences Energy Field | 7 min | 4.0 Hz θ — morphogenetic / tissue depth |
+| 396 | Liberates Fear & Guilt | 5 min | 6.0 Hz θ — emotional processing, limbic |
+| 417 | Facilitates Change | 3 min | 7.5 Hz θ — CIA Gateway sweet spot |
+| 432 | Miracle Tone of Nature | 4 min | 7.83 Hz — Schumann resonance |
+| 528 | Repairs DNA | 5 min | 10.0 Hz α — receptive and integrative |
+| 639 | Heals Relationships | 6 min | 8.0 Hz α — calm relational presence |
+| 741 | Awakens Intuition | 4 min | 6.0 Hz θ — psychic depth |
+| 852 | Attracts Soul Tribe | 11 min | 5.5 Hz θ — collective field resonance |
+| 963 | Connect with Light & Spirit | 2 min | 4.0 Hz θ — pineal / transcendent |
+
+Total session: 53 minutes.
+
+### Per-tone beat mapping
+
+The global beat frequency control sets the same binaural beat across all tones. Enable **Per-tone beat mapping** to assign a different brainwave state to each Solfeggio carrier — matching each tone's therapeutic purpose to an entrainment target. All values persist in `localStorage`.
+
+### Transition modes
+
+| Mode | Behaviour |
+|------|-----------|
+| **Crossfade** | Master volume fades out over 2 s, new tone starts, fades back in over 2 s |
+| **Silence gap** | Fade out (1.5 s) → 2 s of silence → fade in (1.5 s). Allows neurological integration between frequencies. |
+| **Instant** | Hard cut. Precise timing; abrupt. |
+
+### End chime
+
+Five ascending tones at 396 / 528 / 660 / 852 / 963 Hz — one per Solfeggio register — signal journey completion.
+
+### Session log
+
+Date, tones completed, star rating (1–5), notes. Exportable as JSON (`sol-log`). Settings auto-restored from `sol-last`.
+
+---
+
 ## Combining the Tools
 
 These tools are designed to complement each other in a research workflow:
@@ -489,11 +545,15 @@ These tools are designed to complement each other in a research workflow:
 1. **Coherence** (3 min, or use the built-in coherence primer in the tool itself)
 2. **Remote Healing** — set target, choose intention streams, begin session
 
+**For a Solfeggio frequency journey:**
+1. **Coherence** (3–5 min) — establish heart-brain coherence before entering the frequency sequence
+2. **Solfeggio** — 53-minute sequential journey through all ten tones, 174 Hz → 963 Hz
+
 ---
 
 ## Architecture & Privacy
 
-All eight tools share the same design principles:
+All nine tools share the same design principles:
 
 - **Single HTML file, zero external dependencies** — no frameworks, no CDN calls, no fonts fetched from the network. Each file contains all CSS, JavaScript, and SVG inline.
 - **No server communication** — nothing is transmitted anywhere. All session logs and settings are stored in browser `localStorage` only.
@@ -513,6 +573,7 @@ All eight tools share the same design principles:
 | Remote Viewing | `rv-last` | `rv-log` |
 | Seiðr | `seidr-last` | `seidr-log` |
 | Remote Healing | `heal-last` | `heal-log` |
+| Solfeggio | `sol-last` | `sol-log` |
 
 All log entries are exportable as JSON from within each tool.
 
@@ -963,7 +1024,7 @@ This tool creates conditions. You still do the work.
 
 ## Technical Notes
 
-All eight tools are single HTML files with no external dependencies, no frameworks, no trackers, and no server communication. All configuration stored in browser `localStorage`.
+All nine tools are single HTML files with no external dependencies, no frameworks, no trackers, and no server communication. All configuration stored in browser `localStorage`.
 
 **Browser requirements:** Any modern browser with Web Audio API support (Chrome, Firefox, Safari, Edge — mobile and desktop, ~2018 onward). Web Speech API for Mindforge voice delivery (Chrome/Edge have most reliable voice selection).
 

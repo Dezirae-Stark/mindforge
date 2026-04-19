@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Solfeggio</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #0a0a0f;
+            --surface:  #12121a;
+            --surface2: #1a1a28;
+            --border:   #2a2a40;
+            --text:     #c8c8e0;
+            --text-dim: #6060a0;
+            --accent:   #7060d0;
+            --accent2:  #40a0c0;
+            --warn:     #c07040;
+            --on:       #40c080;
+            --off:      #404060;
+        }
+
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 14px; min-height: 100vh; }
+        .app { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+        header { text-align: center; padding: 24px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        header h1 { font-size: 22px; letter-spacing: 0.35em; color: var(--accent); text-transform: uppercase; }
+        header p { color: var(--text-dim); font-size: 11px; margin-top: 6px; letter-spacing: 0.1em; line-height: 1.7; }
+
+        /* ── Ring ── */
+        .ring-wrap { display: flex; flex-direction: column; align-items: center; padding: 28px 0 16px; }
+        .ring-outer { position: relative; width: 200px; height: 200px; border-radius: 50%; }
+        .ring-track { position: absolute; inset: 0; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); }
+        .ring-fill  { position: absolute; inset: 0; border-radius: 50%; }
+        .ring-inner { position: absolute; inset: 16px; background: var(--bg); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; z-index: 1; }
+        .ring-hz   { font-size: 40px; letter-spacing: 0.02em; line-height: 1; }
+        .ring-unit { font-size: 11px; color: var(--text-dim); letter-spacing: 0.2em; }
+        .ring-rem  { font-size: 12px; color: var(--text-dim); margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .tone-name { margin-top: 14px; font-size: 15px; letter-spacing: 0.1em; text-align: center; }
+        .tone-num  { margin-top: 5px; font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-align: center; }
+
+        /* ── Progress ── */
+        .total-bar  { height: 3px; background: var(--surface2); border-radius: 2px; margin: 14px 0 4px; overflow: hidden; }
+        .total-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 1s linear; }
+        .total-time { font-size: 10px; color: var(--off); text-align: right; letter-spacing: 0.08em; }
+
+        /* ── Sequence strip ── */
+        .seq-strip { display: flex; gap: 3px; justify-content: center; margin: 12px 0 8px; }
+        .seq-seg { width: 32px; height: 5px; border-radius: 3px; background: var(--surface2); cursor: pointer; transition: transform 0.2s, opacity 0.3s; border: 1px solid transparent; }
+        .seq-seg.done   { opacity: 0.4; }
+        .seq-seg.active { transform: scaleY(2.2); border-color: rgba(255,255,255,0.15); }
+
+        /* ── Controls ── */
+        .controls { display: flex; gap: 10px; margin: 14px 0 12px; justify-content: center; }
+        .btn-skip { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); padding: 10px 18px; font-size: 18px; cursor: pointer; border-radius: 3px; transition: background 0.15s, border-color 0.15s; }
+        .btn-skip:hover:not(:disabled) { background: var(--surface2); border-color: var(--accent); color: var(--text); }
+        .btn-skip:disabled { opacity: 0.25; cursor: default; }
+        .btn-main { flex: 1; max-width: 200px; background: var(--surface); border: 1px solid var(--accent); color: var(--accent); font-family: inherit; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; padding: 12px; cursor: pointer; border-radius: 3px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+        .btn-main:hover { background: var(--accent); color: #fff; }
+        .btn-main.running { border-color: var(--on); color: var(--on); }
+        .btn-main.running:hover { background: #903030; border-color: #c04040; color: #fff; }
+        .btn-main.paused { border-color: var(--warn); color: var(--warn); }
+        .btn-main.paused:hover { background: var(--warn); color: #fff; }
+
+        /* ── Sections ── */
+        .section { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; margin-bottom: 10px; }
+        .section-title { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent2); margin-bottom: 12px; }
+        .ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .ctrl > span:first-child { flex: 0 0 116px; font-size: 12px; color: var(--text-dim); }
+        .ctrl input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+        .ctrl .val { flex: 0 0 52px; text-align: right; font-size: 12px; color: var(--text); }
+        .ctrl select { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 2px; font-family: inherit; font-size: 12px; }
+        .tog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .tog-row span { flex: 1; font-size: 12px; color: var(--text-dim); }
+        .toggle { position: relative; width: 40px; height: 20px; cursor: pointer; display: inline-block; flex-shrink: 0; }
+        .toggle input { display: none; }
+        .toggle-track { position: absolute; inset: 0; background: var(--off); border-radius: 10px; transition: background .2s; }
+        .toggle input:checked + .toggle-track { background: var(--accent); }
+        .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: left .2s; pointer-events: none; }
+        .toggle input:checked ~ .toggle-thumb { left: 22px; }
+        textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 2px; font-family: inherit; font-size: 12px; line-height: 1.6; resize: vertical; min-height: 72px; }
+        textarea::placeholder { color: var(--text-dim); }
+        .hint { font-size: 11px; color: var(--text-dim); line-height: 1.55; }
+
+        /* ── Beat map ── */
+        .beat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .beat-lbl { flex: 0 0 174px; font-size: 11px; }
+        .beat-inp { width: 58px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 4px 6px; border-radius: 2px; font-family: inherit; font-size: 12px; text-align: center; }
+        .beat-unit { font-size: 11px; color: var(--off); }
+
+        /* ── Sequence grid ── */
+        .seq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .seq-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 7px 10px; border-left-width: 3px; }
+        .seq-item-hz   { font-size: 12px; }
+        .seq-item-name { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+        .seq-item-dur  { font-size: 10px; color: var(--off); margin-top: 2px; }
+
+        /* ── Stars ── */
+        .stars { display: flex; gap: 6px; margin-top: 8px; }
+        .star { font-size: 22px; cursor: pointer; color: var(--off); transition: color 0.15s; }
+        .star.lit { color: #c0a030; }
+
+        /* ── Log ── */
+        .log-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 2px; }
+        .log-table th { color: var(--text-dim); font-weight: normal; text-align: left; padding: 4px 0; border-bottom: 1px solid var(--border); letter-spacing: 0.06em; }
+        .log-table td { padding: 5px 0; border-bottom: 1px solid #1a1a28; vertical-align: top; }
+        .log-empty { font-size: 11px; color: var(--off); }
+
+        .collapse-btn { background: none; border: none; color: var(--text-dim); font-family: inherit; font-size: 11px; padding: 0; cursor: pointer; letter-spacing: 0.1em; }
+        .collapse-btn:hover { color: var(--accent2); }
+        .export-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); font-family: inherit; font-size: 11px; padding: 5px 10px; cursor: pointer; border-radius: 2px; margin-top: 10px; }
+        .export-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+        hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+        .completion-panel { display: none; }
+        .completion-panel.visible { display: block; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <header>
+        <h1>Solfeggio</h1>
+        <p>Sacred frequency sequence &nbsp;·&nbsp; 10 tones &nbsp;·&nbsp; 53 min total<br>
+           Binaural entrainment layered on each carrier &nbsp;·&nbsp; Headphones required</p>
+    </header>
+
+    <div class="ring-wrap">
+        <div class="ring-outer">
+            <div class="ring-track"></div>
+            <div class="ring-fill" id="ring-fill"></div>
+            <div class="ring-inner">
+                <div class="ring-hz"  id="ring-hz">528</div>
+                <div class="ring-unit">Hz</div>
+                <div class="ring-rem" id="ring-rem">5:00</div>
+            </div>
+        </div>
+        <div class="tone-name" id="tone-name">Repairs DNA</div>
+        <div class="tone-num"  id="tone-num">6 of 10</div>
+    </div>
+
+    <div class="total-bar"><div class="total-fill" id="total-fill" style="width:0%"></div></div>
+    <div class="total-time" id="total-time">0:00 / 53:00</div>
+
+    <div class="seq-strip" id="seq-strip"></div>
+
+    <div class="controls">
+        <button class="btn-skip" id="btn-back" onclick="skipBack()"    title="Previous tone">⏮</button>
+        <button class="btn-main" id="btn-main" onclick="mainAction()">Begin Journey</button>
+        <button class="btn-skip" id="btn-fwd"  onclick="skipForward()" title="Next tone">⏭</button>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Current Tone</div>
+        <div class="bio-text" id="bio-text" style="font-size:12px;color:var(--text-dim);line-height:1.75;"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Audio</div>
+        <div class="ctrl">
+            <span>Volume</span>
+            <input type="range" id="vol" min="0.02" max="1" step="0.02" value="0.5"
+                   oninput="updateVol(); sv('vol','vol-v','',2)">
+            <span class="val" id="vol-v">0.50</span>
+        </div>
+        <hr>
+        <div class="tog-row">
+            <span>Binaural layering</span>
+            <label class="toggle"><input type="checkbox" id="bin-on" checked onchange="updateBin(); saveSettings();">
+                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="ctrl">
+            <span>Global beat Hz</span>
+            <input type="range" id="beat-hz" min="1" max="40" step="0.5" value="7"
+                   oninput="updateBin(); sv('beat-hz','beat-hz-v','Hz'); saveSettings();">
+            <span class="val" id="beat-hz-v">7 Hz</span>
+        </div>
+        <div class="hint" style="margin-bottom:10px;">Left ear: Solfeggio carrier. Right ear: carrier + beat offset. Brain perceives the pure Solfeggio tone AND a binaural entrainment beat simultaneously.</div>
+        <hr>
+        <div class="tog-row">
+            <span>Per-tone beat mapping</span>
+            <label class="toggle"><input type="checkbox" id="per-tone-on" onchange="togglePerTone()">
+                <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div id="per-tone-wrap" style="display:none; margin-top:8px;">
+            <div class="hint" style="margin-bottom:10px;">
+                Match each tone's therapeutic purpose to a brainwave state:
+                δ (1–4 Hz) = somatic/physical; θ (4–8 Hz) = emotional/psychic;
+                α (8–13 Hz) = receptive/integrative; γ (30–40 Hz) = binding/integration.
+            </div>
+            <div id="beat-rows"></div>
+        </div>
+        <hr>
+        <div class="ctrl">
+            <span>Transition</span>
+            <select id="transition-mode" onchange="saveSettings()">
+                <option value="crossfade">Crossfade (2 s)</option>
+                <option value="silence">Silence gap (3 s)</option>
+                <option value="instant">Instant</option>
+            </select>
+        </div>
+        <div class="hint">How one tone ends and the next begins. Silence gap allows integration between frequencies.</div>
+    </div>
+
+    <div class="section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div class="section-title" style="margin-bottom:0">Full Sequence</div>
+            <button class="collapse-btn" id="seq-toggle" onclick="toggleSeqDetail()">show ▾</button>
+        </div>
+        <div id="seq-detail" style="display:none">
+            <div class="seq-grid" id="seq-grid"></div>
+        </div>
+    </div>
+
+    <div class="completion-panel" id="completion-panel">
+        <div class="section">
+            <div class="section-title">Journey Complete</div>
+            <div id="comp-summary" style="font-size:12px;color:var(--text-dim);margin-bottom:12px;"></div>
+            <textarea id="session-notes" placeholder="Impressions, sensations, insights, any shifts noticed…"></textarea>
+            <div class="stars" id="stars">
+                <span class="star" onclick="rateStar(1)">★</span>
+                <span class="star" onclick="rateStar(2)">★</span>
+                <span class="star" onclick="rateStar(3)">★</span>
+                <span class="star" onclick="rateStar(4)">★</span>
+                <span class="star" onclick="rateStar(5)">★</span>
+            </div>
+            <button class="btn-main" style="max-width:none;width:100%;font-size:12px;margin-top:12px;" onclick="saveLog()">Save to log</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Session Log</div>
+        <div id="log-body"></div>
+        <button class="export-btn" onclick="exportLog()">Export JSON</button>
+    </div>
+
+</div>
+<script>
+'use strict';
+
+// ── Sequence ─────────────────────────────────────────────────────────────────
+const SEQUENCE = [
+    { hz: 174, name: 'Removes Pain',                min: 6,
+      bio: 'Foundation tone. The lowest Solfeggio frequency — grounding and stabilizing. Reduces physical and psychological pain; transmutes stress and fear stored in the body. Associated with safety and security at the cellular level.' },
+    { hz: 285, name: 'Influences Energy Field',     min: 7,
+      bio: 'Tissue restoration. Restores and restructures the energetic field — reported to accelerate healing of damaged tissue by signaling the body\'s original blueprint. Connects to the morphogenetic field.' },
+    { hz: 396, name: 'Liberates Fear & Guilt',      min: 5,
+      bio: 'Liberation tone. Cleanses guilt, fear, and the subconscious sense of threat. Grounds and energizes. Considered the tone of fundamental change — turns grief into joy by addressing the root, not the symptom.' },
+    { hz: 417, name: 'Facilitates Change',          min: 3,
+      bio: 'Undoing tone. Facilitates change and clears traumatic imprint. Transmutes accumulated negative energy in cells, organs, and environment. Useful before beginning new patterns — clears the energetic channel.' },
+    { hz: 432, name: 'Miracle Tone of Nature',      min: 4,
+      bio: 'Verdi\'s A. Natural tuning aligned with Earth resonance and Pythagorean mathematics. Reported to produce deeper meditative states than 440 Hz standard. Associated with water-molecule resonance and organic harmonic series.' },
+    { hz: 528, name: 'Repairs DNA',                 min: 5,
+      bio: 'Love frequency. Central Solfeggio tone — the middle of the original nine. Used in biophysics research on DNA repair. Produces maximum resonance in water molecules. Considered the tone of transformation, miracles, and cellular healing.' },
+    { hz: 639, name: 'Heals Relationships',         min: 6,
+      bio: 'Reconnecting tone. Enhances communication, understanding, tolerance, and love. Harmonizes interpersonal fields. Used to repair estranged relationships and amplify the resonance between people.' },
+    { hz: 741, name: 'Awakens Intuition',           min: 4,
+      bio: 'Expression and solutions. Cleans cells and tissues of electromagnetic interference. Expands intuition and problem-solving capacity. Associated with authentic self-expression and the throat center.' },
+    { hz: 852, name: 'Attracts Soul Tribe',         min: 11,
+      bio: 'Spiritual order. Awakens intuition and returns to coherent spiritual orientation. Enables cells to communicate at higher frequencies. Draws resonant connections — people, ideas, circumstances that belong to your field.' },
+    { hz: 963, name: 'Connect with Light & Spirit', min: 2,
+      bio: 'God frequency. Highest Solfeggio tone. Activates the pineal gland and connects to the highest spiritual domain and divine light. Associated with crown opening, unity consciousness, and pure undivided awareness.' },
+];
+
+const COLORS = [
+    '#5040b0', '#3868c8', '#2898b8', '#28b0a0', '#38c878',
+    '#88c038', '#c89828', '#c86828', '#c03848', '#a030c0',
+];
+
+// Default per-tone binaural beat pairings (Hz) — see per-tone mapping UI to customize.
+// Each value pairs the Solfeggio carrier with a brainwave state suited to that tone's purpose.
+const DEFAULT_BEAT_MAP = [
+    2.5,   // 174 Hz — Removes Pain      → delta: deep somatic relaxation
+    4.0,   // 285 Hz — Energy Field       → theta: morphogenetic / tissue depth
+    6.0,   // 396 Hz — Fear & Guilt       → theta: emotional processing, limbic
+    7.5,   // 417 Hz — Change             → theta: CIA Gateway sweet spot, pattern shift
+    7.83,  // 432 Hz — Nature             → Schumann resonance: Earth coherence
+    10.0,  // 528 Hz — DNA Repair         → alpha: receptive, open, integrative
+    8.0,   // 639 Hz — Relationships      → alpha: calm relational presence
+    6.0,   // 741 Hz — Intuition          → theta: psychic / intuitive depth
+    5.5,   // 852 Hz — Soul Tribe         → theta: collective field resonance
+    4.0,   // 963 Hz — Spirit             → deep theta: pineal / transcendent
+];
+
+const TOTAL_SECS = SEQUENCE.reduce((s, t) => s + t.min * 60, 0); // 3180
+
+// ── Mutable state ─────────────────────────────────────────────────────────────
+let beatMap = [...DEFAULT_BEAT_MAP];
+
+let ctx = null, leftOsc = null, rightOsc = null, leftG = null, rightG = null, masterG = null;
+let running = false, paused = false;
+let currentIdx = 0, elapsed = 0, totalElap = 0;
+let timer = null, starRating = 0;
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const merger = ctx.createChannelMerger(2);
+    masterG = ctx.createGain(); masterG.gain.value = 0;
+    merger.connect(masterG); masterG.connect(ctx.destination);
+    leftG = ctx.createGain();  leftG.gain.value  = 1;
+    rightG = ctx.createGain(); rightG.gain.value = 1;
+    leftG.connect(merger, 0, 0); rightG.connect(merger, 0, 1);
+    leftOsc  = ctx.createOscillator(); leftOsc.type  = 'sine';
+    rightOsc = ctx.createOscillator(); rightOsc.type = 'sine';
+    leftOsc.connect(leftG); rightOsc.connect(rightG);
+    leftOsc.start(); rightOsc.start();
+    setOscillators(currentIdx);
+}
+
+function setOscillators(idx) {
+    if (!leftOsc) return;
+    const hz     = SEQUENCE[idx].hz;
+    const beat   = el('per-tone-on').checked ? beatMap[idx] : gf('beat-hz');
+    const binOn  = el('bin-on').checked;
+    leftOsc.frequency.value  = hz;
+    rightOsc.frequency.value = binOn ? hz + beat : hz;
+}
+
+function updateVol()  { if (masterG && running && !paused) masterG.gain.setTargetAtTime(gf('vol'), ctx.currentTime, 0.05); }
+function updateBin()  { setOscillators(currentIdx); }
+
+// ── Transition between tones ──────────────────────────────────────────────────
+// masterG.gain, ctx.currentTime, setOscillators(idx), showTone(idx) are all available.
+// Mode is set by the Transition dropdown in the UI.
+function transitionToNext(newIdx) {
+    const mode = el('transition-mode').value;
+    const vol  = gf('vol');
+    const t    = ctx.currentTime;
+
+    if (mode === 'instant') {
+        setOscillators(newIdx);
+        showTone(newIdx);
+        masterG.gain.setValueAtTime(vol, t);
+        return;
+    }
+    if (mode === 'crossfade') {
+        masterG.gain.cancelScheduledValues(t);
+        masterG.gain.setValueAtTime(vol, t);
+        masterG.gain.linearRampToValueAtTime(0, t + 2);
+        setTimeout(() => {
+            setOscillators(newIdx);
+            showTone(newIdx);
+            const t2 = ctx.currentTime;
+            masterG.gain.cancelScheduledValues(t2);
+            masterG.gain.setValueAtTime(0, t2);
+            masterG.gain.linearRampToValueAtTime(vol, t2 + 2);
+        }, 2000);
+        return;
+    }
+    if (mode === 'silence') {
+        // Fade out → 2 s silence → fade in
+        masterG.gain.cancelScheduledValues(t);
+        masterG.gain.setValueAtTime(vol, t);
+        masterG.gain.linearRampToValueAtTime(0, t + 1.5);
+        setTimeout(() => { setOscillators(newIdx); showTone(newIdx); }, 1500);
+        setTimeout(() => {
+            const t2 = ctx.currentTime;
+            masterG.gain.cancelScheduledValues(t2);
+            masterG.gain.setValueAtTime(0, t2);
+            masterG.gain.linearRampToValueAtTime(vol, t2 + 1.5);
+        }, 3500);
+    }
+}
+
+// ── Session control ───────────────────────────────────────────────────────────
+function mainAction() {
+    if (!running)       startJourney();
+    else if (paused)    resumeJourney();
+    else                pauseJourney();
+}
+
+function startJourney() {
+    initAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+    running = true; paused = false;
+    currentIdx = 0; elapsed = 0; totalElap = 0;
+    el('completion-panel').classList.remove('visible');
+    el('completion-panel').style.display = 'none';
+    starRating = 0; renderStars(0);
+
+    masterG.gain.cancelScheduledValues(ctx.currentTime);
+    masterG.gain.setValueAtTime(0, ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(gf('vol'), ctx.currentTime + 2);
+    setOscillators(0);
+    showTone(0);
+    updateControls();
+    timer = setInterval(tick, 1000);
+}
+
+function pauseJourney() {
+    paused = true;
+    clearInterval(timer); timer = null;
+    masterG.gain.cancelScheduledValues(ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+    updateControls();
+}
+
+function resumeJourney() {
+    paused = false;
+    if (ctx.state === 'suspended') ctx.resume();
+    masterG.gain.cancelScheduledValues(ctx.currentTime);
+    masterG.gain.setValueAtTime(0, ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(gf('vol'), ctx.currentTime + 0.5);
+    timer = setInterval(tick, 1000);
+    updateControls();
+}
+
+function skipForward() {
+    if (!running) return;
+    const next = currentIdx + 1;
+    if (next >= SEQUENCE.length) { endJourney(true); return; }
+    elapsed = 0; currentIdx = next;
+    transitionToNext(currentIdx);
+}
+
+function skipBack() {
+    if (!running || currentIdx === 0) return;
+    elapsed = 0; currentIdx--;
+    transitionToNext(currentIdx);
+}
+
+function tick() {
+    if (!running || paused) return;
+    elapsed++; totalElap++;
+    updateRing(); updateProgress();
+    if (elapsed >= SEQUENCE[currentIdx].min * 60) {
+        const next = currentIdx + 1;
+        if (next >= SEQUENCE.length) { endJourney(true); }
+        else { elapsed = 0; currentIdx = next; transitionToNext(currentIdx); }
+    }
+}
+
+function endJourney(natural) {
+    running = false; paused = false;
+    clearInterval(timer); timer = null;
+    masterG.gain.cancelScheduledValues(ctx.currentTime);
+    masterG.gain.setValueAtTime(masterG.gain.value, ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(0, ctx.currentTime + 3);
+    if (natural) playChime();
+    updateControls();
+    if (natural) {
+        el('comp-summary').textContent =
+            'All 10 tones · ' + fmtSec(TOTAL_SECS) + ' · ' + new Date().toLocaleDateString();
+        el('completion-panel').style.display = 'block';
+        el('completion-panel').classList.add('visible');
+    }
+    updateRing(); updateProgress();
+}
+
+function playChime() {
+    if (!ctx) return;
+    const g = ctx.createGain(); g.connect(ctx.destination);
+    [396, 528, 660, 852, 963].forEach((f, i) => {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.connect(g);
+        const t = ctx.currentTime + i * 0.65;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.16, t + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
+        o.start(t); o.stop(t + 2.5);
+    });
+}
+
+// ── Display ───────────────────────────────────────────────────────────────────
+function showTone(idx) {
+    const tone = SEQUENCE[idx], color = COLORS[idx];
+    el('ring-hz').textContent   = tone.hz;
+    el('ring-hz').style.color   = color;
+    el('tone-name').textContent = tone.name;
+    el('tone-name').style.color = color;
+    el('tone-num').textContent  = (idx + 1) + ' of ' + SEQUENCE.length;
+    el('bio-text').textContent  = tone.bio;
+
+    document.querySelectorAll('.seq-seg').forEach((s, i) => {
+        s.classList.toggle('done',   i < idx);
+        s.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.seq-item').forEach((item, i) => {
+        item.classList.toggle('current', i === idx);
+        item.style.borderLeftColor = i === idx ? COLORS[i] : 'transparent';
+    });
+    updateRing(); updateControls();
+}
+
+function updateRing() {
+    const toneSec = SEQUENCE[currentIdx].min * 60;
+    const prog    = running ? Math.min(elapsed / toneSec, 1) : 0;
+    const deg     = (prog * 360).toFixed(1);
+    el('ring-fill').style.background =
+        'conic-gradient(' + COLORS[currentIdx] + ' ' + deg + 'deg, transparent 0)';
+    el('ring-rem').textContent = fmtSec(Math.max(toneSec - elapsed, 0));
+}
+
+function updateProgress() {
+    const pct = (totalElap / TOTAL_SECS * 100).toFixed(1);
+    el('total-fill').style.width = pct + '%';
+    el('total-time').textContent = fmtSec(totalElap) + ' / ' + fmtSec(TOTAL_SECS);
+}
+
+function updateControls() {
+    const b = el('btn-main');
+    if (!running)    { b.textContent = 'Begin Journey'; b.className = 'btn-main'; }
+    else if (paused) { b.textContent = 'Resume';        b.className = 'btn-main paused'; }
+    else             { b.textContent = 'Pause';         b.className = 'btn-main running'; }
+    el('btn-back').disabled = !running || currentIdx === 0;
+    el('btn-fwd').disabled  = !running;
+}
+
+// ── Per-tone beat map UI ──────────────────────────────────────────────────────
+function buildBeatRows() {
+    const wrap = el('beat-rows');
+    wrap.textContent = '';
+    SEQUENCE.forEach((tone, i) => {
+        const row = document.createElement('div');
+        row.className = 'beat-row';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'beat-lbl';
+        lbl.style.color = COLORS[i];
+        lbl.textContent = tone.hz + ' Hz — ' + tone.name;
+
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = '0.5'; inp.max = '40'; inp.step = '0.5';
+        inp.value = beatMap[i]; inp.className = 'beat-inp';
+        inp.addEventListener('change', () => {
+            beatMap[i] = parseFloat(inp.value) || beatMap[i];
+            updateBin(); saveSettings();
+        });
+
+        const unit = document.createElement('span');
+        unit.className = 'beat-unit'; unit.textContent = 'Hz';
+
+        row.appendChild(lbl); row.appendChild(inp); row.appendChild(unit);
+        wrap.appendChild(row);
+    });
+}
+
+function togglePerTone() {
+    const on = el('per-tone-on').checked;
+    el('per-tone-wrap').style.display = on ? 'block' : 'none';
+    if (on) buildBeatRows();
+    updateBin(); saveSettings();
+}
+
+// ── Sequence overview ─────────────────────────────────────────────────────────
+function buildSeqStrip() {
+    const strip = el('seq-strip');
+    strip.textContent = '';
+    SEQUENCE.forEach((tone, i) => {
+        const seg = document.createElement('div');
+        seg.className = 'seq-seg';
+        seg.style.background = COLORS[i];
+        seg.title = tone.hz + ' Hz — ' + tone.name + ' (' + tone.min + ' min)';
+        seg.addEventListener('click', () => { if (running && !paused) { elapsed = 0; currentIdx = i; transitionToNext(i); } });
+        strip.appendChild(seg);
+    });
+}
+
+function buildSeqGrid() {
+    const grid = el('seq-grid');
+    grid.textContent = '';
+    SEQUENCE.forEach((tone, i) => {
+        const item = document.createElement('div');
+        item.className = 'seq-item';
+        item.style.borderLeftColor = 'transparent';
+
+        const hzDiv = document.createElement('div');
+        hzDiv.className = 'seq-item-hz'; hzDiv.style.color = COLORS[i];
+        hzDiv.textContent = tone.hz + ' Hz';
+
+        const nmDiv = document.createElement('div');
+        nmDiv.className = 'seq-item-name'; nmDiv.textContent = tone.name;
+
+        const drDiv = document.createElement('div');
+        drDiv.className = 'seq-item-dur'; drDiv.textContent = tone.min + ' min';
+
+        item.appendChild(hzDiv); item.appendChild(nmDiv); item.appendChild(drDiv);
+        grid.appendChild(item);
+    });
+}
+
+function toggleSeqDetail() {
+    const d = el('seq-detail'), open = d.style.display !== 'none';
+    d.style.display = open ? 'none' : 'block';
+    el('seq-toggle').textContent = open ? 'show ▾' : 'hide ▴';
+}
+
+// ── Stars ─────────────────────────────────────────────────────────────────────
+function rateStar(n) { starRating = n; renderStars(n); }
+function renderStars(n) {
+    document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('lit', i < n));
+}
+
+// ── Session log ───────────────────────────────────────────────────────────────
+function saveLog() {
+    const entry = {
+        date:     new Date().toISOString(),
+        tones:    SEQUENCE.length,
+        duration: TOTAL_SECS,
+        rating:   starRating,
+        notes:    el('session-notes').value.trim(),
+        beatMap:  el('per-tone-on').checked ? beatMap.slice() : gf('beat-hz'),
+    };
+    try {
+        const log = JSON.parse(localStorage.getItem('sol-log') || '[]');
+        log.unshift(entry);
+        localStorage.setItem('sol-log', JSON.stringify(log));
+    } catch(e) {}
+    el('completion-panel').classList.remove('visible');
+    el('completion-panel').style.display = 'none';
+    el('session-notes').value = '';
+    renderLog();
+}
+
+function renderLog() {
+    const log = JSON.parse(localStorage.getItem('sol-log') || '[]');
+    const body = el('log-body');
+    body.textContent = '';
+
+    if (!log.length) {
+        const empty = document.createElement('div');
+        empty.className = 'log-empty'; empty.textContent = 'No sessions yet.';
+        body.appendChild(empty); return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'log-table';
+
+    const thead = document.createElement('thead');
+    const hrow  = document.createElement('tr');
+    ['Date', 'Tones', 'Rating', 'Notes'].forEach(h => {
+        const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
+    });
+    thead.appendChild(hrow); table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    log.slice(0, 20).forEach(e => {
+        const tr = document.createElement('tr');
+        const cells = [
+            new Date(e.date).toLocaleDateString(),
+            String(e.tones || SEQUENCE.length),
+            '★'.repeat(e.rating || 0) || '—',
+            e.notes || '—',
+        ];
+        cells.forEach((txt, ci) => {
+            const td = document.createElement('td');
+            td.textContent = txt;
+            if (ci === 3) { td.style.maxWidth = '180px'; td.style.overflow = 'hidden'; td.style.textOverflow = 'ellipsis'; td.style.whiteSpace = 'nowrap'; }
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+}
+
+function exportLog() {
+    const log = localStorage.getItem('sol-log') || '[]';
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(log);
+    a.download = 'solfeggio-log.json';
+    a.click();
+}
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function saveSettings() {
+    try {
+        localStorage.setItem('sol-last', JSON.stringify({
+            vol: gf('vol'), beatHz: gf('beat-hz'),
+            binOn: el('bin-on').checked,
+            perToneOn: el('per-tone-on').checked,
+            beatMap: beatMap.slice(),
+            transition: el('transition-mode').value,
+        }));
+    } catch(e) {}
+}
+
+function loadSettings() {
+    try {
+        const s = JSON.parse(localStorage.getItem('sol-last') || 'null');
+        if (!s) return;
+        if (s.vol)        { el('vol').value     = s.vol;    sv('vol','vol-v','',2); }
+        if (s.beatHz)     { el('beat-hz').value = s.beatHz; sv('beat-hz','beat-hz-v','Hz'); }
+        if (s.binOn != null)   el('bin-on').checked    = s.binOn;
+        if (s.transition) el('transition-mode').value  = s.transition;
+        if (s.beatMap && Array.isArray(s.beatMap)) beatMap = s.beatMap;
+        if (s.perToneOn)  { el('per-tone-on').checked = true; togglePerTone(); }
+    } catch(e) {}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function el(id)    { return document.getElementById(id); }
+function gf(id)    { return parseFloat(el(id).value); }
+function fmtSec(s) { const m = Math.floor(s / 60); return m + ':' + (s % 60 < 10 ? '0' : '') + Math.floor(s % 60); }
+function sv(sid, did, unit, dec) {
+    const v = parseFloat(el(sid).value);
+    el(did).textContent = dec > 0 ? v.toFixed(dec) + unit : v + unit;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    buildSeqStrip();
+    buildSeqGrid();
+    showTone(0);
+    updateProgress();
+    renderLog();
+    el('vol').addEventListener('input', saveSettings);
+    el('beat-hz').addEventListener('input', saveSettings);
+});
+</script>
+</body>
+</html>
