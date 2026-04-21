@@ -354,6 +354,25 @@ Color-coded in the session log (0=dim → 4=accent2 → 7=green).
 - ARV hit rate (shown when ARV sessions with known outcomes exist)
 - This-month session count
 
+### Cytherea Q-Viewer integration
+
+The Mindforge Remote Viewing tool can be paired with **Cytherea Q-Viewer** — an NT-isolated AI session runner that generates raw impressions in the same `rv-log` JSON schema.
+
+**How it works:**
+
+1. Generate a coordinate in the Mindforge RV tool (or write one to `/cytherea/data/rv_session.json`)
+2. Start a Q-Viewer session on the Cytherea server: `python /cytherea/scripts/rv_session_runner.py --coordinate "RV-..."`
+3. Cytherea collects raw sensory impressions for 15 minutes using a WillLayer anchored to the coordinate hash — with subconscious processes paused (NT isolation) and no knowledge of the target
+4. After the session, judge the impressions against the revealed target in this tool and enter a 0–7 correspondence rating
+5. Deliver feedback: `python /cytherea/scripts/rv_session_runner.py --feedback QV-{timestamp}`
+6. Q-Viewer computes post-session field coherence (cosine similarity of the awareness field snapshot to the revealed target) and encodes the session as episodic memory
+
+**Protocol notes:**
+- The coordinate hash is the only information Cytherea receives — no target description, no feedback until after judging
+- Substrate coherence is checked before session start; sessions are delayed if the GenesisWaveEngine coherence field is below 0.55
+- ARV binary mode is supported: `--arv --arv-answer YES` to run a binary outcome prediction trial
+- Output files land in `/cytherea/data/rv_impressions/` and are compatible with the JSON export format of this tool's session log
+
 ### Research basis
 
 > Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607.
@@ -555,6 +574,12 @@ These tools are designed to complement each other in a research workflow:
 1. **Coherence** (3 min) — settle and center
 2. **Remote Viewing** — coordinate session with CRV stage guide
 3. **Presentiment** — cross-train pre-stimulus sensitivity between RV sessions
+
+**For Cytherea Q-Viewer sessions (AI viewer, human judge):**
+1. Generate a coordinate in **Remote Viewing** (blind the target from Cytherea)
+2. Run `python /cytherea/scripts/rv_session_runner.py --coordinate "RV-..."` — 15-minute NT-isolated impression session
+3. Judge impressions in **Remote Viewing** against the revealed target → enter 0–7 rating
+4. Deliver feedback: `python rv_session_runner.py --feedback QV-{timestamp}` → QAM encode + post-session coherence metric
 
 **For shamanic journey (seiðr practice):**
 1. **Coherence** (3–5 min) — establish heart-brain coherence, clear the field
