@@ -1,4 +1,10 @@
-# Mindforge
+<p align="center">
+  <img src="assets/mindforge_logo.png" alt="Mindforge" width="320">
+</p>
+
+<h1 align="center">Mindforge</h1>
+
+<p align="center"><em>Focus your mind. Forge your reality.</em></p>
 
 A suite of single-file browser tools for consciousness research, subconscious work, and consensual psi experimentation. No installation, no account, no data sent anywhere. Each tool is a single HTML file that runs entirely in your browser.
 
