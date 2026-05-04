@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="assets/mindforge_favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Seiðr — Mindforge</title>
@@ -403,9 +404,36 @@ const FRAMES = [
 ];
 let frameIdx = 0;
 
+// Mindforge-shared helper: enforce first-person phrasing. Seiðr's seer journeys
+// in first person, so any "you/your" in the input is treated as a slip and
+// rewritten to "I/my".
+function enforceFirstPerson(text) {
+    if (!text) return text;
+    let s = String(text);
+    s = s.replace(/\byou are\b/gi, "I am").replace(/\byou were\b/gi, "I was")
+         .replace(/\byou have\b/gi, "I have").replace(/\byou had\b/gi, "I had")
+         .replace(/\byou will\b/gi, "I").replace(/\byou can\b/gi, "I can")
+         .replace(/\byou feel\b/gi, "I feel").replace(/\byou find\b/gi, "I find")
+         .replace(/\byou begin\b/gi, "I begin").replace(/\byou notice\b/gi, "I notice")
+         .replace(/\byou allow\b/gi, "I allow").replace(/\byou know\b/gi, "I know")
+         .replace(/\byou see\b/gi, "I see").replace(/\byou breathe\b/gi, "I breathe")
+         .replace(/\byou drift\b/gi, "I drift").replace(/\byou settle\b/gi, "I settle")
+         .replace(/\byou release\b/gi, "I release").replace(/\byou become\b/gi, "I become")
+         .replace(/\byou\b/gi, "I").replace(/\byours\b/gi, "mine")
+         .replace(/\byourself\b/gi, "myself").replace(/\byour\b/gi, "my");
+    s = s.replace(/\bI body\b/g, "my body").replace(/\bI mind\b/g, "my mind")
+         .replace(/\bI breath\b/g, "my breath").replace(/\bI breathing\b/g, "my breathing")
+         .replace(/\bI has\b/g, "I have").replace(/\bI is\b/g, "I am");
+    if (s.length) s = s[0].toUpperCase() + s.slice(1);
+    return s;
+}
+
 function reframeSuggestion(text, context) {
     if (!text || !text.trim()) return null;
     let s = text.trim();
+
+    // Polish to first person before any other processing.
+    s = enforceFirstPerson(s);
 
     // Future → present
     s = s.replace(/\bwill be\b/gi,'am').replace(/\bwill have\b/gi,'have')
@@ -447,7 +475,7 @@ function reframeSuggestion(text, context) {
         s = frame(coreL);
         s = s.charAt(0).toUpperCase() + s.slice(1);
     }
-    return s;
+    return enforceFirstPerson(s);
 }
 
 function doReframe(textareaId, context) {

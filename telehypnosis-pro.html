@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="assets/mindforge_favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Telehypnosis Pro</title>
@@ -1234,9 +1235,30 @@ const _RF_FRAMES = [
     (s) => `${s} This settles deeper with every exhale.`
 ];
 
+// Mindforge-shared note: the first-person enforcement helper used in mindforge.html /
+// seidr.html / healing.html is intentionally NOT applied here. Telehypnosis Pro is
+// Vasiliev-style remote influence — operator (I) projects toward a target subject
+// (they). Forcing "you" → "I" would invert the operator/target roles. Instead, we
+// normalize accidental second-person slips to the protocol's third-person target.
+function _rfStripSecondPerson(text) {
+    if (!text) return text;
+    return String(text)
+        .replace(/\byou are\b/gi, 'they are')
+        .replace(/\byou have\b/gi, 'they have')
+        .replace(/\byou will\b/gi, 'they')
+        .replace(/\byou feel\b/gi, 'they feel')
+        .replace(/\byourself\b/gi, 'themselves')
+        .replace(/\byours\b/gi, 'theirs')
+        .replace(/\byour\b/gi, 'their')
+        .replace(/\byou\b/gi, 'they');
+}
+
 function _rfReframeOne(text, context) {
     let t = text.trim();
     if (!t) return '';
+
+    // Normalize any accidental second-person input to the third-person target.
+    t = _rfStripSecondPerson(t);
 
     // 1. Convert future/desire to present
     t = t.replace(/\bwill be\b/gi, 'is')

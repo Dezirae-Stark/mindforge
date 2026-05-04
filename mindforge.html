@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="assets/mindforge_favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mindforge</title>
@@ -477,7 +478,7 @@
             <label class="toggle"><input type="checkbox" id="embed-on" checked>
                 <div class="toggle-track"></div><div class="toggle-thumb"></div></label>
         </div>
-        <div class="hint" style="margin-bottom:10px">Wraps suggestions in Ericksonian presupposition frames — embeds the suggestion inside a premise the censor is already accepting. "As you drift deeper, <em>suggestion</em>."</div>
+        <div class="hint" style="margin-bottom:10px">Wraps suggestions in Ericksonian presupposition frames — embeds the suggestion inside a premise the censor is already accepting. "As I drift deeper, <em>suggestion</em>." All output stays in first person.</div>
         <hr>
 
         <div class="sub-title">Voice Delivery</div>
@@ -501,7 +502,7 @@
         <div class="hint" style="margin-bottom:12px">Whispered speech delivery simultaneous with the visual flash. Dual-channel — auditory + visual — to the same suggestion.</div>
         <hr>
 
-        <textarea id="suggestions" placeholder="Enter suggestions, one per line.
+        <textarea id="suggestions" placeholder="Enter suggestions, one per line. Written in first person.
 
 I think in pure images and sensation.
 Thought flows without a speaker.
@@ -509,11 +510,74 @@ The image is the meaning.
 My subconscious receives and transforms.
 I am whole without an address.
 Experience arrives before words."></textarea>
-        <div class="hint">One per line · 16ms = true subliminal · 33ms = liminal · 200ms+ = readable</div>
+        <div class="hint">One per line · first person only · 16ms = true subliminal · 33ms = liminal · 200ms+ = readable</div>
         <div class="reframe-btn-row">
             <button class="reframe-btn" onclick="doReframe('suggestions','subliminal')">✦ Reframe for maximum impact</button>
         </div>
         <div class="reframe-preview rf-hidden" id="suggestions-reframe"></div>
+
+        <hr>
+        <div class="sub-title">Delivery Mode</div>
+        <div class="ctrl">
+            <span>Cycle pattern</span>
+            <select id="delivery-mode">
+                <option value="random" selected>Random</option>
+                <option value="cycles">Structured Cycles</option>
+                <option value="burst">Hypnagogic Burst</option>
+            </select>
+        </div>
+        <div class="hint">Random = original behavior. Structured Cycles rotate Core → Semantic → Identity → Contradiction-Collapse to avoid habituation. Hypnagogic Burst stays sparse until the 6.5–8.5 Hz window, then delivers high-density layered clusters.</div>
+
+        <hr>
+        <div class="sub-title">Context-bound trigger (optional)</div>
+        <div class="ctrl">
+            <span>Situation</span>
+            <input type="text" id="ctx-situation" class="overlay-url-input" placeholder="when this should activate (e.g. starting a hard task)">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Desired response</span>
+            <input type="text" id="ctx-desired" class="overlay-url-input" placeholder="automatic response (e.g. focus deeply and begin)">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Body anchor</span>
+            <input type="text" id="ctx-anchor" class="overlay-url-input" placeholder="somatic cue (e.g. one slow breath into my chest)">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Micro-action</span>
+            <input type="text" id="ctx-action" class="overlay-url-input" placeholder="first small action after session (e.g. open the file)">
+        </div>
+        <div class="hint">If filled, a trigger-bound suggestion is woven into the rotation. Leave blank to keep existing behavior.</div>
+    </div>
+
+    <!-- INTEGRATION (hidden until natural session end) -->
+    <div class="section rf-hidden" id="integration-panel">
+        <div class="section-title">Integration</div>
+        <div class="hint" style="margin-bottom:10px">A practice aid — not a medical device, not a replacement for care. This is self-directed work, integrated by reflection.</div>
+        <div class="ctrl">
+            <span>What feels different now?</span>
+            <input type="text" id="ifeel" class="overlay-url-input" placeholder="my chest is softer; my mind is quieter">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Where will I apply this today?</span>
+            <input type="text" id="iapply" class="overlay-url-input" placeholder="a specific moment / context">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>First small action I will take</span>
+            <input type="text" id="iaction" class="overlay-url-input" placeholder="one concrete next step">
+        </div>
+        <div class="ctrl" style="margin-top:4px">
+            <span>Integration rating</span>
+            <input type="range" id="irating" min="1" max="5" step="1" value="3"
+                   oninput="sv('irating','irating-v','/5')">
+            <span class="val" id="irating-v">3/5</span>
+        </div>
+        <div class="reframe-btn-row" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="reframe-btn" onclick="saveIntegration()">Save Integration</button>
+            <button class="reframe-btn" onclick="generateReinforcementCard()">Generate Reinforcement Card</button>
+            <button class="reframe-btn" onclick="document.getElementById('integration-panel').classList.add('rf-hidden')">Dismiss</button>
+        </div>
+        <div id="integration-result" class="reframe-preview rf-hidden" style="margin-top:8px"></div>
+        <div id="reinforcement-card" class="reframe-preview rf-hidden" style="margin-top:8px"></div>
     </div>
 
     <!-- SESSION -->
@@ -591,18 +655,168 @@ const COLORS = {
     white:'#c0c0d0', amber:'#c08030', red:'#c03030'
 };
 
+// First-person Ericksonian frames. Self-statements only — no "you/your".
 const FRAMES = [
-    s => `As you drift deeper, ${lc(s)}`,
-    s => `Notice how ${lc(s)}`,
-    s => `You find that ${lc(s)}`,
+    s => `As I drift deeper, ${lc(s)}`,
+    s => `I notice how ${lc(s)}`,
+    s => `I find that ${lc(s)}`,
     s => `In this stillness, ${lc(s)}`,
     s => `Deeper now — ${lc(s)}`,
     s => `With each breath, ${lc(s)}`,
-    s => `Allow it: ${s}`,
+    s => `I allow it: ${s}`,
     s => s, s => s, s => s, // raw more often for brevity
 ];
 
 function lc(s) { return s ? s[0].toLowerCase() + s.slice(1) : s; }
+
+// ── First-person enforcement & layered suggestion templates ──
+// Reusable: ported into telehypnosis-pro / seidr / healing where compatible.
+function enforceFirstPerson(text) {
+    if (!text) return text;
+    let s = String(text);
+    // Phrases first (longest match wins) so single-word "you" doesn't fire mid-phrase.
+    s = s.replace(/\byou are\b/gi, "I am")
+         .replace(/\byou were\b/gi, "I was")
+         .replace(/\byou have\b/gi, "I have")
+         .replace(/\byou had\b/gi, "I had")
+         .replace(/\byou will\b/gi, "I")
+         .replace(/\byou can\b/gi, "I can")
+         .replace(/\byou could\b/gi, "I could")
+         .replace(/\byou may\b/gi, "I may")
+         .replace(/\byou might\b/gi, "I might")
+         .replace(/\byou feel\b/gi, "I feel")
+         .replace(/\byou felt\b/gi, "I felt")
+         .replace(/\byou find\b/gi, "I find")
+         .replace(/\byou found\b/gi, "I found")
+         .replace(/\byou begin\b/gi, "I begin")
+         .replace(/\byou notice\b/gi, "I notice")
+         .replace(/\byou allow\b/gi, "I allow")
+         .replace(/\byou know\b/gi, "I know")
+         .replace(/\byou see\b/gi, "I see")
+         .replace(/\byou breathe\b/gi, "I breathe")
+         .replace(/\byou drift\b/gi, "I drift")
+         .replace(/\byou settle\b/gi, "I settle")
+         .replace(/\byou release\b/gi, "I release")
+         .replace(/\byou relax\b/gi, "I relax")
+         .replace(/\byou become\b/gi, "I become")
+         .replace(/\byou\b/gi, "I")
+         .replace(/\byours\b/gi, "mine")
+         .replace(/\byourself\b/gi, "myself")
+         .replace(/\byour\b/gi, "my");
+    // Cleanup: "I body" / "I mind" / "I breath" → "my body" etc.
+    s = s.replace(/\bI body\b/g, "my body")
+         .replace(/\bI mind\b/g, "my mind")
+         .replace(/\bI breath\b/g, "my breath")
+         .replace(/\bI breathing\b/g, "my breathing")
+         .replace(/\bI nervous system\b/g, "my nervous system")
+         .replace(/\bI heart\b/g, "my heart")
+         .replace(/\bI chest\b/g, "my chest")
+         .replace(/\bI shoulders\b/g, "my shoulders")
+         .replace(/\bI attention\b/g, "my attention")
+         .replace(/\bI focus\b/g, "my focus");
+    // Verb-agreement hiccups from regex: "I has" → "I have", "I is" → "I am".
+    s = s.replace(/\bI has\b/g, "I have")
+         .replace(/\bI is\b/g, "I am");
+    // Sentence start capitalization preserved.
+    if (s.length) s = s[0].toUpperCase() + s.slice(1);
+    return s;
+}
+
+// Layered suggestion compiler — combines presupposition + somatic + primary +
+// identity + (optional) trigger into a multi-line first-person suggestion stack.
+const FIRST_PERSON_FRAMES = {
+    presupposition: [
+        "As I settle deeper,",
+        "As my body relaxes,",
+        "As my breath steadies,",
+        "In this stillness,",
+        "With each breath,"
+    ],
+    somatic: [
+        "my breathing slows and softens",
+        "my chest and shoulders release",
+        "my nervous system settles",
+        "my body recognizes this as safe",
+        "my mind becomes quiet and receptive"
+    ],
+    identity: [
+        "this becomes part of how I naturally operate now",
+        "this is becoming my default pattern",
+        "this is how I live from the inside",
+        "this integrates into my automatic behavior",
+        "this becomes easier each time I practice"
+    ],
+    contradictionCollapse: [
+        "I do not have to force this; that is why it happens more naturally.",
+        "I do not need to consciously manage this; my deeper mind can organize it.",
+        "I can stop trying so hard, and the pattern becomes easier to accept.",
+        "The less I force it, the more naturally it settles in."
+    ]
+};
+
+let _layerIdx = { p:0, s:0, i:0, c:0 };
+function _pick(arr, key) {
+    const v = arr[_layerIdx[key] % arr.length];
+    _layerIdx[key]++;
+    return v;
+}
+
+// Compile a raw user line into a layered first-person suggestion. The "kind"
+// argument selects which layers are applied:
+//   'core'        → presupposition + somatic + primary
+//   'semantic'    → primary + identity
+//   'identity'    → identity-only reinforcement
+//   'collapse'    → contradiction-collapse + primary
+//   'trigger'     → context-bound (situation/anchor/response/action)
+// Falls back to plain first-person primary if context is missing.
+function compileLayered(rawPrimary, kind, ctx) {
+    const primary = enforceFirstPerson(rawPrimary || '').replace(/[.!?]+$/,'').trim();
+    const sit = (ctx && ctx.situation || '').trim();
+    const anc = (ctx && ctx.anchor    || '').trim();
+    const des = (ctx && ctx.desired   || '').trim();
+    const act = (ctx && ctx.action    || '').trim();
+
+    if (kind === 'trigger' && (sit || anc || des || act)) {
+        const lines = [];
+        if (sit && anc && des) {
+            lines.push(`When I am in ${sit}, my body remembers ${anc}, and I naturally ${des}.`);
+        } else if (sit && des) {
+            lines.push(`When I am in ${sit}, I naturally ${des}.`);
+        } else if (anc && des) {
+            lines.push(`As I notice ${anc}, I naturally ${des}.`);
+        }
+        if (sit && act) {
+            lines.push(`When ${sit} begins, I take the first small action immediately.`);
+        }
+        if (lines.length) return enforceFirstPerson(lines.join(' '));
+    }
+
+    if (kind === 'collapse') {
+        const cc = _pick(FIRST_PERSON_FRAMES.contradictionCollapse, 'c');
+        if (!primary) return cc;
+        return `${cc} ${capFirst(primary)}.`;
+    }
+
+    if (kind === 'identity') {
+        const id = _pick(FIRST_PERSON_FRAMES.identity, 'i');
+        if (!primary) return capFirst(id) + '.';
+        return `${capFirst(primary)} — ${id}.`;
+    }
+
+    if (kind === 'semantic') {
+        const id = _pick(FIRST_PERSON_FRAMES.identity, 'i');
+        if (!primary) return capFirst(id) + '.';
+        return `${capFirst(primary)}. ${capFirst(id)}.`;
+    }
+
+    // 'core' (default)
+    if (!primary) return '';
+    const pre = _pick(FIRST_PERSON_FRAMES.presupposition, 'p');
+    const som = _pick(FIRST_PERSON_FRAMES.somatic, 's');
+    return `${pre} ${som}, and ${primary}.`;
+}
+
+function capFirst(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
 // ── IDs for config ──────────────────────────────────────────────────────────
 const RANGE_IDS = [
@@ -610,7 +824,8 @@ const RANGE_IDS = [
     'beat-hz','carrier-hz','bin-vol','bin-wave',
     'bil-rate','bil-width','bil-intensity','bil-color',
     'aud-bil-vol','flash-dur','flash-int','int-variance',
-    'flash-order','flash-size','voice-vol','voice-rate','sess-dur','suggestions'
+    'flash-order','flash-size','voice-vol','voice-rate','sess-dur','suggestions',
+    'delivery-mode','ctx-situation','ctx-desired','ctx-anchor','ctx-action'
 ];
 const BOOL_IDS = [
     'interrupt-enabled','descent-on','bin-on','vis-bil-on',
@@ -737,7 +952,13 @@ function updateLiveHz() {
         el('phase-display').textContent = '⟁ hypnagogic window — peak receptivity';
     } else if (!nowInWindow && inHypnagogicWindow) {
         inHypnagogicWindow = false;
+        // Reset burst gating so the next window opening can fire a fresh burst.
+        _burstActiveUntil = 0; _burstCooldownUntil = 0;
         el('phase-display').textContent = gc('descent-on') ? 'descending…' : '';
+    } else if (inHypnagogicWindow && isInBurst()) {
+        el('phase-display').textContent = '⟁ hypnagogic burst — high-density integration';
+    } else if (inHypnagogicWindow) {
+        el('phase-display').textContent = '⟁ hypnagogic window — peak receptivity';
     }
 
     lv.textContent = `live: ${cur.toFixed(2)} Hz ${band}${inHypnagogicWindow?' ⟁':''}`;
@@ -791,9 +1012,18 @@ function getSugs() {
     return el('suggestions').value.split('\n').map(s=>s.trim()).filter(Boolean);
 }
 
+function getCtx() {
+    return {
+        situation: (el('ctx-situation') ? el('ctx-situation').value : '').trim(),
+        desired:   (el('ctx-desired')   ? el('ctx-desired').value   : '').trim(),
+        anchor:    (el('ctx-anchor')    ? el('ctx-anchor').value    : '').trim(),
+        action:    (el('ctx-action')    ? el('ctx-action').value    : '').trim()
+    };
+}
+
 function embed(t) {
     if (!gc('embed-on')) return t;
-    return FRAMES[Math.floor(Math.random()*FRAMES.length)](t);
+    return enforceFirstPerson(FRAMES[Math.floor(Math.random()*FRAMES.length)](t));
 }
 
 function speak(t) {
@@ -807,22 +1037,96 @@ function speak(t) {
     window.speechSynthesis.speak(u);
 }
 
-function flashOne() {
+// Structured cycle rotor: A=core, B=semantic, C=identity, D=collapse.
+// Cycle index advances ~every cycleDurationMs based on session elapsed time.
+const CYCLE_KINDS = ['core','semantic','identity','collapse'];
+function currentCycleKind() {
+    const tot = Math.max(1, sessTotal);
+    // 4 cycles per session minimum, but each cycle is 2–4 minutes.
+    const cycleSec = Math.min(240, Math.max(120, Math.floor(tot/4)));
+    const idx = Math.floor(sessSec / cycleSec) % CYCLE_KINDS.length;
+    return CYCLE_KINDS[idx];
+}
+
+// Hypnagogic burst tracking: short high-density window inside the 6.5–8.5 Hz pass.
+let _burstActiveUntil = 0;
+let _burstCooldownUntil = 0;
+function maybeStartBurst() {
+    if (!inHypnagogicWindow) return false;
+    const mode = el('delivery-mode') ? el('delivery-mode').value : 'random';
+    if (mode !== 'burst') return false;
+    const now = Date.now();
+    if (now < _burstActiveUntil) return true;          // already bursting
+    if (now < _burstCooldownUntil) return false;       // post-burst quiet period
+    // Start a 20–40s burst, then 60–90s cooldown.
+    const burstMs    = 20000 + Math.random()*20000;
+    const cooldownMs = 60000 + Math.random()*30000;
+    _burstActiveUntil   = now + burstMs;
+    _burstCooldownUntil = _burstActiveUntil + cooldownMs;
+    el('phase-display').textContent = '⟁ hypnagogic burst — high-density integration';
+    return true;
+}
+function isInBurst() { return Date.now() < _burstActiveUntil; }
+
+function pickRawLine() {
     const list = getSugs();
-    if (!list.length) return;
-    let raw;
-    if (gv('flash-order')==='sequential') { raw=list[subIdx%list.length]; subIdx++; }
-    else raw=list[Math.floor(Math.random()*list.length)];
-    const text = embed(raw);
+    if (!list.length) return null;
+    if (gv('flash-order')==='sequential') { const r=list[subIdx%list.length]; subIdx++; return r; }
+    return list[Math.floor(Math.random()*list.length)];
+}
+
+function nextSuggestionText() {
+    const raw = pickRawLine();
+    if (!raw) return null;
+    const ctx = getCtx();
+    const hasCtx = !!(ctx.situation || ctx.desired || ctx.anchor || ctx.action);
+    const mode = el('delivery-mode') ? el('delivery-mode').value : 'random';
+
+    // Hypnagogic burst: prioritize layered + occasional trigger frames.
+    if (mode === 'burst' && isInBurst()) {
+        const r = Math.random();
+        if (hasCtx && r < 0.35) return enforceFirstPerson(compileLayered(raw, 'trigger', ctx));
+        if (r < 0.65) return enforceFirstPerson(compileLayered(raw, 'core', ctx));
+        if (r < 0.85) return enforceFirstPerson(compileLayered(raw, 'identity', ctx));
+        return enforceFirstPerson(compileLayered(raw, 'collapse', ctx));
+    }
+
+    if (mode === 'cycles') {
+        let kind = currentCycleKind();
+        // If trigger context exists, splice a trigger frame periodically inside the core cycle.
+        if (kind === 'core' && hasCtx && Math.random() < 0.3) kind = 'trigger';
+        return enforceFirstPerson(compileLayered(raw, kind, ctx));
+    }
+
+    // Random / default: keep the original behavior — embed if enabled, else raw.
+    return enforceFirstPerson(embed(raw));
+}
+
+function flashOne() {
+    const text = nextSuggestionText();
+    if (!text) return;
     const fe = el('subliminal-flash');
     fe.textContent = text;
     fe.classList.add('visible');
     setTimeout(()=>fe.classList.remove('visible'), gi('flash-dur'));
-    speak(raw);
+    speak(text);
 }
 
 function nextInterval() {
     const base = gf('flash-int')*1000;
+    const mode = el('delivery-mode') ? el('delivery-mode').value : 'random';
+
+    // Hypnagogic burst mode: very short intervals during a burst, sparse otherwise.
+    if (mode === 'burst') {
+        if (isInBurst()) {
+            // 20–40s cluster: rapid clean delivery, ~1.2–2.4s between flashes.
+            const v = gc('var-int') ? gf('int-variance')/100 : 0;
+            return 1200 + Math.random()*1200 * (1 + (Math.random()*2-1)*v);
+        }
+        // Outside burst: stretch interval ~1.7× base, allow window to detect.
+        return base * 1.7;
+    }
+
     // Vasiliev window: halve interval at the hypnagogic threshold (peak receptivity)
     const windowMult = inHypnagogicWindow ? 0.5 : 1;
     if (!gc('var-int')) return base * windowMult;
@@ -832,6 +1136,7 @@ function nextInterval() {
 
 function schedSub() {
     if (!running||phase!=='active'||!gc('sub-on')) return;
+    maybeStartBurst();
     flashOne();
     subTimer = setTimeout(schedSub, nextInterval());
 }
@@ -965,7 +1270,101 @@ function endSession(natural=false) {
         else masterG.gain.setValueAtTime(0,t);
     }
     if(natural&&gc('chime-on')) setTimeout(chime,2800);
+    if(natural) showIntegrationPanel();
     updateTimerIdle();
+}
+
+// ── Integration panel ──────────────────────────────────────────────────────
+// Note: all DOM construction below uses createElement + textContent (no innerHTML)
+// because user-typed integration fields are reflected back to the screen and we
+// want zero possibility of a markup-injection foot-gun in this offline tool.
+function showIntegrationPanel() {
+    const p = el('integration-panel'); if (!p) return;
+    p.classList.remove('rf-hidden');
+    const ctx = getCtx();
+    if (ctx.situation && el('iapply') && !el('iapply').value) el('iapply').value = ctx.situation;
+    if (ctx.action    && el('iaction') && !el('iaction').value) el('iaction').value = ctx.action;
+    p.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function _renderResult(host, label, body) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    const head = document.createElement('div'); head.className = 'reframe-original'; head.textContent = label;
+    const txt  = document.createElement('div'); txt.className  = 'reframe-result'; txt.textContent  = body;
+    host.appendChild(head); host.appendChild(txt);
+}
+
+function saveIntegration() {
+    const ctx = getCtx();
+    const rec = {
+        id: 'mf-' + Date.now(),
+        date: new Date().toISOString(),
+        suggestionsUsed: getSugs(),
+        situation: ctx.situation,
+        desiredResponse: ctx.desired,
+        somaticAnchor: ctx.anchor,
+        microAction: ctx.action,
+        feltShift: el('ifeel') ? el('ifeel').value.trim() : '',
+        applicationContext: el('iapply') ? el('iapply').value.trim() : '',
+        firstSmallAction: el('iaction') ? el('iaction').value.trim() : '',
+        rating: el('irating') ? parseInt(el('irating').value) : null
+    };
+    let log = [];
+    try { log = JSON.parse(localStorage.getItem('mf-integration-log')||'[]'); } catch(e) {}
+    if (!Array.isArray(log)) log = [];
+    log.push(rec);
+    try { localStorage.setItem('mf-integration-log', JSON.stringify(log)); } catch(e) {}
+    const r = el('integration-result');
+    r.classList.remove('rf-hidden');
+    _renderResult(r, `Integration saved (${log.length} total).`, rec.feltShift || '—');
+}
+
+function generateReinforcementCard() {
+    const ctx = getCtx();
+    const action = (el('iaction') ? el('iaction').value.trim() : '') || ctx.action;
+    const sit = (el('iapply') ? el('iapply').value.trim() : '') || ctx.situation;
+    const anc = ctx.anchor;
+    const lines = [];
+    if (sit && anc) lines.push(`Today, when I encounter ${sit}, I remember ${anc}.`);
+    else if (sit)   lines.push(`Today, when I encounter ${sit}, I pause and breathe once.`);
+    else if (anc)   lines.push(`Today, I remember ${anc}.`);
+    else            lines.push(`Today, I carry what I felt in this session.`);
+    if (action) lines.push(`I take the first small action: ${action}.`);
+    else        lines.push(`I take the first small action.`);
+    lines.push(`This pattern becomes easier each time I practice.`);
+    const card = enforceFirstPerson(lines.join(' '));
+    const r = el('reinforcement-card');
+    r.classList.remove('rf-hidden');
+    r.dataset.card = card;
+    while (r.firstChild) r.removeChild(r.firstChild);
+    const head = document.createElement('div'); head.className = 'reframe-original'; head.textContent = 'Reinforcement card';
+    const body = document.createElement('div'); body.className = 'reframe-result'; body.textContent = card;
+    const acts = document.createElement('div'); acts.className = 'reframe-actions';
+    const copy = document.createElement('button'); copy.className = 'reframe-accept'; copy.textContent = 'Copy to clipboard';
+    copy.addEventListener('click', () => copyReinforcementCard(copy));
+    const hide = document.createElement('button'); hide.className = 'reframe-keep'; hide.textContent = 'Hide';
+    hide.addEventListener('click', () => r.classList.add('rf-hidden'));
+    acts.appendChild(copy); acts.appendChild(hide);
+    r.appendChild(head); r.appendChild(body); r.appendChild(acts);
+}
+
+function copyReinforcementCard(btn) {
+    const r = btn.closest('.reframe-preview');
+    const text = r.dataset.card || '';
+    if (!text) return;
+    const done = ()=> { btn.textContent = 'Copied ✓'; setTimeout(()=>btn.textContent='Copy to clipboard', 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, ()=>fallbackCopy(text, done));
+    } else { fallbackCopy(text, done); }
+}
+function fallbackCopy(text, cb) {
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        if (cb) cb();
+    } catch(e) {}
 }
 
 function chime() {
@@ -1271,6 +1670,9 @@ let _rfIdx = 0;
 function _reframeOne(text) {
     let s = text.trim();
     if (!s) return null;
+    // Force first person first so any "you/your" in the input is converted before
+    // the antonym/negation pass runs.
+    s = enforceFirstPerson(s);
     s = s.replace(/\bwill be\b/gi,'am').replace(/\bwill have\b/gi,'have')
          .replace(/\bwill feel\b/gi,'feel').replace(/\bI want to\b/gi,'I')
          .replace(/\bI hope to\b/gi,'I').replace(/\bI need to\b/gi,'I')
@@ -1296,7 +1698,9 @@ function _reframeOne(text) {
     const coreL = core.charAt(0).toLowerCase()+core.slice(1);
     const frame = _FRAMES[_rfIdx % _FRAMES.length]; _rfIdx++;
     s = frame(coreL);
-    return s.charAt(0).toUpperCase()+s.slice(1);
+    s = s.charAt(0).toUpperCase()+s.slice(1);
+    // Final guard — ensure no "you/your" survived (e.g. user-typed input).
+    return enforceFirstPerson(s);
 }
 
 function _escHtml(s) {
