@@ -499,6 +499,22 @@
                    oninput="sv('voice-rate','voice-rate-v','×',2)">
             <span class="val" id="voice-rate-v">0.65×</span>
         </div>
+        <div class="ctrl">
+            <span>Voice source</span>
+            <select id="voice-source" onchange="onVoiceSourceChange()">
+                <option value="synthesised" selected>Synthesised (TTS)</option>
+                <option value="recording-session">My recording — session only</option>
+                <option value="recording-saved">My recording — saved on device</option>
+            </select>
+        </div>
+        <div class="ctrl" id="voice-recorder-row" style="display:none">
+            <span>My voice</span>
+            <button class="reframe-btn" id="voice-record-btn" onclick="toggleVoiceRecording()">● Record</button>
+            <button class="reframe-btn" id="voice-play-btn" onclick="playUserVoice()" disabled>▶ Test</button>
+            <button class="reframe-btn" id="voice-clear-btn" onclick="clearUserVoice()" disabled>✕ Clear</button>
+            <span class="val" id="voice-rec-status" style="flex:1;text-align:left;font-size:11px">no recording</span>
+        </div>
+        <div class="hint" id="voice-priv-note" style="display:none">Recording stays on this device. Session-only recordings are discarded when the tab closes; saved recordings live in localStorage on this device only. Nothing is uploaded. Recorded suggestions are played wholesale during sessions, not synced word-by-word to the visual flash. Self-voice playback engages self-referential processing pathways distinct from external speech.</div>
         <div class="hint" style="margin-bottom:12px">Whispered speech delivery simultaneous with the visual flash. Dual-channel — auditory + visual — to the same suggestion.</div>
         <hr>
 
@@ -527,6 +543,15 @@ Experience arrives before words."></textarea>
             </select>
         </div>
         <div class="hint">Random = original behavior. Structured Cycles rotate Core → Semantic → Identity → Contradiction-Collapse to avoid habituation. Hypnagogic Burst stays sparse until the 6.5–8.5 Hz window, then delivers high-density layered clusters.</div>
+        <div class="ctrl" style="margin-top:10px">
+            <span>Suggestion style</span>
+            <select id="suggestion-style">
+                <option value="direct" selected>Direct (action-oriented)</option>
+                <option value="permissive">Permissive (Ericksonian)</option>
+                <option value="adaptive">Adaptive (matches live beat)</option>
+            </select>
+        </div>
+        <div class="hint">Direct frames work well at beta/gamma (focus, alert). Permissive frames work well at alpha/theta (drift, trance). Adaptive picks per current beat frequency — permissive below 13 Hz, direct above. After Elman (1977, <em>Hypnotherapy</em>, Westwood), Erickson, Rossi &amp; Rossi (1976, <em>Hypnotic Realities</em>, Irvington), Hammond (1990, <em>Handbook of Hypnotic Suggestions and Metaphors</em>, W. W. Norton). All output stays first-person regardless of style.</div>
 
         <hr>
         <div class="sub-title">Context-bound trigger (optional)</div>
@@ -725,6 +750,7 @@ function enforceFirstPerson(text) {
 // Layered suggestion compiler — combines presupposition + somatic + primary +
 // identity + (optional) trigger into a multi-line first-person suggestion stack.
 const FIRST_PERSON_FRAMES = {
+    // Direct / Elman-style (action-oriented, present-tense, identity-anchored)
     presupposition: [
         "As I settle deeper,",
         "As my body relaxes,",
@@ -751,10 +777,40 @@ const FIRST_PERSON_FRAMES = {
         "I do not need to consciously manage this; my deeper mind can organize it.",
         "I can stop trying so hard, and the pattern becomes easier to accept.",
         "The less I force it, the more naturally it settles in."
+    ],
+
+    // Permissive / Ericksonian (indirect, possibility-framed, truism-anchored)
+    permissiveLead: [
+        "I might find that",
+        "I can begin to notice that",
+        "perhaps I'll discover that",
+        "it's possible that, even now,",
+        "I may already be sensing that"
+    ],
+    truismStack: [
+        "I'm breathing. My body is here. My attention can move. And",
+        "I'm in this moment. My senses are working. I can choose where my mind rests. So",
+        "I notice my breath. I notice my weight. I notice my pulse. And from that,"
+    ],
+    apposition: [
+        "The more I try to think, the more my thoughts settle.",
+        "The less I force this, the more naturally it happens.",
+        "As I let go of effort, what I want becomes easier.",
+        "The harder I'd try to control this, the more it would slip — so I stop trying, and it lands."
+    ],
+    pacingLead: [
+        "I'm sitting here, I'm hearing this, I'm breathing — and",
+        "I'm aware of my body, I'm aware of my breath, I'm aware of this practice — and now,",
+        "this moment is here, my attention is here, my intention is here, and"
+    ],
+    compounding: [
+        "and each breath takes me deeper",
+        "and with every cycle this settles further in",
+        "and the more I notice this, the more it becomes true"
     ]
 };
 
-let _layerIdx = { p:0, s:0, i:0, c:0 };
+let _layerIdx = { p:0, s:0, i:0, c:0, pl:0, t:0, a:0, plead:0, co:0 };
 function _pick(arr, key) {
     const v = arr[_layerIdx[key] % arr.length];
     _layerIdx[key]++;
@@ -818,6 +874,72 @@ function compileLayered(rawPrimary, kind, ctx) {
 
 function capFirst(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
+// Permissive (Ericksonian) compiler — same kinds as compileLayered, but uses
+// possibility-framed and truism-anchored language. After Erickson & Rossi 1976,
+// Hammond 1990. All output passes through enforceFirstPerson() before return.
+function compileLayeredPermissive(rawPrimary, kind, ctx) {
+    const primary = enforceFirstPerson(rawPrimary || '').replace(/[.!?]+$/,'').trim();
+    const sit = (ctx && ctx.situation || '').trim();
+    const anc = (ctx && ctx.anchor    || '').trim();
+    const des = (ctx && ctx.desired   || '').trim();
+    const act = (ctx && ctx.action    || '').trim();
+
+    if (kind === 'trigger' && (sit || anc || des)) {
+        const lead = _pick(FIRST_PERSON_FRAMES.permissiveLead, 'pl');
+        let out = '';
+        if (sit && des)      out = `${lead}, when I'm in ${sit}, I might naturally find myself ${des}.`;
+        else if (anc && des) out = `${lead}, as I notice ${anc}, I may naturally ${des}.`;
+        else if (sit)        out = `${lead}, when I'm in ${sit}, I can let what I want happen on its own.`;
+        else if (des)        out = `${lead}, I may naturally ${des}.`;
+        if (sit && act) out += ` And when ${sit} begins, the first small step can happen almost by itself.`;
+        if (out) return enforceFirstPerson(capFirst(out));
+    }
+
+    if (kind === 'collapse') {
+        const ap = _pick(FIRST_PERSON_FRAMES.apposition, 'a');
+        if (!primary) return ap;
+        return `${ap} ${capFirst(primary)}.`;
+    }
+
+    if (kind === 'identity') {
+        const lead = _pick(FIRST_PERSON_FRAMES.permissiveLead, 'pl');
+        const co   = _pick(FIRST_PERSON_FRAMES.compounding, 'co');
+        if (!primary) return `${capFirst(lead)} this is part of who I am, ${co}.`;
+        return `${capFirst(lead)} ${primary}, ${co}.`;
+    }
+
+    if (kind === 'semantic') {
+        const ts = _pick(FIRST_PERSON_FRAMES.truismStack, 't');
+        if (!primary) return `${ts} this can settle in now.`;
+        return `${ts} ${primary}.`;
+    }
+
+    // 'core' (default)
+    if (!primary) return '';
+    const pl = _pick(FIRST_PERSON_FRAMES.pacingLead, 'plead');
+    const co = _pick(FIRST_PERSON_FRAMES.compounding, 'co');
+    return `${pl} ${primary}, ${co}.`;
+}
+
+// Live-beat accessor for the adaptive style. liveHz is maintained by updateLiveHz()
+// (assigned on every tick during descent). Returns the current frequency in Hz or
+// null when no descent is running.
+function currentLiveHz() { return (typeof liveHz === 'number') ? liveHz : null; }
+
+// Dispatch a raw line to the right compiler based on suggestion-style:
+//   direct      → compileLayered (Elman-style, action-anchored)
+//   permissive  → compileLayeredPermissive (Erickson-style, possibility-framed)
+//   adaptive    → permissive below 13 Hz (alpha-theta), direct at or above
+function compileForCurrentStyle(raw, kind, ctx) {
+    const style = el('suggestion-style') ? el('suggestion-style').value : 'direct';
+    if (style === 'permissive') return compileLayeredPermissive(raw, kind, ctx);
+    if (style === 'adaptive') {
+        const hz = currentLiveHz();
+        if (hz !== null && hz < 13) return compileLayeredPermissive(raw, kind, ctx);
+    }
+    return compileLayered(raw, kind, ctx);
+}
+
 // ── IDs for config ──────────────────────────────────────────────────────────
 const RANGE_IDS = [
     'interrupt-dur','desc-start','desc-mid','desc-mid-t','desc-end',
@@ -825,7 +947,8 @@ const RANGE_IDS = [
     'bil-rate','bil-width','bil-intensity','bil-color',
     'aud-bil-vol','flash-dur','flash-int','int-variance',
     'flash-order','flash-size','voice-vol','voice-rate','sess-dur','suggestions',
-    'delivery-mode','ctx-situation','ctx-desired','ctx-anchor','ctx-action'
+    'delivery-mode','ctx-situation','ctx-desired','ctx-anchor','ctx-action',
+    'voice-source','suggestion-style'
 ];
 const BOOL_IDS = [
     'interrupt-enabled','descent-on','bin-on','vis-bil-on',
@@ -1027,7 +1150,14 @@ function embed(t) {
 }
 
 function speak(t) {
-    if (!gc('voice-on') || !window.speechSynthesis) return;
+    if (!gc('voice-on')) return;
+    const src = el('voice-source') ? el('voice-source').value : 'synthesised';
+    // Self-voice path: play the user's recording wholesale instead of TTS.
+    if (src !== 'synthesised' && _userVoiceUrl) {
+        playUserVoice();
+        return;
+    }
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
     u.rate=gf('voice-rate'); u.volume=gf('voice-vol'); u.pitch=0.85;
@@ -1035,6 +1165,134 @@ function speak(t) {
     const soft=vs.find(v=>/female|samantha|karen|victoria|moira|fiona|zira/i.test(v.name));
     if (soft) u.voice=soft;
     window.speechSynthesis.speak(u);
+}
+
+// ── Self-voice recording (Layer 1) ──────────────────────────────────────────
+// All audio stays local: MediaRecorder → Blob → ObjectURL for session use, or
+// base64 in localStorage for saved use. Nothing is uploaded. Recordings are
+// played wholesale, not synced word-by-word to the visual flash.
+let _mediaRec = null;
+let _userVoiceBlob = null;
+let _userVoiceUrl = null;
+let _userVoiceAudio = null;
+
+function _pickRecorderMime() {
+    const candidates = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+    for (const m of candidates) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return '';
+}
+
+async function toggleVoiceRecording() {
+    if (_mediaRec && _mediaRec.state === 'recording') {
+        _mediaRec.stop();
+        return;
+    }
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+        el('voice-rec-status').textContent = 'recording not supported in this browser';
+        return;
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mime = _pickRecorderMime();
+        _mediaRec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+        const chunks = [];
+        _mediaRec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        _mediaRec.onstop = () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(chunks, { type: _mediaRec.mimeType || 'audio/webm' });
+            _setUserVoiceBlob(blob);
+            el('voice-record-btn').textContent = '● Record';
+            if (el('voice-source').value === 'recording-saved') _saveUserVoiceToLocalStorage(blob);
+        };
+        _mediaRec.start();
+        el('voice-record-btn').textContent = '■ Stop';
+        el('voice-rec-status').textContent = 'recording…';
+    } catch (err) {
+        el('voice-rec-status').textContent = 'mic denied or unavailable';
+    }
+}
+
+function _setUserVoiceBlob(blob) {
+    if (_userVoiceUrl) { URL.revokeObjectURL(_userVoiceUrl); _userVoiceUrl = null; }
+    _userVoiceBlob = blob;
+    _userVoiceUrl = URL.createObjectURL(blob);
+    el('voice-play-btn').disabled = false;
+    el('voice-clear-btn').disabled = false;
+    const kb = Math.round(blob.size/1024);
+    const type = (blob.type || 'audio').split(';')[0];
+    el('voice-rec-status').textContent = `recorded · ${kb} KB · ${type}`;
+}
+
+function playUserVoice() {
+    if (!_userVoiceUrl) return;
+    if (_userVoiceAudio) { try { _userVoiceAudio.pause(); } catch(e){} _userVoiceAudio = null; }
+    _userVoiceAudio = new Audio(_userVoiceUrl);
+    const vol = parseFloat(el('voice-vol').value);
+    _userVoiceAudio.volume = isFinite(vol) ? vol : 0.4;
+    _userVoiceAudio.play().catch(()=>{});
+}
+
+function clearUserVoice() {
+    if (_userVoiceUrl) { URL.revokeObjectURL(_userVoiceUrl); _userVoiceUrl = null; }
+    if (_userVoiceAudio) { try { _userVoiceAudio.pause(); } catch(e){} _userVoiceAudio = null; }
+    _userVoiceBlob = null;
+    try { localStorage.removeItem('mf-user-voice'); } catch(e){}
+    el('voice-play-btn').disabled = true;
+    el('voice-clear-btn').disabled = true;
+    el('voice-rec-status').textContent = 'no recording';
+}
+
+function _saveUserVoiceToLocalStorage(blob) {
+    if (blob.size > 3 * 1024 * 1024) {
+        el('voice-rec-status').textContent = `recorded · ${Math.round(blob.size/1024)} KB · too large to save (>3MB) — kept in session only`;
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            localStorage.setItem('mf-user-voice', JSON.stringify({
+                mime: blob.type || 'audio/webm',
+                data: reader.result
+            }));
+            const cur = el('voice-rec-status').textContent;
+            if (cur.indexOf('saved') === -1) el('voice-rec-status').textContent = cur + ' · saved on device';
+        } catch (e) {
+            el('voice-rec-status').textContent += ' · save failed (storage full)';
+        }
+    };
+    reader.readAsDataURL(blob);
+}
+
+function _loadUserVoiceFromLocalStorage() {
+    let raw = null;
+    try { raw = localStorage.getItem('mf-user-voice'); } catch(e){}
+    if (!raw) return false;
+    try {
+        const obj = JSON.parse(raw);
+        if (!obj || !obj.data) return false;
+        // Decode data:<mime>;base64,<payload> locally — no fetch, no network.
+        const m = obj.data.match(/^data:([^;,]+)(?:;base64)?,(.+)$/);
+        if (!m) return false;
+        const mime = m[1] || obj.mime || 'audio/webm';
+        const bin = atob(m[2]);
+        const buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        const blob = new Blob([buf], { type: mime });
+        _setUserVoiceBlob(blob);
+        return true;
+    } catch (e) { return false; }
+}
+
+function onVoiceSourceChange() {
+    const sel = el('voice-source');
+    if (!sel) return;
+    const v = sel.value;
+    const showRec = (v === 'recording-session' || v === 'recording-saved');
+    if (el('voice-recorder-row')) el('voice-recorder-row').style.display = showRec ? '' : 'none';
+    if (el('voice-priv-note'))    el('voice-priv-note').style.display    = showRec ? '' : 'none';
+    if (v === 'recording-saved' && !_userVoiceBlob) _loadUserVoiceFromLocalStorage();
 }
 
 // Structured cycle rotor: A=core, B=semantic, C=identity, D=collapse.
@@ -1085,17 +1343,17 @@ function nextSuggestionText() {
     // Hypnagogic burst: prioritize layered + occasional trigger frames.
     if (mode === 'burst' && isInBurst()) {
         const r = Math.random();
-        if (hasCtx && r < 0.35) return enforceFirstPerson(compileLayered(raw, 'trigger', ctx));
-        if (r < 0.65) return enforceFirstPerson(compileLayered(raw, 'core', ctx));
-        if (r < 0.85) return enforceFirstPerson(compileLayered(raw, 'identity', ctx));
-        return enforceFirstPerson(compileLayered(raw, 'collapse', ctx));
+        if (hasCtx && r < 0.35) return enforceFirstPerson(compileForCurrentStyle(raw, 'trigger', ctx));
+        if (r < 0.65) return enforceFirstPerson(compileForCurrentStyle(raw, 'core', ctx));
+        if (r < 0.85) return enforceFirstPerson(compileForCurrentStyle(raw, 'identity', ctx));
+        return enforceFirstPerson(compileForCurrentStyle(raw, 'collapse', ctx));
     }
 
     if (mode === 'cycles') {
         let kind = currentCycleKind();
         // If trigger context exists, splice a trigger frame periodically inside the core cycle.
         if (kind === 'core' && hasCtx && Math.random() < 0.3) kind = 'trigger';
-        return enforceFirstPerson(compileLayered(raw, kind, ctx));
+        return enforceFirstPerson(compileForCurrentStyle(raw, kind, ctx));
     }
 
     // Random / default: keep the original behavior — embed if enabled, else raw.
@@ -1616,6 +1874,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
     const last=localStorage.getItem('mf-last');
     if(last){try{applyConfig(JSON.parse(last));}catch(e){}}
+    // Show/hide the recorder row based on restored voice-source value; if saved
+    // mode is selected, attempt to restore any previously saved recording.
+    if (typeof onVoiceSourceChange === 'function') onVoiceSourceChange();
 });
 
 // ── Suggestion Rewriter ───────────────────────────────────────────────────────
