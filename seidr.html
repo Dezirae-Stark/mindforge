@@ -125,12 +125,13 @@
         }
         #mf-p4-modal { position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 20px; }
         #mf-p4-modal.visible { display: flex; }
-        #mf-p4-modal .mf-modal-card { background: var(--surface); border: 2px solid var(--warn); border-radius: 4px; padding: 22px; max-width: 480px; color: var(--text); font-size: 13px; line-height: 1.6; font-family: inherit; }
-        #mf-p4-modal .mf-modal-title { color: var(--warn); margin: 0 0 12px 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: bold; }
+        #mf-p4-modal .mf-modal-card { background: var(--surface); border: 2px solid var(--warn); border-radius: 4px; max-width: 480px; max-height: calc(100vh - 40px); color: var(--text); font-size: 13px; line-height: 1.6; font-family: inherit; display: flex; flex-direction: column; overflow: hidden; }
+        #mf-p4-modal .mf-modal-title { color: var(--warn); margin: 0; padding: 22px 22px 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: bold; flex-shrink: 0; }
+        #mf-p4-modal .mf-modal-body { padding: 12px 22px; overflow-y: auto; flex: 1 1 auto; }
         #mf-p4-modal .mf-modal-body p { margin: 8px 0; }
         #mf-p4-modal .mf-modal-body label { display: block; margin: 10px 0; cursor: pointer; user-select: none; }
         #mf-p4-modal .mf-modal-body input[type=checkbox] { margin-right: 8px; vertical-align: middle; accent-color: var(--warn); }
-        #mf-p4-modal .mf-modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+        #mf-p4-modal .mf-modal-actions { display: flex; gap: 10px; padding: 12px 22px 22px; justify-content: flex-end; flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
         #mf-p4-modal .mf-modal-actions button { padding: 8px 16px; font-family: inherit; font-size: 12px; cursor: pointer; border-radius: 3px; }
         #mf-p4-modal #mf-p4-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
         #mf-p4-modal #mf-p4-cancel:hover { border-color: var(--accent); }
