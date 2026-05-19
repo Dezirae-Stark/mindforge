@@ -142,10 +142,46 @@
             text-shadow: 0 0 24px rgba(80, 168, 192, 0.55);
             transition: opacity 0.18s ease-out;
         }
+        #mf-p4-modal { position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 20px; }
+        #mf-p4-modal.visible { display: flex; }
+        #mf-p4-modal .mf-modal-card { background: var(--surface); border: 2px solid var(--warn); border-radius: 4px; padding: 22px; max-width: 480px; color: var(--text); font-size: 13px; line-height: 1.6; font-family: inherit; }
+        #mf-p4-modal .mf-modal-title { color: var(--warn); margin: 0 0 12px 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: bold; }
+        #mf-p4-modal .mf-modal-body p { margin: 8px 0; }
+        #mf-p4-modal .mf-modal-body label { display: block; margin: 10px 0; cursor: pointer; user-select: none; }
+        #mf-p4-modal .mf-modal-body input[type=checkbox] { margin-right: 8px; vertical-align: middle; accent-color: var(--warn); }
+        #mf-p4-modal .mf-modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+        #mf-p4-modal .mf-modal-actions button { padding: 8px 16px; font-family: inherit; font-size: 12px; cursor: pointer; border-radius: 3px; }
+        #mf-p4-modal #mf-p4-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+        #mf-p4-modal #mf-p4-cancel:hover { border-color: var(--accent); }
+        #mf-p4-modal #mf-p4-cancel:focus { outline: 2px solid var(--accent2); outline-offset: 2px; }
+        #mf-p4-modal #mf-p4-proceed { background: var(--warn); border: 1px solid var(--warn); color: var(--bg); font-weight: bold; }
+        #mf-p4-modal #mf-p4-proceed:disabled { opacity: 0.3; cursor: not-allowed; background: var(--surface2); color: var(--text-dim); border-color: var(--border); }
+        #manifest-skip-indicator { display: none; font-size: 11px; color: var(--warn); margin-top: 6px; align-items: center; gap: 8px; }
+        #manifest-skip-indicator.visible { display: inline-flex; }
+        #manifest-skip-indicator button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 2px 8px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 2px; }
+        #manifest-skip-indicator button:hover { color: var(--accent2); border-color: var(--accent); }
+        #manifest-status { display: none; font-size: 11px; color: var(--warn); margin-top: 6px; padding: 4px 8px; background: rgba(192, 112, 64, 0.08); border-left: 2px solid var(--warn); }
+        #manifest-status.visible { display: block; }
     </style>
 </head>
 <body>
 <div id="manifest-symbol" style="display:none"></div>
+<div id="mf-p4-modal" aria-modal="true" role="dialog">
+    <div class="mf-modal-card">
+        <div class="mf-modal-title">Phase 4 — Photosensitive Safety Review</div>
+        <div class="mf-modal-body">
+            <p>Phase 4 flashes symbols at ≈70&nbsp;ms (≈14&nbsp;Hz).</p>
+            <p>This rate sits <strong>inside</strong> the published photosensitive-seizure danger band (3–30&nbsp;Hz, peak 15–25&nbsp;Hz per ILAE/Harding 2005, ITU-R BT.1702).</p>
+            <p>Proceed only if you have no history of seizures or photosensitivity, and you are alone in a dim, distraction-free room.</p>
+            <label><input type="checkbox" id="mf-p4-ack"> I have read the above and accept the risk.</label>
+            <label><input type="checkbox" id="mf-p4-skip-future"> Disable Phase 4 on this device for future sessions.</label>
+        </div>
+        <div class="mf-modal-actions">
+            <button id="mf-p4-cancel" type="button" onclick="_mfP4Decline()">Cancel</button>
+            <button id="mf-p4-proceed" type="button" onclick="_mfP4Proceed()" disabled>Proceed into Phase 4</button>
+        </div>
+    </div>
+</div>
 <div class="app">
 
     <header>
@@ -211,6 +247,12 @@
             <button onclick="mfBeginPhase(1)">Edit list</button>
             <button onclick="mfStop()">Stop</button>
         </div>
+
+        <span id="manifest-skip-indicator">
+            <span>Phase 4 disabled on this device.</span>
+            <button type="button" onclick="mfResetSkipP4()">Re-enable</button>
+        </span>
+        <div id="manifest-status"></div>
 
         <div class="hint" style="margin-top:10px;font-size:10px;line-height:1.6">
             Method after Bengston &amp; Krinsley (2000, <em>Journal of Scientific Exploration</em> 14(3): 353–364); see Bengston with Fraser (2010, <em>The Energy Cure</em>, Sounds True). Image-cycling technique documented in Bengston (2007, <em>Journal of Alternative and Complementary Medicine</em> 13(3): 329–331). Methodological lineage: Roberts (1974, <em>The Nature of Personal Reality</em>, Prentice-Hall) and Hicks &amp; Hicks (2004, <em>Ask and It Is Given</em>, Hay House) — channeled antecedent, not empirical evidence. Null result on the causal manifestation claim: Dixon, Hornsey &amp; Hartley (2023, <em>Personality and Social Psychology Bulletin</em>, doi:10.1177/01461672231181162) — three studies, N=1,023; no objective outcome advantage; positive correlation with risky financial behaviour.
@@ -812,7 +854,15 @@ function mfSave(list) {
     try {
         list.updated=new Date().toISOString();
         localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(list));
-    } catch(e) {}
+        const s=document.getElementById('manifest-status');
+        if(s && s.textContent) { s.textContent=''; s.classList.remove('visible'); }
+    } catch(e) {
+        const s=document.getElementById('manifest-status');
+        if(s) {
+            s.textContent='Storage near capacity. Items typed here may not save until you clear space — try removing older recordings or list items.';
+            s.classList.add('visible');
+        }
+    }
 }
 function mfRenderEditor() {
     const wrap=document.getElementById('manifest-list-rows');
@@ -932,25 +982,58 @@ function mfBeginPhase(n) {
         return;
     }
 }
-function _mfConsentP4() {
-    if(_mfList.skipP4) return false;
-    const msg='Phase 4 flashes symbols at ≈70ms (≈14 Hz).\n\n'
-        + 'This rate is INSIDE the published photosensitive-seizure danger band '
-        + '(3-30 Hz, peak 15-25 Hz per ILAE/Harding 2005, ITU-R BT.1702).\n\n'
-        + 'Proceed ONLY if you have no history of seizures or photosensitivity, '
-        + 'and you are alone in a dim, distraction-free room.\n\n'
-        + 'Proceed into Phase 4?';
-    if(!confirm(msg)) {
-        if(confirm('Disable Phase 4 on this device for future sessions?')) {
-            _mfList.skipP4=true; mfSave(_mfList);
-        }
-        return false;
-    }
-    return true;
-}
 function _mfReducedMotion() {
     try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
     catch(e) { return false; }
+}
+function _mfShowP4Modal() {
+    const modal=document.getElementById('mf-p4-modal');
+    const ack=document.getElementById('mf-p4-ack');
+    const skip=document.getElementById('mf-p4-skip-future');
+    const cancel=document.getElementById('mf-p4-cancel');
+    const proceed=document.getElementById('mf-p4-proceed');
+    if(!modal||!ack||!proceed||!cancel||!skip) return false;
+    ack.checked=false; skip.checked=false; proceed.disabled=true;
+    ack.onchange=()=>{ proceed.disabled = !ack.checked; };
+    modal.classList.add('visible');
+    setTimeout(()=>{ try{ cancel.focus(); } catch(e){} }, 0);
+    return true;
+}
+function _mfHideP4Modal() {
+    const modal=document.getElementById('mf-p4-modal');
+    if(modal) modal.classList.remove('visible');
+}
+function _mfP4Decline() {
+    const skip=document.getElementById('mf-p4-skip-future');
+    if(skip && skip.checked && _mfList) {
+        _mfList.skipP4=true; mfSave(_mfList); _mfUpdateSkipP4Indicator();
+    }
+    _mfHideP4Modal();
+    mfStop();
+}
+function _mfP4Proceed() {
+    const ack=document.getElementById('mf-p4-ack');
+    if(!ack || !ack.checked) return;
+    const skip=document.getElementById('mf-p4-skip-future');
+    if(skip && skip.checked && _mfList) {
+        _mfList.skipP4=true; mfSave(_mfList); _mfUpdateSkipP4Indicator();
+        _mfHideP4Modal();
+        mfStop();
+        return;
+    }
+    _mfHideP4Modal();
+    mfBeginPhase(4);
+}
+function mfResetSkipP4() {
+    if(!_mfList) _mfList=mfLoad();
+    _mfList.skipP4=false;
+    mfSave(_mfList);
+    _mfUpdateSkipP4Indicator();
+}
+function _mfUpdateSkipP4Indicator() {
+    const ind=document.getElementById('manifest-skip-indicator');
+    if(!ind) return;
+    ind.classList.toggle('visible', !!(_mfList && _mfList.skipP4));
 }
 function mfRequestP4() {
     if(!_mfList) _mfList=mfLoad();
@@ -960,11 +1043,9 @@ function mfRequestP4() {
         mfStop(); return;
     }
     if(_mfList.skipP4) {
-        if(confirm('Phase 4 was previously disabled on this device. Re-enable and proceed?')) {
-            _mfList.skipP4=false; mfSave(_mfList);
-        } else { return; }
+        _mfList.skipP4=false; mfSave(_mfList); _mfUpdateSkipP4Indicator();
     }
-    if(_mfConsentP4()) mfBeginPhase(4);
+    _mfShowP4Modal();
 }
 function _mfShowPhase(phase) {
     const panel=document.getElementById('manifest-panel');
@@ -1011,12 +1092,14 @@ function mfInit() {
     _mfList=mfLoad();
     if(_mfReducedMotion()) _mfList.skipP4=true;
     mfRenderEditor();
+    _mfUpdateSkipP4Indicator();
     _mfShowPhase('p1');
     window.addEventListener('storage', e => {
         if(e.key===MF_MANIFEST_KEY) {
             if(_mfPhase==='idle' || _mfPhase==='p1') {
                 _mfList=mfLoad();
                 mfRenderEditor();
+                _mfUpdateSkipP4Indicator();
             }
         }
     });
