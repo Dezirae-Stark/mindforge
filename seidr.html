@@ -278,6 +278,14 @@ Kom Vanadís</textarea>
         <div class="panel-title">Post-Journey Record</div>
         <div class="post-info" id="post-info">—</div>
         <div class="ctrl">
+            <label>Suggestion style</label>
+            <select id="suggestion-style" onchange="saveConfig()">
+                <option value="direct" selected>Direct (action-oriented)</option>
+                <option value="permissive">Permissive (Ericksonian)</option>
+            </select>
+            <div class="hint">Direct = present-tense affirmation. Permissive = possibility-framed ("I might find that…"). After Erickson, Rossi &amp; Rossi (1976, <em>Hypnotic Realities</em>); Elman (1977, <em>Hypnotherapy</em>). All output stays first-person.</div>
+        </div>
+        <div class="ctrl">
             <label>Intent / purpose</label>
             <textarea id="post-intent" rows="2" placeholder="What called you to journey?"></textarea>
             <div class="reframe-btn-row">
@@ -402,7 +410,22 @@ const FRAMES = [
     s => `With each heartbeat, ${s}.`,
     s => `${s}, and every part of me knows this is so.`,
 ];
+// Permissive (Ericksonian) frames — possibility-framed, self-closing.
+// After Erickson, Rossi & Rossi (1976, Hypnotic Realities). All first-person;
+// seiðr is a self-directed practice, so no third-person variant is needed.
+const PERMISSIVE_FRAMES_SELF = [
+    s => `I might find that ${s}, and each breath takes me deeper into this knowing.`,
+    s => `I can begin to notice that ${s}, and the more I notice, the more it becomes true.`,
+    s => `Perhaps I'll discover that ${s} — and this settles further in with every cycle.`,
+    s => `It's possible that, even now, ${s}.`,
+    s => `I may already be sensing that ${s}, and that recognition is enough for it to take root.`,
+];
 let frameIdx = 0;
+
+function _seidrStyle() {
+    const e = el('suggestion-style');
+    return (e && e.value === 'permissive') ? 'permissive' : 'direct';
+}
 
 // Mindforge-shared helper: enforce first-person phrasing. Seiðr's seer journeys
 // in first person, so any "you/your" in the input is treated as a slip and
@@ -465,12 +488,18 @@ function reframeSuggestion(text, context) {
     const core = s.replace(/[.!?]+$/, '').trim();
     const coreL = core.charAt(0).toLowerCase() + core.slice(1);
 
+    const style = _seidrStyle();
     if (context === 'seidr' && currentWorld) {
         const intent = coreL.replace(/^i\s+/i, '');
-        s = `I journey to ${currentWorld} to ${intent}. I return with what is needed.`;
-        s += ' I feel this alive in every cell.';
+        if (style === 'permissive') {
+            s = `I journey to ${currentWorld} where I might find ${intent}, and I return with what is needed. Perhaps I'm already sensing this in every cell.`;
+        } else {
+            s = `I journey to ${currentWorld} to ${intent}. I return with what is needed.`;
+            s += ' I feel this alive in every cell.';
+        }
     } else {
-        const frame = FRAMES[frameIdx % FRAMES.length];
+        const pool = (style === 'permissive') ? PERMISSIVE_FRAMES_SELF : FRAMES;
+        const frame = pool[frameIdx % pool.length];
         frameIdx++;
         s = frame(coreL);
         s = s.charAt(0).toUpperCase() + s.slice(1);
@@ -846,6 +875,7 @@ function saveConfig() {
             'master-vol': gv('master-vol'), 'vard-vol': gv('vard-vol'),
             'spatial-on': gc('spatial-on'), 'duration': sessionDuration,
             'world': currentWorld, 'vardlokkur-text': gv('vardlokkur-text'),
+            'suggestion-style': gv('suggestion-style'),
         }));
     } catch(e) {}
 }
@@ -867,6 +897,7 @@ function loadConfig() {
         if (c['vardlokkur-text']) el('vardlokkur-text').value = c['vardlokkur-text'];
         if (c['duration']) setDur(parseInt(c['duration']));
         if (c['world']) selectWorld(c['world']);
+        s('suggestion-style', c['suggestion-style'] ?? 'direct');
         sv('bpm','bpm-val','',0); sv('drum-vol','drum-vol-val','',2);
         sv('beat-hz','beat-val','',1); sv('bin-vol','bin-vol-val','',2);
         sv('master-vol','master-vol-val','',2); sv('vard-vol','vard-vol-val','',2);

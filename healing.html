@@ -148,6 +148,14 @@
             <button class="mode-btn active" id="mode-single-btn" onclick="setMode('single')">Single healer</button>
             <button class="mode-btn" id="mode-multi-btn" onclick="setMode('multi')">Multi-healer</button>
         </div>
+        <div class="ctrl" style="margin-top:10px">
+            <label>Suggestion style</label>
+            <select id="suggestion-style" onchange="saveConfig()">
+                <option value="direct" selected>Direct</option>
+                <option value="permissive">Permissive (Ericksonian)</option>
+            </select>
+            <div class="hint">Direct = present-tense affirmation ("the body heals now"). Permissive = possibility-framed ("perhaps even now, the body finds its way to wholeness"). Person (self vs sender→receiver) is auto-detected from the text — both styles respect it. After Erickson, Rossi &amp; Rossi (1976, <em>Hypnotic Realities</em>), Hammond (1990, <em>Handbook of Hypnotic Suggestions and Metaphors</em>), Elman (1977, <em>Hypnotherapy</em>).</div>
+        </div>
         <div id="multi-section" class="hidden">
             <div class="ctrl">
                 <label>Add healer</label>
@@ -449,7 +457,37 @@ const HEALING_FRAMES = [
     s => `${s} — the body knows how to heal, and it does so now.`,
     s => `${s}. This healing intention flows without obstruction.`,
 ];
+// Permissive (Ericksonian) frames — possibility-framed, self-closing. After
+// Erickson, Rossi & Rossi (1976, Hypnotic Realities). Self / remote variants
+// preserve the existing first-person vs third-person mode detection.
+const PERMISSIVE_FRAMES_SELF = [
+    s => `I might find that ${s}, and each breath takes me deeper into this.`,
+    s => `I can begin to notice that ${s}, and the more I notice, the more it becomes true.`,
+    s => `Perhaps even now ${s}, and this settles further in with every cycle.`,
+    s => `It's possible that ${s}, and every part of me recognizes it.`,
+];
+const PERMISSIVE_FRAMES_REMOTE = [
+    s => `They might find that ${s}, and each breath sent deepens this.`,
+    s => `Perhaps even now ${s}, and the more this intention flows, the more it lands.`,
+    s => `It's possible that ${s}, and this becomes more true with each healing breath.`,
+    s => `They may already be sensing that ${s}, and that recognition is enough.`,
+];
+const PERMISSIVE_HEALING_FRAMES_SELF = [
+    s => `I might find that ${s}, and every cell can begin to move toward this.`,
+    s => `With each breath, perhaps ${s} — the body knows how to heal, and may be doing so already.`,
+    s => `It's possible that ${s}, and this intention flows without me having to force it.`,
+];
+const PERMISSIVE_HEALING_FRAMES_REMOTE = [
+    s => `Perhaps ${s}, and every cell can begin to move toward wholeness now.`,
+    s => `With each breath sent, it's possible that ${s} — the body knows how to heal.`,
+    s => `${s}, and this healing intention may already be reaching them.`,
+];
 let frameIdx = 0;
+
+function _healingStyle() {
+    const e = el('suggestion-style');
+    return (e && e.value === 'permissive') ? 'permissive' : 'direct';
+}
 
 // Mindforge-shared helper: enforce first-person phrasing. Healing is dual-mode:
 // self-healing ("I") and sender→receiver ("they/he/she"). Apply only when input
@@ -507,18 +545,25 @@ function reframeSuggestion(text, context) {
     s = s.charAt(0).toUpperCase()+s.slice(1);
     const core = s.replace(/[.!?]+$/,'').trim();
     const coreL = core.charAt(0).toLowerCase()+core.slice(1);
+    const style = _healingStyle();
     let result;
-    if (context==='healing'||context==='habit') {
-        const hf = HEALING_FRAMES[frameIdx % HEALING_FRAMES.length];
-        frameIdx++;
-        result = hf(coreL);
+    let pool;
+    if (style === 'permissive') {
+        if (context==='healing'||context==='habit') {
+            pool = selfMode ? PERMISSIVE_HEALING_FRAMES_SELF : PERMISSIVE_HEALING_FRAMES_REMOTE;
+        } else {
+            pool = selfMode ? PERMISSIVE_FRAMES_SELF : PERMISSIVE_FRAMES_REMOTE;
+        }
     } else {
-        const f = FRAMES[frameIdx % FRAMES.length];
-        frameIdx++;
-        result = f(coreL);
+        pool = (context==='healing'||context==='habit') ? HEALING_FRAMES : FRAMES;
     }
+    const f = pool[frameIdx % pool.length];
+    frameIdx++;
+    result = f(coreL);
     result = result.charAt(0).toUpperCase()+result.slice(1);
-    if (context==='healing'||context==='habit') {
+    // Direct path keeps its existing self-referential closure; permissive frames
+    // are self-closing so no closure is appended.
+    if (style === 'direct' && (context==='healing'||context==='habit')) {
         result += ' I feel this alive in every cell.';
     }
     return selfMode ? enforceFirstPerson(result) : result;
@@ -943,6 +988,7 @@ function saveConfig() {
             'bin-on':gc('bin-on'), 'beat-hz':gv('beat-hz'), 'bin-vol':gv('bin-vol'),
             'noise-on':gc('noise-on'), 'noise-vol':gv('noise-vol'),
             'coh-on':gc('coh-on'), 'coh-cycles':cohCyclesTotal, 'duration':sessionDuration,
+            'suggestion-style':gv('suggestion-style'),
         }));
     } catch(e) {}
 }
@@ -968,6 +1014,7 @@ function loadConfig() {
         b('coh-on',   c['coh-on']  ??true);
         if (c['coh-cycles']) setCycles(c['coh-cycles']);
         if (c['duration']) setDur(c['duration']);
+        s('suggestion-style', c['suggestion-style'] ?? 'direct');
         ['healing','outcome','habit'].forEach(k=>toggleStream(k));
         sv('beat-hz','beat-val','',1); sv('bin-vol','bin-vol-val','',2); sv('noise-vol','noise-vol-val','',3);
         toggleBinControls(); toggleNoiseControls();
