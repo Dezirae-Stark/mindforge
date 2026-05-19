@@ -1052,8 +1052,10 @@ function mfLoad() {
         pd.cycle_sec      = Math.max(60, Math.min(3600, +pd.cycle_sec || 600));
         pd.reduce_sec     = Math.max(5,  Math.min(300,  +pd.reduce_sec || 30));
         pd.subliminal_sec = Math.max(0,  Math.min(600,  +pd.subliminal_sec || 0));
+        // Route clamp-persist through mfSave: refreshes updated timestamp
+        // and surfaces quota errors in #manifest-status uniformly.
         if(before.cs !== pd.cycle_sec || before.rs !== pd.reduce_sec || before.ss !== pd.subliminal_sec) {
-            try { localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(p)); } catch(e){}
+            mfSave(p);
         }
         return p;
     } catch(e) { return _mfDefaults(); }
@@ -1208,8 +1210,11 @@ function _mfShowP4Modal() {
     const cancel=document.getElementById('mf-p4-cancel');
     const proceed=document.getElementById('mf-p4-proceed');
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
-    // Re-entrant guard: skip if modal is already visible.
-    if(modal.classList.contains('visible')) return true;
+    // Re-entrant guard: skip if modal visible AND handler bound. Fall through if inconsistent.
+    if(modal.classList.contains('visible') && _mfP4EscHandler) return true;
+    // Clear stale status from prior cycle.
+    const _sm = document.getElementById('manifest-status');
+    if(_sm && _sm.textContent) { _sm.textContent = ''; _sm.classList.remove('visible'); }
     if(_mfP4EscHandler) {
         try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
         _mfP4EscHandler = null;

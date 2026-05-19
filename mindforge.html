@@ -2017,11 +2017,12 @@ function mfLoad() {
         pd.cycle_sec      = Math.max(60, Math.min(3600, +pd.cycle_sec || 600));
         pd.reduce_sec     = Math.max(5,  Math.min(300,  +pd.reduce_sec || 30));
         pd.subliminal_sec = Math.max(0,  Math.min(600,  +pd.subliminal_sec || 0));
-        // If clamping changed any value, persist the sanitised version so
-        // other tabs and future reads see safe values (closes in-memory /
-        // on-disk divergence).
+        // If clamping changed any value, route through mfSave: refreshes the
+        // updated timestamp (so cross-tab merge by timestamp works correctly)
+        // and surfaces quota errors in #manifest-status (consistent with
+        // regular saves, instead of silent setItem failure).
         if(before.cs !== pd.cycle_sec || before.rs !== pd.reduce_sec || before.ss !== pd.subliminal_sec) {
-            try { localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(p)); } catch(e){}
+            mfSave(p);
         }
         return p;
     } catch(e) { return _mfDefaults(); }
@@ -2187,11 +2188,15 @@ function _mfShowP4Modal() {
     const cancel=document.getElementById('mf-p4-cancel');
     const proceed=document.getElementById('mf-p4-proceed');
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
-    // Re-entrant guard: if the modal is already up, do nothing. Otherwise a
-    // second show call (held hotkey, queued timer) silently resets the user's
-    // in-progress ack/skip checkboxes — Layer 3.3 fixed the handler leak but
-    // not this state reset; both were forms of re-entrant brokenness.
-    if(modal.classList.contains('visible')) return true;
+    // Re-entrant guard: if the modal is already up AND the handler is bound,
+    // do nothing — preserves in-progress ack/skip state. Falls through to
+    // reinstall if .visible is set without a handler (an inconsistent state
+    // worth recovering from rather than honouring).
+    if(modal.classList.contains('visible') && _mfP4EscHandler) return true;
+    // Clear any stale status from a prior cycle (e.g., cross-tab skipP4
+    // message left behind after the previous Proceed click).
+    const _sm = document.getElementById('manifest-status');
+    if(_sm && _sm.textContent) { _sm.textContent = ''; _sm.classList.remove('visible'); }
     // Always tear down any prior handler before installing a new one.
     if(_mfP4EscHandler) {
         try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
