@@ -456,7 +456,7 @@
         <div class="mf-modal-title">Phase 4 — Photosensitive Safety Review</div>
         <div class="mf-modal-body">
             <p>Phase 4 flashes symbols at ≈70&nbsp;ms (≈14&nbsp;Hz).</p>
-            <p>This rate sits <strong>inside</strong> the published photosensitive-seizure danger band (3–30&nbsp;Hz, peak 15–25&nbsp;Hz per ILAE/Harding 2005, ITU-R BT.1702).</p>
+            <p>Photosensitive-seizure susceptibility peaks at <strong>15–25&nbsp;Hz</strong>, with a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). The ITU-R BT.1702 standard identifies flash rates above 3&nbsp;Hz and the 10–30&nbsp;Hz region as primary concerns.</p>
             <p>Proceed only if you have no history of seizures or photosensitivity, and you are alone in a dim, distraction-free room.</p>
             <label><input type="checkbox" id="mf-p4-ack"> I have read the above and accept the risk.</label>
             <label><input type="checkbox" id="mf-p4-skip-future"> Disable Phase 4 on this device for future sessions.</label>
@@ -949,6 +949,10 @@ function setReceiverMode(mode) {
         const mp = el('manifest-panel'); if (mp) mp.style.display = 'none';
     } else {
         const mp = el('manifest-panel'); if (mp) mp.style.display = '';
+        // Refresh skipP4 indicator + storage-quota status — they live inside
+        // #manifest-panel and could have stale state if anything mutated while
+        // ambient mode hid the panel.
+        if (typeof _mfUpdateSkipP4Indicator === 'function') _mfUpdateSkipP4Indicator();
     }
 
     saveConfig();
@@ -1511,13 +1515,28 @@ function _mfShowP4Modal() {
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
     ack.checked=false; skip.checked=false; proceed.disabled=true;
     ack.onchange=()=>{ proceed.disabled = !ack.checked; };
+    // Escape acts as Cancel (closes the no-Escape-handler gap).
+    const escHandler = e => { if(e.key === 'Escape') _mfP4Decline(); };
+    modal._escHandler = escHandler;
+    try { document.addEventListener('keydown', escHandler); } catch(e){}
     modal.classList.add('visible');
-    setTimeout(()=>{ try{ cancel.focus(); } catch(e){} }, 0);
+    // Focus Cancel via rAF + retry (defeats Safari/Firefox focus races).
+    const focusCancel = () => {
+        try { cancel.focus(); } catch(e){}
+        if(document.activeElement !== cancel) { try { cancel.focus(); } catch(e){} }
+    };
+    if(typeof requestAnimationFrame === 'function') requestAnimationFrame(focusCancel);
+    else setTimeout(focusCancel, 0);
     return true;
 }
 function _mfHideP4Modal() {
     const modal=document.getElementById('mf-p4-modal');
-    if(modal) modal.classList.remove('visible');
+    if(!modal) return;
+    modal.classList.remove('visible');
+    if(modal._escHandler) {
+        try { document.removeEventListener('keydown', modal._escHandler); } catch(e){}
+        modal._escHandler = null;
+    }
 }
 function _mfP4Decline() {
     const skip=document.getElementById('mf-p4-skip-future');
@@ -1530,6 +1549,16 @@ function _mfP4Decline() {
 function _mfP4Proceed() {
     const ack=document.getElementById('mf-p4-ack');
     if(!ack || !ack.checked) return;
+    const fresh=mfLoad();
+    if(fresh.skipP4) {
+        _mfList=fresh; _mfUpdateSkipP4Indicator();
+        _mfHideP4Modal(); mfStop();
+        return;
+    }
+    if(_mfReducedMotion()) {
+        _mfHideP4Modal(); mfStop();
+        return;
+    }
     const skip=document.getElementById('mf-p4-skip-future');
     if(skip && skip.checked && _mfList) {
         _mfList.skipP4=true; mfSave(_mfList); _mfUpdateSkipP4Indicator();
@@ -1596,6 +1625,7 @@ function mfStop() {
     _mfPhase='idle'; _mfPausedFrom=null;
     const stage=document.getElementById('manifest-symbol');
     if(stage){ stage.style.display='none'; stage.textContent=''; }
+    _mfHideP4Modal();
     _mfShowPhase('p1');
     const b=document.getElementById('manifest-pause-btn'); if(b) b.textContent='Pause';
     mfRenderEditor();
