@@ -28,6 +28,44 @@ A suite of single-file browser tools for consciousness research, subconscious wo
 
 ---
 
+## Cross-Cutting Additions (2026-05)
+
+Three cross-tool features now span the six self-directed tools (Mindforge, Seiðr, Remote Healing, Telehypnosis Pro, Coherence, Solfeggio). The three psi-receiver tools (Remote Viewing, Ganzfeld, Presentiment) are deliberately excluded — each depends on a non-primed perceptual state and would lose protocol integrity if any of these features were added to them.
+
+### Direct / Permissive (Ericksonian) suggestion-style toggle
+Every reframe/suggestion path now offers two registers:
+- **Direct (Elman)** — assertive, present-tense, identity-anchored. *"I focus easily. My mind is clear."* After Elman (1977, *Hypnotherapy*, Westwood).
+- **Permissive (Ericksonian)** — possibility-framed, truism-anchored. *"I might find that…", "perhaps even now…", apposition of opposites.* After Erickson, Rossi & Rossi (1976, *Hypnotic Realities*, Irvington) and Hammond (1990, *Handbook of Hypnotic Suggestions and Metaphors*, W. W. Norton).
+- **Adaptive (mindforge.html only)** — picks register based on the live beat frequency: permissive below 13 Hz (alpha/theta), direct above.
+
+The Vasiliev third-person convention in Telehypnosis Pro is preserved — both styles stay in third person there. Healing.html auto-detects self vs sender→receiver mode and applies first-person enforcement only to the self path.
+
+### Self-voice recording (Mindforge)
+Optional pipeline that lets you record your own affirmations via the browser's MediaRecorder API and route them through the suggestion delivery instead of the synthesised TTS voice. Two storage modes — *session-only* (in-memory, revoked on tab close) or *saved* (base64 in `localStorage`, capped at 3 MB). All local. No upload. After self-referential processing literature.
+
+### Bengston staged image-cycling overlay (`mf-manifest-list` cross-tool)
+A four-phase manifestation protocol shared across the six included tools:
+
+1. **Phase 1 — Construction.** Author 15–25 desired-outcome items (label / description / glyph). Full emotional engagement.
+2. **Phase 2 — Symbol reduction.** Descriptions hide; only labels/glyphs remain. Pill grid display.
+3. **Phase 3 — Accelerating cycle.** Symbols cycle through a fixed overlay element. Rate exponentially decays from ~2500 ms to ~100 ms over the session. Font size grows slightly across the ramp (the "amplitude" axis).
+4. **Phase 4 — Sub-conscious threshold.** Symbols flash at ~70 ms (~14 Hz). User-initiated only, behind a photosensitive-safety consent modal.
+
+The list lives at a single shared localStorage key (`mf-manifest-list`) so the user authors the list once and cycles through it on any of the six tools. Method after Bengston & Krinsley (2000, *Journal of Scientific Exploration* 14(3): 353–364) and Bengston with Fraser (2010, *The Energy Cure*, Sounds True, ISBN 9781591799115); image-cycling technique documented in Bengston (2007, *Journal of Alternative and Complementary Medicine* 13(3): 329–331). Methodological lineage in Roberts (1974, *The Nature of Personal Reality*, Prentice-Hall) and Hicks & Hicks (2004, *Ask and It Is Given*, Hay House) — channeled antecedent, not empirical evidence. The null result on the causal manifestation claim — Dixon, Hornsey & Hartley (2023, *Personality and Social Psychology Bulletin*, doi:10.1177/01461672231181162) — is cited in every modal alongside the lineage.
+
+**Photosensitive-seizure safety.** Phase 4's ~14 Hz flash rate sits within the published photosensitive-seizure susceptible range (peak 15–25 Hz, range 1–65 Hz per Fisher, Harding et al., Epilepsy Foundation of America Working Group, *Epilepsia* 46(9), 2005; ITU-R BT.1702 flash-rate threshold). Phase 4 is gated behind an in-page modal with:
+- Cancel button receiving programmatic focus on open (no default-focus-on-Proceed)
+- Proceed button disabled until the user ticks an explicit acknowledgement checkbox
+- Escape key bound to Decline
+- `prefers-reduced-motion` auto-disables Phase 4 on init
+- A `skipP4` flag persisted per-device with a visible "Phase 4 disabled" indicator and re-enable button
+- Mobile-safe four-region flex layout (title + scrollable citation + sticky ack region + sticky actions) so consent controls are always reachable at iPhone-SE-class viewport widths
+- Reduced visual contrast during Phase 4 (no glow, dimmer color, smaller font) to reduce luminance flicker amplitude
+
+Charter compliance maintained throughout: single-file purity, zero network egress, localStorage-only persistence, present-affirmative copy (the operator's subconscious-doesn't-process-negation rule), no clinical claims.
+
+---
+
 ## Mindforge — Self-Directed Entrainment
 
 **Live tool:** https://dezirae-stark.github.io/mindforge/mindforge.html
