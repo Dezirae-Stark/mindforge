@@ -96,9 +96,37 @@
         .stat-val { color: var(--text); font-weight: bold; }
         .hidden { display: none !important; }
         footer { text-align: center; padding: 16px 0; font-size: 10px; color: var(--text-dim); border-top: 1px solid var(--border); margin-top: 8px; }
+
+        /* MFManifest v1 — Bengston staged manifestation cycling */
+        #manifest-panel .manifest-row { display: flex; gap: 6px; margin: 4px 0; align-items: center; }
+        #manifest-panel .manifest-row input { padding: 4px 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 12px; border-radius: 2px; }
+        #manifest-panel .manifest-row .m-label { flex: 1 1 28%; }
+        #manifest-panel .manifest-row .m-desc { flex: 2 1 50%; }
+        #manifest-panel .manifest-row .m-glyph { flex: 0 0 52px; text-align: center; }
+        #manifest-panel .manifest-row .m-remove { flex: 0 0 28px; padding: 2px 6px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: inherit; font-size: 14px; line-height: 1; border-radius: 2px; }
+        #manifest-panel .manifest-row .m-remove:hover { color: var(--warn); border-color: var(--warn); }
+        #manifest-panel .manifest-pill { display: inline-block; padding: 6px 12px; margin: 3px; background: var(--surface2); border: 1px solid var(--accent); border-radius: 14px; font-size: 12px; color: var(--text); }
+        #manifest-panel #manifest-phase-dots { display: inline-block; font-size: 13px; letter-spacing: 0.35em; color: var(--accent2); margin: 0 6px; }
+        #manifest-panel .manifest-controls { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+        #manifest-panel .manifest-controls button { padding: 4px 10px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-family: inherit; font-size: 11px; border-radius: 2px; }
+        #manifest-panel .manifest-controls button:hover { color: var(--accent2); border-color: var(--accent); }
+        #manifest-panel .manifest-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+        #manifest-panel .manifest-add-btn { padding: 4px 10px; background: transparent; border: 1px dashed var(--accent); color: var(--accent2); cursor: pointer; font-family: inherit; font-size: 11px; border-radius: 2px; margin-top: 4px; }
+        #manifest-panel .manifest-add-btn:hover { background: var(--surface2); }
+        #manifest-symbol {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2100; pointer-events: none;
+            font-size: 48px; color: var(--accent2);
+            text-align: center; min-width: 200px; line-height: 1.2;
+            font-weight: 600;
+            text-shadow: 0 0 24px rgba(80, 168, 192, 0.55);
+            transition: opacity 0.18s ease-out;
+        }
     </style>
 </head>
 <body>
+<div id="manifest-symbol" style="display:none"></div>
 <div class="app">
 
     <header>
@@ -246,6 +274,44 @@ Kom Vanadís</textarea>
 
         <div class="world-current hidden" id="world-current">
             journeying to <strong id="world-current-name"></strong>
+        </div>
+    </div>
+
+    <!-- MFManifest v1 — Bengston staged manifestation cycling -->
+    <div class="panel" id="manifest-panel" data-phase="p1">
+        <div class="panel-title">Manifestation Cycling</div>
+        <div class="hint" style="margin-bottom:10px">A staged image-cycling overlay. Build the list of what you want to be true, reduce it to symbol, and let the symbols cycle while the drum journey runs underneath.</div>
+
+        <div data-phase-content="p1">
+            <div class="hint" style="margin-bottom:6px">Write what you want to be true. Detail invites the emotional body. Aim for 15–25 items.</div>
+            <div id="manifest-list-rows"></div>
+            <button class="manifest-add-btn" onclick="mfAddItem()">+ Add item</button>
+            <div class="hint" style="margin-top:6px">Items: <span id="manifest-count">0 / 25</span></div>
+        </div>
+
+        <div data-phase-content="p2" style="display:none">
+            <div class="hint" style="margin-bottom:6px">Let the words rest. The symbol carries the whole.</div>
+            <div id="manifest-pills"></div>
+        </div>
+
+        <div data-phase-content="p3 p4" style="display:none">
+            <div class="hint" id="manifest-stage-hint">Your attention is free to roam. The symbols do the work.</div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)">
+            Phase <span id="manifest-phase-dots">●○○○</span>
+        </div>
+        <div class="manifest-controls">
+            <button id="manifest-lock-btn" onclick="mfLockIn()" disabled>Lock in →</button>
+            <button onclick="mfBeginPhase(3)">Cycle now →</button>
+            <button onclick="mfRequestP4()">Phase 4 ▸</button>
+            <button id="manifest-pause-btn" onclick="mfPauseToggle()">Pause</button>
+            <button onclick="mfBeginPhase(1)">Edit list</button>
+            <button onclick="mfStop()">Stop</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px;font-size:10px;line-height:1.6">
+            Method after Bengston &amp; Krinsley (2000, <em>Journal of Scientific Exploration</em> 14(3): 353–364); see Bengston with Fraser (2010, <em>The Energy Cure</em>, Sounds True). Image-cycling technique documented in Bengston (2007, <em>Journal of Alternative and Complementary Medicine</em> 13(3): 329–331). Methodological lineage: Roberts (1974, <em>The Nature of Personal Reality</em>, Prentice-Hall) and Hicks &amp; Hicks (2004, <em>Ask and It Is Given</em>, Hay House) — channeled antecedent, not empirical evidence. Null result on the causal manifestation claim: Dixon, Hornsey &amp; Hartley (2023, <em>Personality and Social Psychology Bulletin</em>, doi:10.1177/01461672231181162) — three studies, N=1,023; no objective outcome advantage; positive correlation with risky financial behaviour.
         </div>
     </div>
 
@@ -908,6 +974,263 @@ function loadConfig() {
 function toggleBinControls()  { el('bin-controls').classList.toggle('hidden', !gc('bin-on')); }
 function toggleDrumControls() { el('drum-controls').style.opacity = gc('drum-on') ? '1' : '0.45'; }
 
+// ── MFManifest v1 ─────────────────────────────────────────────────────────────
+// Bengston-style 4-phase manifestation cycling. Shared signature across the
+// six included Mindforge tools; do not diverge without updating sibling files.
+const MF_MANIFEST_KEY = 'mf-manifest-list';
+let _mfPhase = 'idle';
+let _mfPausedFrom = null;
+let _mfList = null;
+let _mfCycleStart = 0;
+let _mfCycleTimer = null;
+let _mfPhaseTimer = null;
+let _mfCurrentIdx = 0;
+
+function _mfDefaults() {
+    return { v:1, updated:new Date().toISOString(), items:[],
+        phaseDefaults:{ construct_sec:0, reduce_sec:30, cycle_sec:600, subliminal_sec:0 },
+        skipP4:false };
+}
+function _mfNewId() {
+    const c='abcdefghijklmnopqrstuvwxyz0123456789'; let s='mfm_';
+    for(let i=0;i<8;i++) s+=c[Math.floor(Math.random()*c.length)];
+    return s;
+}
+function mfLoad() {
+    try {
+        const raw=localStorage.getItem(MF_MANIFEST_KEY);
+        if(!raw) return _mfDefaults();
+        const p=JSON.parse(raw);
+        if(p.v!==1) return _mfMigrate(p);
+        if(!Array.isArray(p.items)) p.items=[];
+        if(!p.phaseDefaults) p.phaseDefaults=_mfDefaults().phaseDefaults;
+        // Clamp phaseDefaults to safe ranges (prevents DevTools-mutation runaway).
+        const pd=p.phaseDefaults;
+        pd.cycle_sec      = Math.max(60, Math.min(3600, +pd.cycle_sec || 600));
+        pd.reduce_sec     = Math.max(5,  Math.min(300,  +pd.reduce_sec || 30));
+        pd.subliminal_sec = Math.max(0,  Math.min(600,  +pd.subliminal_sec || 0));
+        return p;
+    } catch(e) { return _mfDefaults(); }
+}
+function _mfMigrate(p) {
+    const f=_mfDefaults();
+    if(Array.isArray(p.items)) f.items=p.items;
+    return f;
+}
+function mfSave(list) {
+    try {
+        list.updated=new Date().toISOString();
+        localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(list));
+    } catch(e) {}
+}
+function mfRenderEditor() {
+    const wrap=document.getElementById('manifest-list-rows');
+    if(!wrap||!_mfList) return;
+    while(wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    _mfList.items.forEach((item, idx) => {
+        const row=document.createElement('div'); row.className='manifest-row';
+        const lab=document.createElement('input');
+        lab.type='text'; lab.className='m-label'; lab.placeholder='Label (1-5 words)';
+        lab.value=item.label||''; lab.maxLength=60;
+        lab.oninput=()=>{ item.label=lab.value; mfSave(_mfList); mfUpdateCount(); };
+        const des=document.createElement('input');
+        des.type='text'; des.className='m-desc'; des.placeholder='Description — invite the emotional body';
+        des.value=item.desc||''; des.maxLength=200;
+        des.oninput=()=>{ item.desc=des.value; mfSave(_mfList); };
+        const gly=document.createElement('input');
+        gly.type='text'; gly.className='m-glyph'; gly.maxLength=4; gly.placeholder='◊';
+        gly.value=item.glyph||'';
+        gly.oninput=()=>{ item.glyph=gly.value; mfSave(_mfList); };
+        const rm=document.createElement('button');
+        rm.className='m-remove'; rm.textContent='×';
+        rm.onclick=()=>{ _mfList.items.splice(idx,1); mfSave(_mfList); mfRenderEditor(); };
+        row.appendChild(lab); row.appendChild(des); row.appendChild(gly); row.appendChild(rm);
+        wrap.appendChild(row);
+    });
+    mfUpdateCount();
+}
+function mfUpdateCount() {
+    const ct=(_mfList&&_mfList.items)?_mfList.items.length:0;
+    const e=document.getElementById('manifest-count'); if(e) e.textContent=ct+' / 25';
+    const lb=document.getElementById('manifest-lock-btn'); if(lb) lb.disabled=ct<1;
+}
+function mfAddItem() {
+    if(!_mfList) _mfList=mfLoad();
+    if(_mfList.items.length>=25) return;
+    _mfList.items.push({ id:_mfNewId(), label:'', desc:'', glyph:'' });
+    mfSave(_mfList); mfRenderEditor();
+}
+function mfRenderReduce() {
+    const wrap=document.getElementById('manifest-pills');
+    if(!wrap||!_mfList) return;
+    while(wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    _mfList.items.forEach(item => {
+        if(!item.label&&!item.glyph) return;
+        const pill=document.createElement('span'); pill.className='manifest-pill';
+        pill.textContent=item.glyph?(item.glyph+' '+item.label):item.label;
+        wrap.appendChild(pill);
+    });
+}
+function mfRenderStage() {
+    const stage=document.getElementById('manifest-symbol');
+    if(!stage||!_mfList||!_mfList.items.length) return;
+    const items=_mfList.items.filter(it=>it.label||it.glyph);
+    if(!items.length) return;
+    const item=items[_mfCurrentIdx % items.length];
+    stage.textContent=item.glyph?(item.glyph+'  '+item.label):item.label;
+    stage.style.display='';
+    if(_mfPhase==='p3') {
+        const cs=_mfList.phaseDefaults.cycle_sec||600;
+        const t=Math.min(((Date.now()-_mfCycleStart)/1000)/cs, 1);
+        stage.style.fontSize=Math.round(48+24*t)+'px';
+        stage.style.textShadow='0 0 24px rgba(80, 168, 192, 0.55)';
+        stage.style.color='var(--accent2)';
+    } else if(_mfPhase==='p4') {
+        stage.style.fontSize='28px';
+        stage.style.textShadow='none';
+        stage.style.color='var(--text-dim)';
+    }
+    _mfCurrentIdx++;
+}
+function _mfDwellMs() {
+    if(_mfPhase==='p4') return 70;
+    if(_mfPhase!=='p3') return 1000;
+    const cs=_mfList.phaseDefaults.cycle_sec||600;
+    const t=Math.min(((Date.now()-_mfCycleStart)/1000)/cs, 1);
+    return Math.round(2500*Math.pow(100/2500, t));
+}
+function mfCycleNext() {
+    if(_mfPhase!=='p3'&&_mfPhase!=='p4') return;
+    mfRenderStage();
+    _mfCycleTimer=setTimeout(mfCycleNext, _mfDwellMs());
+}
+function mfBeginPhase(n) {
+    if(_mfList===null) _mfList=mfLoad();
+    if(_mfCycleTimer){ clearTimeout(_mfCycleTimer); _mfCycleTimer=null; }
+    if(_mfPhaseTimer){ clearTimeout(_mfPhaseTimer); _mfPhaseTimer=null; }
+    const stage=document.getElementById('manifest-symbol');
+    if(n===1) {
+        _mfPhase='p1'; _mfShowPhase('p1');
+        if(stage) stage.style.display='none';
+        mfRenderEditor(); return;
+    }
+    if(n===2) {
+        if(!_mfList.items.length) return;
+        _mfPhase='p2'; _mfShowPhase('p2');
+        if(stage) stage.style.display='none';
+        mfRenderReduce();
+        const dwell=(_mfList.phaseDefaults.reduce_sec||30)*1000;
+        _mfPhaseTimer=setTimeout(()=>mfBeginPhase(3), dwell);
+        return;
+    }
+    if(n===3) {
+        // Abort if no renderable items (label or glyph required).
+        if(!_mfList.items.filter(it=>it.label||it.glyph).length) return;
+        _mfPhase='p3'; _mfShowPhase('p3');
+        _mfCycleStart=Date.now(); _mfCurrentIdx=0;
+        mfCycleNext();
+        // P3 does NOT auto-advance to P4. The user must explicitly request P4
+        // via mfRequestP4() to satisfy photosensitive-seizure safety review.
+        return;
+    }
+    if(n===4) {
+        _mfPhase='p4'; _mfShowPhase('p4');
+        _mfCycleStart=Date.now(); mfCycleNext();
+        const dwell=(_mfList.phaseDefaults.subliminal_sec||0)*1000;
+        if(dwell>0) _mfPhaseTimer=setTimeout(mfStop, dwell);
+        return;
+    }
+}
+function _mfConsentP4() {
+    if(_mfList.skipP4) return false;
+    const msg='Phase 4 flashes symbols at ≈70ms (≈14 Hz).\n\n'
+        + 'This rate is INSIDE the published photosensitive-seizure danger band '
+        + '(3-30 Hz, peak 15-25 Hz per ILAE/Harding 2005, ITU-R BT.1702).\n\n'
+        + 'Proceed ONLY if you have no history of seizures or photosensitivity, '
+        + 'and you are alone in a dim, distraction-free room.\n\n'
+        + 'Proceed into Phase 4?';
+    if(!confirm(msg)) {
+        if(confirm('Disable Phase 4 on this device for future sessions?')) {
+            _mfList.skipP4=true; mfSave(_mfList);
+        }
+        return false;
+    }
+    return true;
+}
+function _mfReducedMotion() {
+    try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch(e) { return false; }
+}
+function mfRequestP4() {
+    if(!_mfList) _mfList=mfLoad();
+    if(!_mfList.items.filter(it=>it.label||it.glyph).length) return;
+    if(_mfReducedMotion()) {
+        alert('Phase 4 is disabled because your system has Reduced Motion enabled. Cycling ends at Phase 3.');
+        mfStop(); return;
+    }
+    if(_mfList.skipP4) {
+        if(confirm('Phase 4 was previously disabled on this device. Re-enable and proceed?')) {
+            _mfList.skipP4=false; mfSave(_mfList);
+        } else { return; }
+    }
+    if(_mfConsentP4()) mfBeginPhase(4);
+}
+function _mfShowPhase(phase) {
+    const panel=document.getElementById('manifest-panel');
+    if(!panel) return;
+    panel.dataset.phase=phase;
+    document.querySelectorAll('#manifest-panel [data-phase-content]').forEach(el=>{
+        el.style.display = el.dataset.phaseContent.indexOf(phase)>=0 ? '' : 'none';
+    });
+    const ind=document.getElementById('manifest-phase-dots');
+    if(ind) {
+        const m={ p1:'●○○○', p2:'●●○○', p3:'●●●○', p4:'●●●●', idle:'○○○○' };
+        ind.textContent=m[phase]||'○○○○';
+    }
+}
+function mfPauseToggle() {
+    if(_mfPhase==='paused') return mfResume();
+    if(_mfPhase==='idle'||_mfPhase==='p1') return;
+    _mfPausedFrom=_mfPhase; _mfPhase='paused';
+    if(_mfCycleTimer){ clearTimeout(_mfCycleTimer); _mfCycleTimer=null; }
+    if(_mfPhaseTimer){ clearTimeout(_mfPhaseTimer); _mfPhaseTimer=null; }
+    const b=document.getElementById('manifest-pause-btn'); if(b) b.textContent='Resume';
+}
+function mfResume() {
+    if(_mfPhase!=='paused'||!_mfPausedFrom) return;
+    const target=_mfPausedFrom; _mfPausedFrom=null;
+    const b=document.getElementById('manifest-pause-btn'); if(b) b.textContent='Pause';
+    mfBeginPhase(target==='p1'?1:target==='p2'?2:target==='p3'?3:4);
+}
+function mfStop() {
+    if(_mfCycleTimer){ clearTimeout(_mfCycleTimer); _mfCycleTimer=null; }
+    if(_mfPhaseTimer){ clearTimeout(_mfPhaseTimer); _mfPhaseTimer=null; }
+    _mfPhase='idle'; _mfPausedFrom=null;
+    const stage=document.getElementById('manifest-symbol');
+    if(stage){ stage.style.display='none'; stage.textContent=''; }
+    _mfShowPhase('p1');
+    const b=document.getElementById('manifest-pause-btn'); if(b) b.textContent='Pause';
+    mfRenderEditor();
+}
+function mfLockIn() {
+    if(!_mfList||!_mfList.items.length) return;
+    mfBeginPhase(2);
+}
+function mfInit() {
+    _mfList=mfLoad();
+    if(_mfReducedMotion()) _mfList.skipP4=true;
+    mfRenderEditor();
+    _mfShowPhase('p1');
+    window.addEventListener('storage', e => {
+        if(e.key===MF_MANIFEST_KEY) {
+            if(_mfPhase==='idle' || _mfPhase==='p1') {
+                _mfList=mfLoad();
+                mfRenderEditor();
+            }
+        }
+    });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     loadConfig();
@@ -915,6 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el('vard-file').addEventListener('change', function() {
         if (this.files[0]) loadVardlokkurAudio(this.files[0]);
     });
+    mfInit();
 });
 </script>
 </body>
