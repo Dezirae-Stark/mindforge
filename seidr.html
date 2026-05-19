@@ -1195,6 +1195,8 @@ function _mfReducedMotion() {
     try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
     catch(e) { return false; }
 }
+// Module-scoped Escape handler — defends against re-entrant show leaks.
+let _mfP4EscHandler = null;
 function _mfShowP4Modal() {
     const modal=document.getElementById('mf-p4-modal');
     const ack=document.getElementById('mf-p4-ack');
@@ -1202,29 +1204,32 @@ function _mfShowP4Modal() {
     const cancel=document.getElementById('mf-p4-cancel');
     const proceed=document.getElementById('mf-p4-proceed');
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
+    if(_mfP4EscHandler) {
+        try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
+        _mfP4EscHandler = null;
+    }
     ack.checked=false; skip.checked=false; proceed.disabled=true;
     ack.onchange=()=>{ proceed.disabled = !ack.checked; };
-    // Escape acts as Cancel (closes the no-Escape-handler gap).
-    const escHandler = e => { if(e.key === 'Escape') _mfP4Decline(); };
-    modal._escHandler = escHandler;
-    try { document.addEventListener('keydown', escHandler); } catch(e){}
+    _mfP4EscHandler = e => { if(e.key === 'Escape') _mfP4Decline(); };
+    try { document.addEventListener('keydown', _mfP4EscHandler); } catch(e){}
     modal.classList.add('visible');
-    // Focus Cancel via rAF + retry (defeats Safari/Firefox focus races).
-    const focusCancel = () => {
-        try { cancel.focus(); } catch(e){}
+    const focusCancel = () => { try { cancel.focus(); } catch(e){} };
+    const verifyFocus = () => {
         if(document.activeElement !== cancel) { try { cancel.focus(); } catch(e){} }
     };
-    if(typeof requestAnimationFrame === 'function') requestAnimationFrame(focusCancel);
-    else setTimeout(focusCancel, 0);
+    if(typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => { focusCancel(); requestAnimationFrame(verifyFocus); });
+    } else {
+        setTimeout(focusCancel, 0); setTimeout(verifyFocus, 16);
+    }
     return true;
 }
 function _mfHideP4Modal() {
     const modal=document.getElementById('mf-p4-modal');
-    if(!modal) return;
-    modal.classList.remove('visible');
-    if(modal._escHandler) {
-        try { document.removeEventListener('keydown', modal._escHandler); } catch(e){}
-        modal._escHandler = null;
+    if(modal) modal.classList.remove('visible');
+    if(_mfP4EscHandler) {
+        try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
+        _mfP4EscHandler = null;
     }
 }
 function _mfP4Decline() {
@@ -1238,9 +1243,11 @@ function _mfP4Decline() {
 function _mfP4Proceed() {
     const ack=document.getElementById('mf-p4-ack');
     if(!ack || !ack.checked) return;
-    const fresh=mfLoad();
-    if(fresh.skipP4) {
-        _mfList=fresh; _mfUpdateSkipP4Indicator();
+    // Wholesale re-read — picks up cross-tab edits to items, phaseDefaults,
+    // and skipP4 in one shot. Partial refresh would be asymmetric.
+    _mfList = mfLoad();
+    _mfUpdateSkipP4Indicator();
+    if(_mfList.skipP4) {
         _mfHideP4Modal(); mfStop();
         return;
     }
@@ -1249,7 +1256,7 @@ function _mfP4Proceed() {
         return;
     }
     const skip=document.getElementById('mf-p4-skip-future');
-    if(skip && skip.checked && _mfList) {
+    if(skip && skip.checked) {
         _mfList.skipP4=true; mfSave(_mfList); _mfUpdateSkipP4Indicator();
         _mfHideP4Modal();
         mfStop();
