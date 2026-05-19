@@ -304,13 +304,14 @@
         }
         #mf-p4-modal { position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 20px; }
         #mf-p4-modal.visible { display: flex; }
-        #mf-p4-modal .mf-modal-card { background: var(--surface); border: 2px solid var(--warn); border-radius: 4px; max-width: 480px; max-height: calc(100vh - 40px); color: var(--text); font-size: 13px; line-height: 1.6; font-family: inherit; display: flex; flex-direction: column; overflow: hidden; }
-        #mf-p4-modal .mf-modal-title { color: var(--warn); margin: 0; padding: 22px 22px 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: bold; flex-shrink: 0; }
-        #mf-p4-modal .mf-modal-body { padding: 12px 22px; overflow-y: auto; flex: 1 1 auto; }
+        #mf-p4-modal .mf-modal-card { background: var(--surface); border: 2px solid var(--warn); border-radius: 4px; max-width: 480px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); color: var(--text); font-size: 13px; line-height: 1.6; font-family: inherit; display: flex; flex-direction: column; }
+        #mf-p4-modal .mf-modal-title { color: var(--warn); margin: 0; padding: 22px 22px 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: bold; flex-shrink: 0; min-width: 0; overflow-wrap: anywhere; }
+        #mf-p4-modal .mf-modal-body { padding: 12px 22px; overflow-y: auto; overscroll-behavior: contain; flex: 1 1 auto; }
         #mf-p4-modal .mf-modal-body p { margin: 8px 0; }
-        #mf-p4-modal .mf-modal-body label { display: block; margin: 10px 0; cursor: pointer; user-select: none; }
-        #mf-p4-modal .mf-modal-body input[type=checkbox] { margin-right: 8px; vertical-align: middle; accent-color: var(--warn); }
-        #mf-p4-modal .mf-modal-actions { display: flex; gap: 10px; padding: 12px 22px 22px; justify-content: flex-end; flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
+        #mf-p4-modal .mf-modal-ack { padding: 12px 22px 0; flex-shrink: 0; border-top: 1px solid var(--border); }
+        #mf-p4-modal .mf-modal-ack label { display: block; margin: 8px 0; cursor: pointer; user-select: none; }
+        #mf-p4-modal .mf-modal-ack input[type=checkbox] { margin-right: 8px; vertical-align: middle; accent-color: var(--warn); }
+        #mf-p4-modal .mf-modal-actions { display: flex; gap: 10px; padding: 12px 22px 22px; justify-content: flex-end; flex-shrink: 0; background: var(--surface); }
         #mf-p4-modal .mf-modal-actions button { padding: 8px 16px; font-family: inherit; font-size: 12px; cursor: pointer; border-radius: 3px; }
         #mf-p4-modal #mf-p4-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
         #mf-p4-modal #mf-p4-cancel:hover { border-color: var(--accent); }
@@ -334,6 +335,8 @@
             <p>Phase 4 flashes symbols at ≈70&nbsp;ms (≈14&nbsp;Hz).</p>
             <p>Photosensitive-seizure susceptibility peaks at <strong>15–25&nbsp;Hz</strong>, with a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). The ITU-R BT.1702 standard identifies flash rates above 3&nbsp;Hz and the 10–30&nbsp;Hz region as primary concerns.</p>
             <p>Proceed only if you have no history of seizures or photosensitivity, and you are alone in a dim, distraction-free room.</p>
+        </div>
+        <div class="mf-modal-ack">
             <label><input type="checkbox" id="mf-p4-ack"> I have read the above and accept the risk.</label>
             <label><input type="checkbox" id="mf-p4-skip-future"> Disable Phase 4 on this device for future sessions.</label>
         </div>
@@ -1113,6 +1116,7 @@ function _mfReducedMotion() {
 }
 // Module-scoped Escape handler — defends against re-entrant show leaks.
 let _mfP4EscHandler = null;
+let _mfPriorBodyOverflow = '';
 function _mfShowP4Modal() {
     const modal=document.getElementById('mf-p4-modal');
     const ack=document.getElementById('mf-p4-ack');
@@ -1134,6 +1138,10 @@ function _mfShowP4Modal() {
     _mfP4EscHandler = e => { if(e.key === 'Escape') _mfP4Decline(); };
     try { document.addEventListener('keydown', _mfP4EscHandler); } catch(e){}
     modal.classList.add('visible');
+    _mfPriorBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const _mfBody = modal.querySelector('.mf-modal-body');
+    if(_mfBody) _mfBody.scrollTop = 0;
     const focusCancel = () => { try { cancel.focus(); } catch(e){} };
     const verifyFocus = () => {
         if(!modal.classList.contains('visible')) return;
@@ -1153,6 +1161,8 @@ function _mfHideP4Modal() {
         try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
         _mfP4EscHandler = null;
     }
+    document.body.style.overflow = _mfPriorBodyOverflow;
+    _mfPriorBodyOverflow = '';
 }
 function _mfP4Decline() {
     const skip=document.getElementById('mf-p4-skip-future');
