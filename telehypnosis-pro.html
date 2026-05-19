@@ -446,6 +446,14 @@
             </div>
         </div>
         <div id="receiver-mode-hint" class="hint" style="margin-top:2px;">Receiver runs Mindforge (Gateway or Sleep Onset) simultaneously. Highest documented receptivity.</div>
+        <div class="ctrl" style="margin-top:10px">
+            <label>Suggestion style</label>
+            <select id="suggestion-style" onchange="saveConfig()">
+                <option value="direct" selected>Direct</option>
+                <option value="permissive">Permissive (Ericksonian)</option>
+            </select>
+            <div class="hint">Direct = present-tense affirmation about the receiver ("they feel safe now"). Permissive = possibility-framed ("perhaps they're finding their way to..."). Both styles stay in third person, preserving Vasiliev's operator&rarr;receiver convention. After Erickson, Rossi &amp; Rossi (1976, <em>Hypnotic Realities</em>), Hammond (1990, <em>Handbook of Hypnotic Suggestions and Metaphors</em>), Elman (1977, <em>Hypnotherapy</em>).</div>
+        </div>
         <div id="consent-link-row" class="hidden" style="margin-top:8px;">
             <a href="consent.html" target="_blank" style="font-size:11px; color:var(--accent2); text-decoration:none; letter-spacing:0.04em;">&#8599; Open receiver consent form</a>
             <span class="hint" style="display:inline; margin-left:8px;">Share with receiver before the session</span>
@@ -739,22 +747,24 @@ function getConfig() {
     const c = {};
     CFG_RANGES.forEach(id => { c[id] = gv(id); });
     CFG_BOOLS.forEach(id  => { c[id] = gc(id); });
-    c['target-name']     = gv('target-name');
-    c['target-location'] = gv('target-location');
-    c['focus-mode']      = currentFocusMode;
-    c['relationship']    = gv('relationship');
-    c['receiver-mode']   = currentReceiverMode;
+    c['target-name']      = gv('target-name');
+    c['target-location']  = gv('target-location');
+    c['focus-mode']       = currentFocusMode;
+    c['relationship']     = gv('relationship');
+    c['receiver-mode']    = currentReceiverMode;
+    c['suggestion-style'] = gv('suggestion-style');
     return c;
 }
 
 function applyConfig(c) {
     CFG_RANGES.forEach(id => { if (c[id] !== undefined) el(id).value = c[id]; });
     CFG_BOOLS.forEach(id  => { if (c[id] !== undefined) el(id).checked = c[id]; });
-    if (c['target-name'])     el('target-name').value     = c['target-name'];
-    if (c['target-location']) el('target-location').value = c['target-location'];
-    if (c['focus-mode'])      setFocusMode(c['focus-mode']);
-    if (c['relationship'])    el('relationship').value    = c['relationship'];
-    if (c['receiver-mode'])   setReceiverMode(c['receiver-mode']);
+    if (c['target-name'])      el('target-name').value      = c['target-name'];
+    if (c['target-location'])  el('target-location').value  = c['target-location'];
+    if (c['focus-mode'])       setFocusMode(c['focus-mode']);
+    if (c['relationship'])     el('relationship').value     = c['relationship'];
+    if (c['receiver-mode'])    setReceiverMode(c['receiver-mode']);
+    if (c['suggestion-style']) el('suggestion-style').value = c['suggestion-style'];
     refreshVals();
     updateRelationshipHint();
 }
@@ -1235,6 +1245,22 @@ const _RF_FRAMES = [
     (s) => `${s} This settles deeper with every exhale.`
 ];
 
+// Permissive (Ericksonian) third-person frames — possibility-framed, self-closing.
+// After Erickson, Rossi & Rossi (1976). All third-person, preserving Vasiliev's
+// operator→receiver convention. Used when suggestion-style === 'permissive'.
+const _RF_FRAMES_PERMISSIVE = [
+    (s) => `Perhaps even now, ${s.charAt(0).toLowerCase()+s.slice(1)}, and the more this intention reaches them, the more it lands.`,
+    (s) => `They might find that ${s.charAt(0).toLowerCase()+s.slice(1)}, and each breath sent deepens it.`,
+    (s) => `It's possible that ${s.charAt(0).toLowerCase()+s.slice(1)} — this becoming more true with every heartbeat.`,
+    (s) => `They may already be sensing that ${s.charAt(0).toLowerCase()+s.slice(1)}, and that recognition is enough for it to settle in.`,
+    (s) => `${s} — and perhaps this is what their nervous system has been moving toward all along.`
+];
+
+function _rfStyle() {
+    const e = el('suggestion-style');
+    return (e && e.value === 'permissive') ? 'permissive' : 'direct';
+}
+
 // Mindforge-shared note: the first-person enforcement helper used in mindforge.html /
 // seidr.html / healing.html is intentionally NOT applied here. Telehypnosis Pro is
 // Vasiliev-style remote influence — operator (I) projects toward a target subject
@@ -1291,9 +1317,12 @@ function _rfReframeOne(text, context) {
     t = t.charAt(0).toUpperCase() + t.slice(1);
     if (!/[.!?]$/.test(t)) t += '.';
 
-    // 4. Apply Ericksonian frame (rotating by text length for variety)
-    const frameIdx = t.length % _RF_FRAMES.length;
-    const framed = _RF_FRAMES[frameIdx](t.replace(/\.$/, ''));
+    // 4. Apply Ericksonian frame (rotating by text length for variety).
+    //    Style toggle chooses Direct (assertive third-person) or Permissive
+    //    (possibility-framed third-person). Both pools stay third-person.
+    const pool = _rfStyle() === 'permissive' ? _RF_FRAMES_PERMISSIVE : _RF_FRAMES;
+    const frameIdx = t.length % pool.length;
+    const framed = pool[frameIdx](t.replace(/\.$/, ''));
 
     // 5. Intention context: append somatic anchor
     if (context === 'intention') {
