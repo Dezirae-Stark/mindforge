@@ -1359,9 +1359,13 @@ function mfLoad() {
         if(!p.phaseDefaults) p.phaseDefaults=_mfDefaults().phaseDefaults;
         // Clamp phaseDefaults to safe ranges (prevents DevTools-mutation runaway).
         const pd=p.phaseDefaults;
+        const before = { cs:pd.cycle_sec, rs:pd.reduce_sec, ss:pd.subliminal_sec };
         pd.cycle_sec      = Math.max(60, Math.min(3600, +pd.cycle_sec || 600));
         pd.reduce_sec     = Math.max(5,  Math.min(300,  +pd.reduce_sec || 30));
         pd.subliminal_sec = Math.max(0,  Math.min(600,  +pd.subliminal_sec || 0));
+        if(before.cs !== pd.cycle_sec || before.rs !== pd.reduce_sec || before.ss !== pd.subliminal_sec) {
+            try { localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(p)); } catch(e){}
+        }
         return p;
     } catch(e) { return _mfDefaults(); }
 }
@@ -1515,6 +1519,8 @@ function _mfShowP4Modal() {
     const cancel=document.getElementById('mf-p4-cancel');
     const proceed=document.getElementById('mf-p4-proceed');
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
+    // Re-entrant guard: skip if modal is already visible.
+    if(modal.classList.contains('visible')) return true;
     if(_mfP4EscHandler) {
         try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
         _mfP4EscHandler = null;
@@ -1526,6 +1532,7 @@ function _mfShowP4Modal() {
     modal.classList.add('visible');
     const focusCancel = () => { try { cancel.focus(); } catch(e){} };
     const verifyFocus = () => {
+        if(!modal.classList.contains('visible')) return;
         if(document.activeElement !== cancel) { try { cancel.focus(); } catch(e){} }
     };
     if(typeof requestAnimationFrame === 'function') {
@@ -1557,6 +1564,11 @@ function _mfP4Proceed() {
     _mfList = mfLoad();
     _mfUpdateSkipP4Indicator();
     if(_mfList.skipP4) {
+        const st=document.getElementById('manifest-status');
+        if(st) {
+            st.textContent='Phase 4 was disabled on this device while the safety review was open. Cycling ended at Phase 3.';
+            st.classList.add('visible');
+        }
         _mfHideP4Modal(); mfStop();
         return;
     }

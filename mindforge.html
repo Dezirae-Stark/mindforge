@@ -2013,9 +2013,16 @@ function mfLoad() {
         if(!p.phaseDefaults) p.phaseDefaults=_mfDefaults().phaseDefaults;
         // Clamp phaseDefaults to safe ranges (prevents DevTools-mutation runaway).
         const pd=p.phaseDefaults;
+        const before = { cs:pd.cycle_sec, rs:pd.reduce_sec, ss:pd.subliminal_sec };
         pd.cycle_sec      = Math.max(60, Math.min(3600, +pd.cycle_sec || 600));
         pd.reduce_sec     = Math.max(5,  Math.min(300,  +pd.reduce_sec || 30));
         pd.subliminal_sec = Math.max(0,  Math.min(600,  +pd.subliminal_sec || 0));
+        // If clamping changed any value, persist the sanitised version so
+        // other tabs and future reads see safe values (closes in-memory /
+        // on-disk divergence).
+        if(before.cs !== pd.cycle_sec || before.rs !== pd.reduce_sec || before.ss !== pd.subliminal_sec) {
+            try { localStorage.setItem(MF_MANIFEST_KEY, JSON.stringify(p)); } catch(e){}
+        }
         return p;
     } catch(e) { return _mfDefaults(); }
 }
@@ -2180,6 +2187,11 @@ function _mfShowP4Modal() {
     const cancel=document.getElementById('mf-p4-cancel');
     const proceed=document.getElementById('mf-p4-proceed');
     if(!modal||!ack||!proceed||!cancel||!skip) return false;
+    // Re-entrant guard: if the modal is already up, do nothing. Otherwise a
+    // second show call (held hotkey, queued timer) silently resets the user's
+    // in-progress ack/skip checkboxes — Layer 3.3 fixed the handler leak but
+    // not this state reset; both were forms of re-entrant brokenness.
+    if(modal.classList.contains('visible')) return true;
     // Always tear down any prior handler before installing a new one.
     if(_mfP4EscHandler) {
         try { document.removeEventListener('keydown', _mfP4EscHandler); } catch(e){}
@@ -2197,6 +2209,9 @@ function _mfShowP4Modal() {
     // a separate rAF gives the browser a paint between attempts.
     const focusCancel = () => { try { cancel.focus(); } catch(e){} };
     const verifyFocus = () => {
+        // Skip retry if modal was hidden between rAF ticks (avoids focus call
+        // on a now-hidden button — would be a no-op but may perturb scroll).
+        if(!modal.classList.contains('visible')) return;
         if(document.activeElement !== cancel) { try { cancel.focus(); } catch(e){} }
     };
     if(typeof requestAnimationFrame === 'function') {
@@ -2233,6 +2248,13 @@ function _mfP4Proceed() {
     _mfList = mfLoad();
     _mfUpdateSkipP4Indicator();
     if(_mfList.skipP4) {
+        // Surface a brief status — without it, the cross-tab disable makes
+        // the Proceed click look like it did nothing.
+        const st=document.getElementById('manifest-status');
+        if(st) {
+            st.textContent='Phase 4 was disabled on this device while the safety review was open. Cycling ended at Phase 3.';
+            st.classList.add('visible');
+        }
         _mfHideP4Modal(); mfStop();
         return;
     }
