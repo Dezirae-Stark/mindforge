@@ -6,7 +6,18 @@ Bibliographic records for `remote-viewing.html`'s research basis, per the Prior-
 
 - Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607. — the founding SRI coordinate-RV result.
 - Utts, J. (1995). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 9(4), 351–396. — meta-analysis of the SRI/SAIC data, d≈0.40 for trained viewers.
-- SAIC Stargate program declassified material (general) — the tool's own README already cites this class of source; see the specific entry below for one now-verified example.
+- SAIC Stargate program declassified material (general) — see the cross-repository entry below; primary sources for this category are now held directly rather than cited at one remove.
+
+## Cross-repository reference: SRI/STARGATE program primary documents (Puthoff/Targ 1978, Kress 1977, AIR 1995)
+
+**Added 2026-07-29, per operator approval** — cross-link from the `zero-point-energy` repo, compartment `compartments/sri-stargate-program-documents/`. Full digest and the primary-source PDFs themselves: https://github.com/Obsidian-Circuit-LLC/zero-point-energy/tree/main/compartments/sri-stargate-program-documents
+
+**What it is:** three primary documents fetched and read directly, giving this tool's existing secondhand citations (Targ & Puthoff 1974; Utts 1995) actual primary-source backing:
+1. **Puthoff, H.E. & Targ, R., "Standard Remote-Viewing Protocol (Local Targets)," SRI International, November 1978** — the actual working protocol this tool's 6-stage CRV process descends from. Specifies target-pool construction (distinctive-but-not-distinct-from-each-other targets, sealed in randomized numbered envelopes), subject-selection criteria ("self-confident, uninhibited, successful, and not afraid to be wrong" — found more reliable than any psychological test the authors tried), and explicitly **rejects** hypnosis, strobe lights, or sensory-deprivation procedures as part of the protocol ("we are in this sense proponents of a 'naturalist school'"). **If this tool's implementation is ever compared against the source protocol for fidelity, use this document as the baseline**, not a secondary description of it.
+2. **Kress, K.A., "Parapsychology in Intelligence: A Personal Review and Conclusions," *Studies in Intelligence*, Winter 1977** — the CIA's own Project Officer's internal, contemporaneous account. His own concluding assessment: "a skeptical agnostic," not an advocate — a useful corrective against both over-crediting and dismissing the program's internal culture.
+3. **Mumford, M.D., Rose, A.M., & Goslin, D.A. (American Institutes for Research), "An Evaluation of Remote Viewing: Research and Applications," September 29, 1995** — the actual primary source behind the "Utts (1995)" citation above. **Important precision this compartment's digest establishes:** the widely-circulated "psychic functioning has been well established" line is from Dr. Utts's *individual* chapter, not the panel's joint Executive Summary. The joint summary's actual finding is narrower: a statistically anomalous laboratory effect whose paranormal origin was explicitly not established ("the laboratory experiments have not identified the origins or nature of the remote viewing phenomenon, if, indeed, it exists at all"), and — the finding that actually ended the program — unanimous agreement that it produced no actionable intelligence in real operational use. **Any future citation of this report in this tool's own materials should use the joint-summary language, not the more one-sided Utts-only soundbite that circulates in secondary sources.**
+
+**Scope note:** documentation-layer cross-link only, same as the LaMothe entry below — no runtime dependency, no network call from any tool references the zero-point-energy repo.
 
 ## Cross-repository reference: LaMothe, "Controlled Offensive Behavior — USSR" (DIA, 1972)
 
