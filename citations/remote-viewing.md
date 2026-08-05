@@ -5,7 +5,7 @@ Bibliographic records for `remote-viewing.html`'s research basis, per the Prior-
 ## Core protocol sources
 
 - Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607. — the founding SRI coordinate-RV result.
-- Utts, J. (1995). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 9(4), 351–396. — meta-analysis of the SRI/SAIC data, d≈0.40 for trained viewers.
+- Utts, J. (1996). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 10(1), 3–30. (Also *Journal of Parapsychology*, 59(4), 289–320. Frequently miscited as "1995, JSE 9(4), 351–396" — that volume/page range does not exist; 1995 is the date of the underlying AIR report.) — meta-analysis of the SRI/SAIC data, d≈0.40 for trained viewers.
 - SAIC Stargate program declassified material (general) — see the cross-repository entry below; primary sources for this category are now held directly rather than cited at one remove.
 
 ## Cross-repository reference: SRI/STARGATE program primary documents (Puthoff/Targ 1978, Kress 1977, AIR 1995)

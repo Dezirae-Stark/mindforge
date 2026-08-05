@@ -1,0 +1,25 @@
+# Local charter supplement — cross-project and compartment detail kept out of
+# the public repository. The committed CLAUDE.md carries the Mindforge charter.
+CLAUDE.local.md
+
+# Local agent/editor configuration
+.claude/
+.remember/
+.playwright-mcp/
+
+# Security scan output. Deliberately not published: the semgrep report
+# enumerates absolute local filesystem paths.
+semgrep-report.json
+semgrep-stderr.txt
+gitleaks-report.json
+gitleaks-stderr.txt
+checkov-report.json
+checkov-stderr.txt
+hadolint-report.json
+precommit-scan-*.md
+
+# QA and design artefacts from viewport/favicon testing
+p4-modal-*.png
+p4-safety-modal-*.png
+favicon-direct.png
+favicon-tab-*.png

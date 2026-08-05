@@ -324,6 +324,28 @@
 
         /* Begin-session lock */
         .locked { opacity: 0.4; pointer-events: none; }
+    
+        /* ── Shared safety block ─────────────────────────────────────── */
+        details.mf-safety {
+            border: 1px solid var(--border); border-left: 2px solid var(--warn);
+            background: var(--surface2); border-radius: 3px;
+            margin: 0 0 16px 0; padding: 0;
+        }
+        details.mf-safety > summary {
+            cursor: pointer; padding: 9px 12px; list-style: none;
+            font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+            color: var(--warn); user-select: none;
+        }
+        details.mf-safety > summary::-webkit-details-marker { display: none; }
+        details.mf-safety > summary::after { content: ' \25be'; }
+        details.mf-safety[open] > summary::after { content: ' \25b4'; }
+        details.mf-safety > summary:focus-visible { outline: 1px solid var(--warn); }
+        details.mf-safety ul {
+            margin: 0; padding: 0 14px 12px 28px;
+            font-size: 12px; line-height: 1.65; color: var(--text-dim);
+        }
+        details.mf-safety li { margin-bottom: 7px; }
+        details.mf-safety strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -337,6 +359,19 @@
             <a href="ganzfeld.html">Ganzfeld</a>
         </nav>
     </header>
+    <!-- ── Shared safety notes — consistent across the suite ── -->
+    <details class="mf-safety">
+        <summary>Safety notes — read before first use</summary>
+        <ul>
+            <li><strong>Not a medical device.</strong> Nothing here diagnoses, treats, or cures anything, and none of it substitutes for medical or psychological care. The research sections describe findings in the literature; they do not establish that this implementation produces any outcome for any person.</li>
+            <li><strong>Adults only.</strong> Intended for people 18 or over. Not for use by minors, and not to be run on a minor as a subject.</li>
+            <li><strong>Never while driving or operating machinery.</strong> Do not use this while driving, cycling, operating machinery, or anywhere a lapse in attention carries a cost. These protocols are designed to reduce vigilance and can induce drowsiness without warning. Sit or lie down, somewhere safe.</li>
+            <li><strong>Photosensitivity.</strong> Susceptibility to photosensitive seizure peaks at 15–25&nbsp;Hz, within a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). Do not use any flashing or flickering mode if you have a history of seizures or photosensitivity, or if you do not know whether you do.</li>
+            <li><strong>Mental health.</strong> Stop if you become distressed, disoriented, or dissociated. These protocols are not appropriate during acute psychiatric crisis, psychosis, mania, or active depersonalisation, and prolonged sensory reduction can intensify those states rather than settle them.</li>
+            <li><strong>Drowsiness at depth.</strong> Deep theta work reliably produces sleep onset and hypnagogic imagery. Expect to lose time. Do not schedule anything immediately afterward that requires you to be sharp, and give yourself several minutes to reorient before standing up.</li>
+        </ul>
+    </details>
+
 
     <!-- INTRO PANEL -->
     <div id="intro-panel">
@@ -664,6 +699,86 @@ function uuid() {
         (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 }
 
+// ── Randomness ────────────────────────────────────────────────────────────────
+// Coordinates are drawn from the CSPRNG. Under the SRI protocol the coordinate
+// is an arbitrary reference number carrying no information about the target, so
+// what matters is that it is not predictable from previously issued ones —
+// which is exactly what Math.random() cannot promise.
+function randBelow(n) {
+    if (n <= 1) return 0;
+    const w = new Uint32Array(1);
+    const limit = Math.floor(4294967296 / n) * n;
+    do { crypto.getRandomValues(w); } while (w[0] >= limit);
+    return w[0] % n;
+}
+
+// ── SHA-256 ───────────────────────────────────────────────────────────────────
+// Implemented in-file rather than via crypto.subtle: SubtleCrypto requires a
+// secure context, and this tool must run from a saved file on disk. Synchronous,
+// so the hash can be computed inline when the session record is built.
+function sha256Hex(input) {
+    const rrot = (v, a) => (v >>> a) | (v << (32 - a));
+    const K = [
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
+             0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+
+    const bytes = [];
+    for (const ch of String(input)) {
+        const cp = ch.codePointAt(0);
+        if (cp < 0x80) bytes.push(cp);
+        else if (cp < 0x800) bytes.push(0xc0 | cp >> 6, 0x80 | cp & 63);
+        else if (cp < 0x10000) bytes.push(0xe0 | cp >> 12, 0x80 | (cp >> 6) & 63, 0x80 | cp & 63);
+        else bytes.push(0xf0 | cp >> 18, 0x80 | (cp >> 12) & 63, 0x80 | (cp >> 6) & 63, 0x80 | cp & 63);
+    }
+    const bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    bytes.push(0, 0, 0, 0,
+               (bitLen >>> 24) & 0xff, (bitLen >>> 16) & 0xff,
+               (bitLen >>> 8) & 0xff, bitLen & 0xff);
+
+    const w = new Uint32Array(64);
+    for (let i = 0; i < bytes.length; i += 64) {
+        for (let j = 0; j < 16; j++) {
+            w[j] = (bytes[i+j*4] << 24) | (bytes[i+j*4+1] << 16)
+                 | (bytes[i+j*4+2] << 8) | bytes[i+j*4+3];
+        }
+        for (let j = 16; j < 64; j++) {
+            const s0 = rrot(w[j-15],7) ^ rrot(w[j-15],18) ^ (w[j-15] >>> 3);
+            const s1 = rrot(w[j-2],17) ^ rrot(w[j-2],19) ^ (w[j-2] >>> 10);
+            w[j] = (w[j-16] + s0 + w[j-7] + s1) >>> 0;
+        }
+        let a=H[0], b=H[1], c=H[2], d=H[3], e=H[4], f=H[5], g=H[6], h=H[7];
+        for (let j = 0; j < 64; j++) {
+            const S1 = rrot(e,6) ^ rrot(e,11) ^ rrot(e,25);
+            const ch = (e & f) ^ (~e & g);
+            const t1 = (h + S1 + ch + K[j] + w[j]) >>> 0;
+            const S0 = rrot(a,2) ^ rrot(a,13) ^ rrot(a,22);
+            const maj = (a & b) ^ (a & c) ^ (b & c);
+            const t2 = (S0 + maj) >>> 0;
+            h=g; g=f; f=e; e=(d+t1)>>>0; d=c; c=b; b=a; a=(t1+t2)>>>0;
+        }
+        H = [(H[0]+a)>>>0,(H[1]+b)>>>0,(H[2]+c)>>>0,(H[3]+d)>>>0,
+             (H[4]+e)>>>0,(H[5]+f)>>>0,(H[6]+g)>>>0,(H[7]+h)>>>0];
+    }
+    return H.map(x => x.toString(16).padStart(8,'0')).join('');
+}
+
+// Domain-separated so the digest cannot be confused with a bare SHA-256 of the
+// number, and truncated to 128 bits — ample for identifying a session record,
+// short enough to quote in a citation.
+function coordinateHash(coord) {
+    return sha256Hex('mindforge-rv-coordinate:v1:' + String(coord).trim()).slice(0, 32);
+}
+
 function fmtTime(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -697,7 +812,7 @@ function dismissIntro() {
 // ── Coordinate generator ──────────────────────────────────────────────────────
 
 function genCoord() {
-    const n = Math.floor(100000 + Math.random() * 900000);
+    const n = 100000 + randBelow(900000);
     el('coordinate').value = String(n);
     saveSetupFields();
 }
@@ -762,6 +877,11 @@ function beginSession() {
         id:              uuid(),
         date:            new Date().toISOString(),
         coordinate:      coord,
+        // Stable one-way digest of the coordinate. This is the only field
+        // intended to be quoted outside the tool (e.g. in the Cytherea Q-Viewer
+        // write-up) — it identifies a session without disclosing the coordinate,
+        // the transcript, or the revealed target, all of which stay in this file.
+        coordinate_hash: coordinateHash(coord),
         viewer:          viewer,
         tasker:          el('tasker-name').value.trim(),
         mode:            mode,
@@ -1036,7 +1156,10 @@ function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function escAttr(s) {
-    return String(s).replace(/"/g,'&quot;').replace(/&/g,'&amp;');
+    // Ampersand first: escaping quotes before ampersands double-encoded the
+    // entity itself, so a quote in a note rendered as the literal text &quot;.
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+                    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -1109,10 +1232,12 @@ function exportLog() {
     const log = loadLog();
     if (!log.length) { alert('No sessions to export.'); return; }
     const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'rv-sessions-' + new Date().toISOString().slice(0, 10) + '.json';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function clearLog() {

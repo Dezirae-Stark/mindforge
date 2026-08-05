@@ -270,6 +270,28 @@
         .btn-danger:hover { border-color: #b04040; color: #c06060; background: rgba(176,64,64,0.1); }
 
         .hidden { display: none !important; }
+    
+        /* ── Shared safety block ─────────────────────────────────────── */
+        details.mf-safety {
+            border: 1px solid var(--border); border-left: 2px solid var(--warn);
+            background: var(--surface2); border-radius: 3px;
+            margin: 0 0 16px 0; padding: 0;
+        }
+        details.mf-safety > summary {
+            cursor: pointer; padding: 9px 12px; list-style: none;
+            font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+            color: var(--warn); user-select: none;
+        }
+        details.mf-safety > summary::-webkit-details-marker { display: none; }
+        details.mf-safety > summary::after { content: ' \25be'; }
+        details.mf-safety[open] > summary::after { content: ' \25b4'; }
+        details.mf-safety > summary:focus-visible { outline: 1px solid var(--warn); }
+        details.mf-safety ul {
+            margin: 0; padding: 0 14px 12px 28px;
+            font-size: 12px; line-height: 1.65; color: var(--text-dim);
+        }
+        details.mf-safety li { margin-bottom: 7px; }
+        details.mf-safety strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -290,6 +312,20 @@
             <a href="telehypnosis-pro.html">Telehypnosis Pro</a>
         </nav>
     </header>
+    <!-- ── Shared safety notes — consistent across the suite ── -->
+    <details class="mf-safety">
+        <summary>Safety notes — read before first use</summary>
+        <ul>
+            <li><strong>Not a medical device.</strong> Nothing here diagnoses, treats, or cures anything, and none of it substitutes for medical or psychological care. The research sections describe findings in the literature; they do not establish that this implementation produces any outcome for any person.</li>
+            <li><strong>Adults only.</strong> Intended for people 18 or over. Not for use by minors, and not to be run on a minor as a subject.</li>
+            <li><strong>Never while driving or operating machinery.</strong> Do not use this while driving, cycling, operating machinery, or anywhere a lapse in attention carries a cost. These protocols are designed to reduce vigilance and can induce drowsiness without warning. Sit or lie down, somewhere safe.</li>
+            <li><strong>Photosensitivity.</strong> Susceptibility to photosensitive seizure peaks at 15–25&nbsp;Hz, within a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). Do not use any flashing or flickering mode if you have a history of seizures or photosensitivity, or if you do not know whether you do.</li>
+            <li><strong>Mental health.</strong> Stop if you become distressed, disoriented, or dissociated. These protocols are not appropriate during acute psychiatric crisis, psychosis, mania, or active depersonalisation, and prolonged sensory reduction can intensify those states rather than settle them.</li>
+            <li><strong>Headphone volume.</strong> Set the level before you start, at the quietest setting that works. Binaural material is worn for long stretches, and sustained exposure damages hearing at volumes that feel comfortable minute to minute.</li>
+            <li><strong>Drowsiness at depth.</strong> Deep theta work reliably produces sleep onset and hypnagogic imagery. Expect to lose time. Do not schedule anything immediately afterward that requires you to be sharp, and give yourself several minutes to reorient before standing up.</li>
+        </ul>
+    </details>
+
 
     <!-- Setup panel -->
     <div class="section" id="setup-panel">
@@ -532,11 +568,40 @@ function el(id)  { return document.getElementById(id); }
 function gc(id)  { return el(id).checked; }
 function gv(id)  { return el(id).value; }
 
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Randomness ────────────────────────────────────────────────────────────────
+// Trial order determines the result, so it is drawn from the CSPRNG rather than
+// Math.random(). Rejection sampling discards the tail of the byte range that
+// would otherwise make low indices more likely (modulo bias).
+function randBelow(n) {
+    if (n <= 1) return 0;
+    const limit = Math.floor(256 / n) * n;
+    const b = new Uint8Array(1);
+    if (n <= 256) {
+        do { crypto.getRandomValues(b); } while (b[0] >= limit);
+        return b[0] % n;
+    }
+    const w = new Uint32Array(1);
+    const wLimit = Math.floor(4294967296 / n) * n;
+    do { crypto.getRandomValues(w); } while (w[0] >= wLimit);
+    return w[0] % n;
+}
+
+function randId() {
+    const b = new Uint8Array(9);
+    crypto.getRandomValues(b);
+    return Array.from(b, x => x.toString(16).padStart(2,'0')).join('');
+}
+
 // Fisher-Yates shuffle
 function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = randBelow(i + 1);
         [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
@@ -589,18 +654,75 @@ function scoreTrial(rating, type) {
 }
 
 function expectedScore(n) {
-    // Chance: calm→neutral = 1 of 3 ratings × ~0.5 stimuli, activated→emotional = same
-    // Per-trial expected under random: 0.5 (1 full-correct path × 0.5 prob + mild × 0.5 × 1/3)
+    // Under the null the rating is independent of stimulus valence, so a "calm"
+    // or "activated" call is right half the time (E=0.5) and a "mild" call scores
+    // a flat 0.5 by construction. Every trial therefore contributes 0.5 in
+    // expectation regardless of how the rater distributes their three options.
     return n * 0.5;
 }
 
-function zScore(s, n) {
-    // Approximate z: (score - expected) / sigma
-    // Under chance, each trial contributes 0 or 0.5 or 1 with certain probs.
-    // Simplified: treat as binary (hit=1, miss=0), chance p=0.5 per trial
-    const expected = n * 0.5;
-    const sigma    = Math.sqrt(n * 0.25); // sqrt(n * p * (1-p)) with p=0.5
-    return sigma > 0 ? ((s - expected) / sigma).toFixed(2) : '—';
+// ── Significance ──────────────────────────────────────────────────────────────
+// "Mild" trials carry no information: they score exactly 0.5 whatever the
+// stimulus was. Only the decisive (calm / activated) trials can deviate from
+// chance, and on those the score is Binomial(D, 0.5). So the test is an exact
+// binomial on D — not on n — and the variance conditions on the rater's own
+// response style rather than assuming one.
+//
+//   score = (correct decisive) + 0.5·(mild trials)
+//   E[score] = n/2 for any style;  Var[score] = D/4,  so  sigma = sqrt(D)/2
+//
+// The previous fixed sigma = sqrt(n/4) was the D = n special case (a rater who
+// never says "mild") and understated sigma for everyone else by up to sqrt(1.5).
+function decisiveCount(n, mild) { return Math.max(0, n - mild); }
+
+function zScore(s, n, mild) {
+    const D = decisiveCount(n, mild);
+    if (D === 0) return '—';
+    const sigma = Math.sqrt(D) / 2;
+    return ((s - n * 0.5) / sigma).toFixed(2);
+}
+
+// Exact one-sided upper-tail binomial p-value, P(X >= k) for X ~ Bin(n, p).
+// Log-gamma keeps the terms stable well past the trial counts this tool allows.
+function _logGamma(z) {
+    const C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+               771.32342877765313, -176.61502916214059, 12.507343278686905,
+               -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - _logGamma(1 - z);
+    z -= 1;
+    let x = C[0];
+    for (let i = 1; i < 9; i++) x += C[i] / (z + i);
+    const t = z + 7.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+function _logChoose(n, k) {
+    return _logGamma(n + 1) - _logGamma(k + 1) - _logGamma(n - k + 1);
+}
+function binomUpperTail(k, n, p) {
+    if (n <= 0 || k > n) return null;
+    if (k <= 0) return 1;
+    let sum = 0;
+    for (let i = k; i <= n; i++) {
+        sum += Math.exp(_logChoose(n, i) + i * Math.log(p) + (n - i) * Math.log(1 - p));
+    }
+    return Math.min(1, sum);
+}
+
+// Exact p for the session: how often would D fair coin flips give this many or
+// more correct calls? Fractional scores are rounded up to the next whole hit so
+// the reported p stays conservative.
+function exactP(s, n, mild) {
+    const D = decisiveCount(n, mild);
+    if (D === 0) return null;
+    const correctDecisive = Math.ceil(s - 0.5 * mild - 1e-9);
+    if (correctDecisive <= 0) return 1;
+    return binomUpperTail(Math.min(correctDecisive, D), D, 0.5);
+}
+
+function fmtP(p) {
+    if (p === null) return '—';
+    if (p < 0.0001) return 'p < 0.0001';
+    return 'p = ' + p.toFixed(4);
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -770,7 +892,9 @@ function endSession() {
 function showCompletePanel() {
     const n      = totalTrials;
     const chance = expectedScore(n);
-    const z      = zScore(score, n);
+    const z      = zScore(score, n, mildCount);
+    const p      = exactP(score, n, mildCount);
+    const D      = decisiveCount(n, mildCount);
     const pct    = ((score / n) * 100).toFixed(1);
 
     el('final-score-display').textContent = score % 1 === 0 ? score : score.toFixed(1);
@@ -782,20 +906,25 @@ function showCompletePanel() {
     el('stat-activated-hits').textContent = activatedEmotional;
     el('stat-mild-rate').textContent      = ((mildCount / n) * 100).toFixed(0) + '%';
 
+    // The verdict follows the exact binomial, not the z approximation, because
+    // at these trial counts the normal approximation is not trustworthy.
     const verdictEl = el('result-verdict');
     const zNum = parseFloat(z);
-    if (zNum > 1.96) {
-        verdictEl.textContent  = 'Above chance performance (z > 1.96)';
-        verdictEl.className    = 'result-above';
-    } else if (zNum > 1.0) {
-        verdictEl.textContent  = 'Trending above chance (z > 1.0)';
-        verdictEl.className    = 'result-chance';
+    if (D < 10) {
+        verdictEl.textContent = `Too few decisive trials to test (${D} non-mild of ${n}) — ${fmtP(p)}`;
+        verdictEl.className   = 'result-below';
+    } else if (p !== null && p < 0.05) {
+        verdictEl.textContent = `Above chance — ${fmtP(p)}, one-sided exact binomial on ${D} decisive trials`;
+        verdictEl.className   = 'result-above';
+    } else if (p !== null && p < 0.10) {
+        verdictEl.textContent = `Trending above chance — ${fmtP(p)} (not significant at 0.05)`;
+        verdictEl.className   = 'result-chance';
     } else if (zNum < -1.0) {
-        verdictEl.textContent  = 'Below chance — inverted or noise';
-        verdictEl.className    = 'result-below';
+        verdictEl.textContent = `Below chance — inverted or noise (${fmtP(p)})`;
+        verdictEl.className   = 'result-below';
     } else {
-        verdictEl.textContent  = 'Within chance range — more trials needed';
-        verdictEl.className    = 'result-below';
+        verdictEl.textContent = `Within chance range — ${fmtP(p)}`;
+        verdictEl.className   = 'result-below';
     }
 
     el('session-notes').value = '';
@@ -826,15 +955,18 @@ function saveLog(log) {
 function saveSession() {
     const n      = totalTrials;
     const chance = expectedScore(n).toFixed(1);
-    const z      = zScore(score, n);
+    const z      = zScore(score, n, mildCount);
+    const p      = exactP(score, n, mildCount);
 
     const entry = {
-        id:       Math.random().toString(36).slice(2),
+        id:       randId(),
         date:     new Date().toISOString(),
         trials:   n,
         score:    score,
         chance:   parseFloat(chance),
-        z:        parseFloat(z),
+        z:        z === '—' ? null : parseFloat(z),
+        p_exact:  p,
+        decisive_trials: decisiveCount(n, mildCount),
         calm_neutral_hits:     calmNeutralHits,
         activated_emotional:   activatedEmotional,
         mild_rate:             ((mildCount / n) * 100).toFixed(0) + '%',
@@ -862,16 +994,21 @@ function renderLog() {
         const d = new Date(e.date);
         const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
         const tr = document.createElement('tr');
+        // Colour tracks the exact p-value where the record has one; older
+        // records predating p_exact fall back to their stored z.
         const zNum = parseFloat(e.z);
-        const zColor = zNum > 1.96 ? 'var(--on)' : zNum > 1.0 ? 'var(--accent2)' : 'var(--text-dim)';
+        const zColor = (e.p_exact !== undefined && e.p_exact !== null)
+            ? (e.p_exact < 0.05 ? 'var(--on)' : e.p_exact < 0.10 ? 'var(--accent2)' : 'var(--text-dim)')
+            : (zNum > 1.96 ? 'var(--on)' : zNum > 1.0 ? 'var(--accent2)' : 'var(--text-dim)');
+        const zCell = (e.z === null || e.z === undefined || isNaN(zNum)) ? '—' : e.z;
         tr.innerHTML = `
-            <td style="white-space:nowrap;font-size:10px;color:var(--text-dim);">${dateStr}</td>
-            <td style="text-align:center;">${e.trials}</td>
-            <td style="text-align:center;color:var(--accent);">${typeof e.score === 'number' && e.score % 1 !== 0 ? e.score.toFixed(1) : e.score}</td>
-            <td style="text-align:center;color:var(--text-dim);">${e.chance}</td>
-            <td style="text-align:center;color:${zColor};">${e.z}</td>
+            <td style="white-space:nowrap;font-size:10px;color:var(--text-dim);">${escHtml(dateStr)}</td>
+            <td style="text-align:center;">${escHtml(e.trials)}</td>
+            <td style="text-align:center;color:var(--accent);">${escHtml(typeof e.score === 'number' && e.score % 1 !== 0 ? e.score.toFixed(1) : e.score)}</td>
+            <td style="text-align:center;color:var(--text-dim);">${escHtml(e.chance)}</td>
+            <td style="text-align:center;color:${zColor};">${escHtml(zCell)}</td>
             <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);font-size:10px;"
-                title="${(e.notes||'').replace(/"/g,'&quot;')}">${e.notes || '—'}</td>
+                title="${escHtml(e.notes||'')}">${escHtml(e.notes || '—')}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -881,10 +1018,13 @@ function exportLog() {
     const log = loadLog();
     if (!log.length) { alert('No sessions to export.'); return; }
     const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'presentiment-log-' + new Date().toISOString().slice(0,10) + '.json';
     a.click();
+    // Release the blob rather than leaving it pinned for the document lifetime.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function clearLog() {

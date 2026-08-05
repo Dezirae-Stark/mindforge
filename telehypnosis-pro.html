@@ -449,6 +449,28 @@
         #manifest-skip-indicator button:hover { color: var(--accent2); border-color: var(--accent); }
         #manifest-status { display: none; font-size: 11px; color: var(--warn); margin-top: 6px; padding: 4px 8px; background: rgba(192, 112, 64, 0.08); border-left: 2px solid var(--warn); }
         #manifest-status.visible { display: block; }
+    
+        /* ── Shared safety block ─────────────────────────────────────── */
+        details.mf-safety {
+            border: 1px solid var(--border); border-left: 2px solid var(--warn);
+            background: var(--surface2); border-radius: 3px;
+            margin: 0 0 16px 0; padding: 0;
+        }
+        details.mf-safety > summary {
+            cursor: pointer; padding: 9px 12px; list-style: none;
+            font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+            color: var(--warn); user-select: none;
+        }
+        details.mf-safety > summary::-webkit-details-marker { display: none; }
+        details.mf-safety > summary::after { content: ' \25be'; }
+        details.mf-safety[open] > summary::after { content: ' \25b4'; }
+        details.mf-safety > summary:focus-visible { outline: 1px solid var(--warn); }
+        details.mf-safety ul {
+            margin: 0; padding: 0 14px 12px 28px;
+            font-size: 12px; line-height: 1.65; color: var(--text-dim);
+        }
+        details.mf-safety li { margin-bottom: 7px; }
+        details.mf-safety strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -479,6 +501,21 @@
         <div class="rec-note" id="rec-note-mindforge">Receiver: open <a href="mindforge.html">Mindforge</a> &rarr; Gateway or Sleep Onset preset &middot; same duration &middot; begin simultaneously</div>
         <div class="rec-note hidden" id="rec-note-ambient">Receiver: share <a href="consent.html" target="_blank">consent form</a> in advance &middot; no tool required &middot; receiver proceeds with normal activity during session window</div>
     </header>
+    <!-- ── Shared safety notes — consistent across the suite ── -->
+    <details class="mf-safety">
+        <summary>Safety notes — read before first use</summary>
+        <ul>
+            <li><strong>Not a medical device.</strong> Nothing here diagnoses, treats, or cures anything, and none of it substitutes for medical or psychological care. The research sections describe findings in the literature; they do not establish that this implementation produces any outcome for any person.</li>
+            <li><strong>Adults only.</strong> Intended for people 18 or over. Not for use by minors, and not to be run on a minor as a subject.</li>
+            <li><strong>Never while driving or operating machinery.</strong> Do not use this while driving, cycling, operating machinery, or anywhere a lapse in attention carries a cost. These protocols are designed to reduce vigilance and can induce drowsiness without warning. Sit or lie down, somewhere safe.</li>
+            <li><strong>Photosensitivity.</strong> Susceptibility to photosensitive seizure peaks at 15–25&nbsp;Hz, within a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). Do not use any flashing or flickering mode if you have a history of seizures or photosensitivity, or if you do not know whether you do.</li>
+            <li><strong>Mental health.</strong> Stop if you become distressed, disoriented, or dissociated. These protocols are not appropriate during acute psychiatric crisis, psychosis, mania, or active depersonalisation, and prolonged sensory reduction can intensify those states rather than settle them.</li>
+            <li><strong>Headphone volume.</strong> Set the level before you start, at the quietest setting that works. Binaural material is worn for long stretches, and sustained exposure damages hearing at volumes that feel comfortable minute to minute.</li>
+            <li><strong>Drowsiness at depth.</strong> Deep theta work reliably produces sleep onset and hypnagogic imagery. Expect to lose time. Do not schedule anything immediately afterward that requires you to be sharp, and give yourself several minutes to reorient before standing up.</li>
+            <li><strong>Consent is required.</strong> This is a two-person protocol. Every participant must know a session is happening, agree to it in advance, and be able to withdraw at any point without giving a reason. Do not run this on someone who has not agreed, who cannot agree, or who is not present to be asked. See the <a href="consent.html">consent note</a>.</li>
+        </ul>
+    </details>
+
 
     <!-- Target Setup -->
     <div class="panel" id="target-panel">
@@ -1069,7 +1106,7 @@ function buildCoherenceOverlay(receiverName, onComplete) {
     overlay.innerHTML = `
         <div id="coherence-title">Heart-focused breathing</div>
         <div id="coherence-circle"></div>
-        <div id="coherence-instruction">Breathe as if from your heart.<br>Cultivate care for <strong style="color:rgba(160,96,224,0.85);">${receiverName}</strong>.</div>
+        <div id="coherence-instruction">Breathe as if from your heart.<br>Cultivate care for <strong style="color:rgba(160,96,224,0.85);">${_rfEscHtml(String(receiverName || ''))}</strong>.</div>
         <div id="coherence-countdown">${fmt(Math.floor(DURATION / 60))}:${fmt(DURATION % 60)}</div>
         <button id="coherence-skip">Skip</button>
     `;
@@ -1260,18 +1297,20 @@ function renderLog() {
     [...log].reverse().forEach(e => {
         const d = new Date(e.date);
         const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-        const matchCls = 'match-' + e.match;
+        // matchCls comes from the stored record, so it is escaped too rather than
+        // trusted as a bare class token.
+        const matchCls = 'match-' + _rfEscHtml(e.match);
         const tr = document.createElement('tr');
         const modeLabel = e.receiverMode === 'ambient' ? 'Amb' : 'MF';
         const modeColor = e.receiverMode === 'ambient' ? 'var(--accent2)' : 'var(--accent)';
         tr.innerHTML = `
-            <td style="white-space:nowrap;font-size:10px;">${dateStr}</td>
-            <td>${e.receiver || '\u2014'}</td>
-            <td>${e.duration}</td>
+            <td style="white-space:nowrap;font-size:10px;">${_rfEscHtml(dateStr)}</td>
+            <td>${_rfEscHtml(e.receiver || '\u2014')}</td>
+            <td>${_rfEscHtml(e.duration)}</td>
             <td style="color:${modeColor};font-size:10px;">${modeLabel}</td>
-            <td class="${matchCls}">${e.match} ${MATCH_LABELS[e.match]||''}</td>
+            <td class="${matchCls}">${_rfEscHtml(e.match)} ${_rfEscHtml(MATCH_LABELS[e.match]||'')}</td>
             <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);"
-                title="${(e.intention||'').replace(/"/g,'&quot;')}">${e.intention || '\u2014'}</td>`;
+                title="${_rfEscHtml(e.intention||'')}">${_rfEscHtml(e.intention || '\u2014')}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -1280,10 +1319,12 @@ function exportLog() {
     const log = loadLog();
     if (!log.length) { alert('No sessions to export.'); return; }
     const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'thp-sessions-' + new Date().toISOString().slice(0,10) + '.json';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function clearLog() {
@@ -1812,8 +1853,11 @@ function _rfReframeOne(text, context) {
     return framed;
 }
 
+// Shared HTML escaper. Hoisted, so callers earlier in the file (the coherence
+// overlay, the session log table) can rely on it.
 function _rfEscHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function rfDoReframe(textareaId, context) {

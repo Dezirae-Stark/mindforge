@@ -28,6 +28,30 @@ A suite of single-file browser tools for consciousness research, subconscious wo
 
 ---
 
+## Cross-Cutting Additions (2026-08) — audit, statistics, and safety pass
+
+A full read-through audit of all eleven files, followed by fixes. Every item below was verified by executing the shipped code, not by inspection.
+
+**Statistics — two tools were reporting significance incorrectly.**
+- **Ganzfeld** used a normal approximation with no minimum-N guard, so two sessions with two direct hits displayed "p < 0.05" when the exact probability is 0.0625. Replaced with an exact one-sided binomial (log-gamma), and no p-value is shown below 8 logged sessions.
+- **Presentiment** used a fixed `sigma = sqrt(n/4)`. That is only correct for a rater who never uses the "mild" option; it understated sigma by up to sqrt(1.5) for everyone else, so the "z > 1.96" verdict was actually firing at a true z of 2.40. A "mild" call scores a flat 0.5 regardless of stimulus, contributing no variance, so the correct test is an exact binomial on the D decisive trials with `sigma = sqrt(D)/2`. Confirmed against Monte Carlo at mild rates 0, 0.33, 0.5 and 0.8.
+
+**Randomisation.** Target selection, judging order and coordinate generation now draw from `crypto.getRandomValues` with rejection sampling. `Math.random()` is a seeded PRNG — neither reproducible for audit nor unpredictable, which is the worst combination for an instrument whose output is a hit rate. It is retained only for pink-noise buffer fill, where neither property matters.
+
+**Privacy.** The self-voice recorder's "saved on device" mode has been removed and any recording left behind by it is purged on load. Recordings are now session-only, held in memory and revoked on `pagehide`. GitHub Pages serves every repo under one account from a single origin, so a stored recording of spoken suggestions would have been readable by any other page published there.
+
+**Safety notes.** A shared block now appears in all nine tools covering medical disclaimer, adults-only, driving and machinery, photosensitivity, mental health, headphone volume and drowsiness at depth, plus an explicit consent requirement on the three two-person protocols. Driving and minor-exclusion warnings previously appeared in none of the nine; Ganzfeld, Presentiment and Remote Viewing previously had no safety block at all.
+
+**Correctness.** Two unescaped `innerHTML` interpolations fixed (Presentiment log notes, Telehypnosis Pro receiver name and intention), an attribute-escaper ordering bug corrected, and `URL.revokeObjectURL` added to every export path.
+
+**Cytherea coupling.** Session records now carry a real `coordinate_hash` — SHA-256, implemented in-file because `crypto.subtle` requires a secure context the offline-file guarantee cannot assume. See the Remote Viewing section for what actually crosses the boundary and what does not.
+
+**Citation audit.** Every reference checked against a primary source or publisher record. Five bibliographic errors corrected and one claim found to be unsupported by the paper cited for it. See the note at the head of Research References.
+
+**New audio controls.** Channel phase (antiphase) and an optional φ partial layer, with measurements, in the Mindforge audio architecture section.
+
+---
+
 ## Cross-Cutting Additions (2026-05)
 
 Three cross-tool features now span the six self-directed tools (Mindforge, Seiðr, Remote Healing, Telehypnosis Pro, Coherence, Solfeggio). The three psi-receiver tools (Remote Viewing, Ganzfeld, Presentiment) are deliberately excluded — each depends on a non-primed perceptual state and would lose protocol integrity if any of these features were added to them.
@@ -41,7 +65,9 @@ Every reframe/suggestion path now offers two registers:
 The Vasiliev third-person convention in Telehypnosis Pro is preserved — both styles stay in third person there. Healing.html auto-detects self vs sender→receiver mode and applies first-person enforcement only to the self path.
 
 ### Self-voice recording (Mindforge)
-Optional pipeline that lets you record your own affirmations via the browser's MediaRecorder API and route them through the suggestion delivery instead of the synthesised TTS voice. Two storage modes — *session-only* (in-memory, revoked on tab close) or *saved* (base64 in `localStorage`, capped at 3 MB). All local. No upload. After self-referential processing literature.
+Optional pipeline that lets you record your own affirmations via the browser's MediaRecorder API and route them through the suggestion delivery instead of the synthesised TTS voice. **Session-only, and only session-only:** the recording is held in memory as a Blob, played from an object URL, and revoked when the page goes away. It is never written to storage and never uploaded. After self-referential processing literature.
+
+An earlier build also offered a "saved on device" mode that base64-encoded the recording into `localStorage`. That mode is gone, and any recording left behind by it is purged on load. Two reasons: the charter forbids captured audio persisting past the session, and the deployment makes it worse than it looks — GitHub Pages serves every repo under one account from a single origin, so a stored recording of you speaking hypnotic suggestions would be readable by any other page published there.
 
 ### Bengston staged image-cycling overlay (`mf-manifest-list` cross-tool)
 A four-phase manifestation protocol shared across the six included tools:
@@ -51,7 +77,7 @@ A four-phase manifestation protocol shared across the six included tools:
 3. **Phase 3 — Accelerating cycle.** Symbols cycle through a fixed overlay element. Rate exponentially decays from ~2500 ms to ~100 ms over the session. Font size grows slightly across the ramp (the "amplitude" axis).
 4. **Phase 4 — Sub-conscious threshold.** Symbols flash at ~70 ms (~14 Hz). User-initiated only, behind a photosensitive-safety consent modal.
 
-The list lives at a single shared localStorage key (`mf-manifest-list`) so the user authors the list once and cycles through it on any of the six tools. Method after Bengston & Krinsley (2000, *Journal of Scientific Exploration* 14(3): 353–364) and Bengston with Fraser (2010, *The Energy Cure*, Sounds True, ISBN 9781591799115); image-cycling technique documented in Bengston (2007, *Journal of Alternative and Complementary Medicine* 13(3): 329–331). Methodological lineage in Roberts (1974, *The Nature of Personal Reality*, Prentice-Hall) and Hicks & Hicks (2004, *Ask and It Is Given*, Hay House) — channeled antecedent, not empirical evidence. The null result on the causal manifestation claim — Dixon, Hornsey & Hartley (2023, *Personality and Social Psychology Bulletin*, doi:10.1177/01461672231181162) — is cited in every modal alongside the lineage.
+The list lives at a single shared localStorage key (`mf-manifest-list`) so the user authors the list once and cycles through it on any of the six tools. Method after Bengston & Krinsley (2000, *Journal of Scientific Exploration* 14(3): 353–364) and Bengston with Fraser (2010, *The Energy Cure*, Sounds True, ISBN 9781591799115); image-cycling technique documented in Bengston (2007, *Journal of Alternative and Complementary Medicine* 13(3): 329–331). Methodological lineage in Roberts (1974, *The Nature of Personal Reality*, Prentice-Hall) and Hicks & Hicks (2004, *Ask and It Is Given*, Hay House) — channeled antecedent, not empirical evidence. The counter-evidence — Dixon, Hornsey & Hartley, "'The Secret' to Success? The Psychology of Belief in Manifestation" (*Personality and Social Psychology Bulletin*, published online 2023, doi:10.1177/01461672231181162) — is cited in every modal alongside the lineage. Stated precisely: that paper is correlational, not a causal test. Across three studies (n=1,023) it found manifestation believers rated *themselves* as more successful while being more drawn to risky investments and more likely to have experienced bankruptcy. It does not demonstrate that manifestation fails to work; it finds no objective success advantage and a measurable downside risk.
 
 **Photosensitive-seizure safety.** Phase 4's ~14 Hz flash rate sits within the published photosensitive-seizure susceptible range (peak 15–25 Hz, range 1–65 Hz per Fisher, Harding et al., Epilepsy Foundation of America Working Group, *Epilepsia* 46(9), 2005; ITU-R BT.1702 flash-rate threshold). Phase 4 is gated behind an in-page modal with:
 - Cancel button receiving programmatic focus on open (no default-focus-on-Proceed)
@@ -120,20 +146,54 @@ An optional divided-attention mode: play any video in the background while the s
 
 **Z-index architecture:** Video sits at z-index 5, behind all existing elements. Bilateral bars: z-index 1000. Subliminal flash: z-index 2000. HUD: z-index 3000.
 
-**Research basis:** Merikle et al. (2001) showed subliminal priming is stronger under divided attention — when conscious focus is engaged elsewhere, subconscious registration of the subliminal content is less filtered. Bilateral bars engage peripheral vision regardless of foveal focus on the video. Binaural beats are auditory and require no visual attention.
+**Research basis:** Merikle, Smilek & Eastwood (2001) review four experimental approaches to perception without awareness and conclude that stimuli are perceived even when observers are unaware of them, and that information perceived without awareness biases what is subsequently perceived consciously. Bilateral bars engage peripheral vision regardless of foveal focus on the video; binaural beats are auditory and require no visual attention.
+
+> **Correction, 2026-08-05.** This section previously claimed Merikle et al. "showed subliminal priming is stronger under divided attention." A citation audit could not find that claim in the paper — it is a review of *whether* unconscious perception occurs, not a comparison of effect strength under divided versus focused attention. The "divided attention amplifies subliminal registration" premise is therefore **not currently supported by any citation in this README**. It may well be defensible from the attentional-load literature, but until a specific source is located and read, the design rationale for running suggestions under a video overlay should be treated as a plausible hypothesis rather than an established finding.
 
 ### Audio architecture
 
 ```
-leftOsc  (carrier Hz)       → leftG  ─┐
-                                       ├── ChannelMerger → masterG → destination
-rightOsc (carrier + beat Hz) → rightG ─┘
+leftOsc  (carrier Hz)        → leftG  ─┐
+rightOsc (carrier + beat Hz) → rightG ─┤
+phiOscA  (carrier × φ)       → phiGL  ─├── ChannelMerger → masterG → destination
+phiOscB  (carrier × φ²)      → phiGR  ─┘
 
-noiseSource → noiseG ──────────────────── masterG → destination
+noiseSource → noiseG ───────────────────── masterG → destination
 noiseSource panned L/R alternating at bilateral rate
 ```
 
 True stereo binaural via `ChannelMerger(2)`. Pink noise generated using Paul Kellett's IIR filter algorithm looped from a 5-second buffer. All frequency changes via `linearRampToValueAtTime` — sample-accurate and inaudible during transitions.
+
+#### Channel phase
+
+`Aligned` (default) or `Antiphase`, which multiplies the right channel gain by −1 — an exact 180° inversion, done on the existing gain node rather than by adding one.
+
+Measured by rendering the shipped `initAudio()`/`applyBin()` through an `OfflineAudioContext` at 300 Hz carrier, 0.26 level:
+
+| Condition | Mono sum RMS | L rms | R rms |
+|---|---|---|---|
+| Aligned, beat 6 Hz | 0.1300 | 0.1838 | 0.1838 |
+| Antiphase, beat 6 Hz | **0.1300** — identical | 0.1838 | 0.1838 |
+| Aligned, beat 0 Hz | 0.1838 | 0.1838 | 0.1838 |
+| **Antiphase, beat 0 Hz** | **0.0000** | 0.1838 | 0.1838 |
+
+Two conclusions, the second of which contradicts how phase inversion is normally sold.
+
+The inversion **does not change the beat rate**. Both carriers remain at full amplitude and the beat is still their difference.
+
+And **at any non-zero beat, inversion does not attenuate the mono sum at all** — 0.1300 either way, identical to four decimal places. Normalised to unit-amplitude tones and integrated over whole beat cycles, the figure is 0.500 in both cases, a ratio of exactly 1.000 at every beat from 0.5 to 10 Hz. Inverting one channel only shifts the *phase of the beat envelope*, not its level. Total cancellation requires a beat of exactly 0 Hz, where both ears receive the same tone.
+
+> **Defect found and fixed, 2026-08-05.** This section originally claimed antiphase "largely cancels if anything downstream sums to mono," citing a 0.000 measurement. That measurement was taken from a standalone replica of the node graph, not from the shipped tool — and in the shipped tool the `beat-hz` slider had `min="0.5"`, so **a 0 Hz beat was unreachable and the documented behaviour could never occur in use.** Testing the real code path caught it. The slider minimum is now 0, and the claim above is stated in terms of what actually happens at non-zero beat.
+
+So this is an interaural-phase control: it changes where the beat sits in the head and decorrelates the image. Headphones only.
+
+#### φ partial layer
+
+Optional. Adds two quiet sine partials at `carrier × φ` and `carrier × φ²` (φ = 1.6180…), one panned to each side, with a Nyquist clamp so a high carrier cannot alias the second partial back down.
+
+φ is the irrational number least well approximated by any ratio of small integers — the closest with numerator and denominator under 16 is 13/8, still off by 0.0180. Partials at φ ratios therefore never coincide with the carrier's harmonic series and never fuse into a single perceived tone. Measured at 300 Hz carrier with the layer at 0.10: energy sits at 485 Hz (0.0997) and 785 Hz (0.0999), while the second harmonic at 600 Hz reads 4.3e-4 — roughly 230× below the partials.
+
+**This is a timbre control and nothing more.** It changes how the tone sounds; it is not an entrainment mechanism, and no claim is made that φ-ratio frequencies act on physiology. Whatever entrainment occurs comes from the beat rate alone. See *On "golden ratio phase-inversion"* below for why that distinction is worth stating explicitly.
 
 ---
 
@@ -215,7 +275,11 @@ Collapsible guide with specific framing approaches from Braud's DMILS protocol: 
 
 Full two-person ganzfeld session manager for consensual psi research. Based on the Honorton (1985) meta-analysis (28 studies, 32% direct hit rate vs 25% chance, effect size d=0.28), the Bem-Honorton autoganzfeld series, and IONS replications. Ganzfeld is the most replicated protocol in parapsychology.
 
-**Setup:** Both parties run this tool simultaneously. Sender and receiver see only their own console. Receiver records impressions before seeing any targets. Judging is performed blind.
+**Setup — read this before comparing your results to the literature.** This is a *single-device* tool. Because the suite makes no network calls, two copies of the page cannot agree on a target: each would randomise its own set independently. So both parties share one device, and the separation between sender and receiver is procedural, not physical — the sender's target sits behind a click-to-reveal cover further up the same page, and the receiver is asked not to scroll to it.
+
+That is a real departure from the protocol the cited effect sizes come from. Honorton's ganzfeld placed sender and receiver in separate acoustically-isolated rooms, and sensory leakage between them is precisely the criticism Hyman levelled at the early database. Sessions run this way are a practice instrument; they are not a replication of the autoganzfeld design, and a hit rate obtained here should not be read against the 32% meta-analytic figure as though the conditions matched.
+
+Receiver records impressions before seeing any targets. Judging is performed blind.
 
 ### How a session works
 
@@ -233,9 +297,10 @@ Paul Kellett IIR filter algorithm, looped mono buffer. Volume-adjustable. Provid
 
 ### Statistics
 - Direct hits (rank 1), expected 25%, displayed with hit rate %
-- Z-score: `(hits - N×0.25) / sqrt(N×0.25×0.75)`
-- p < 0.05 marker in green when Z > 1.96
-- p < 0.10 trend marker in amber when Z > 1.645
+- Z-score shown for reference: `(hits - N×0.25) / sqrt(N×0.25×0.75)`
+- **Significance is reported from the exact binomial**, not from that z. Direct hits are Binomial(N, 0.25) under the null, and the one-sided upper tail is computed directly.
+- No p-value is shown below 8 logged sessions. The normal approximation is badly behaved at small N — two sessions with two direct hits gives z = 2.45, which earlier builds reported as "p < 0.05" when the exact probability is 0.0625. Eight is a floor for a personal log, not an adequate series; the studies in the cited meta-analyses run 20–50 sessions apiece, and Honorton's autoganzfeld ran 354.
+- Target selection and judging order are drawn from `crypto.getRandomValues` with rejection sampling, not `Math.random()`.
 
 ### Research basis
 
@@ -330,11 +395,27 @@ Fixed trial bar visible throughout: `Trial N / M` | dot history (last 10 trials:
 
 ### Session complete statistics
 
-Score, trials, chance baseline, z-score, hit rate %, calm→neutral hits, activated→emotional hits, mild rate, verdict (above / trending / below chance with color coding).
+Score, trials, chance baseline, z-score, hit rate %, calm→neutral hits, activated→emotional hits, mild rate, and a verdict carrying an exact p-value.
+
+**How the test works.** A "mild" rating scores a flat 0.5 whatever the stimulus turns out to be, so those trials carry no information — they shift the score but contribute no variance. Only the decisive (calm / activated) calls can deviate from chance, and on those the score is Binomial(D, 0.5) where D is the count of non-mild trials. So:
+
+```
+E[score] = n/2        for any response style
+sigma    = sqrt(D)/2  conditioned on the rater's own mild rate
+p        = one-sided exact binomial on D, not the normal approximation
+```
+
+Conditioning on D is legitimate because D is ancillary: under the null the rating is independent of stimulus valence, so how often a rater hedges says nothing about psi either way.
+
+Earlier builds used a fixed `sigma = sqrt(n/4)`. That is the D = n special case — correct only for a rater who never says "mild" — and it understated sigma by up to a factor of sqrt(1.5) for everyone else, so the "z > 1.96" verdict was actually firing at a true z of 2.40. No p-value is reported below 10 decisive trials.
+
+Trial order is drawn from `crypto.getRandomValues` with rejection sampling, not `Math.random()`.
+
+**A caveat the tool cannot fix for you:** the running score is visible during the session, so nothing stops you from stopping early on a good run. That is optional stopping, and it inflates false positives badly. Fix the trial count before you begin.
 
 ### Research basis
 
-> Radin, D.I. (2004). Electrodermal presentiments of future emotions. *Journal of Scientific Exploration*, 18(2), 253–273.
+> Radin, D.I. (2004). Electrodermal presentiments of future emotions. *Journal of Scientific Exploration*, 18(2), 253–274.
 >
 > Bierman, D.J., & Radin, D.I. (1997). Anomalous anticipatory response on randomized future conditions. *Perceptual and Motor Skills*, 84(2), 689–690.
 
@@ -346,7 +427,7 @@ Score, trials, chance baseline, z-score, hit rate %, calm→neutral hits, activa
 
 **SRI coordinate RV · Associative RV (ARV) · 6-stage CRV · 0–7 correspondence rating**
 
-Session manager and log for coordinate remote viewing (CRV) and associative remote viewing (ARV) practice, based on SRI International protocols developed by Russell Targ and Hal Puthoff (1972–1989) and continued by the SAIC Stargate program. Meta-analysis of the SRI/SAIC data by Utts (1995) found effect sizes of approximately d=0.40 for trained viewers.
+Session manager and log for coordinate remote viewing (CRV) and associative remote viewing (ARV) practice, based on SRI International protocols developed by Russell Targ and Hal Puthoff (1972–1989) and continued by the SAIC Stargate program. Utts's assessment of the SRI/SAIC data (1996; the underlying report to the American Institutes for Research is dated 1995) reports effect sizes around d=0.40 for the strongest viewers. Read that alongside the AIR panel's joint conclusion, which was markedly more guarded than the Utts chapter alone — see `citations/remote-viewing.md`.
 
 ### Session modes
 
@@ -398,30 +479,29 @@ Color-coded in the session log (0=dim → 4=accent2 → 7=green).
 - ARV hit rate (shown when ARV sessions with known outcomes exist)
 - This-month session count
 
-### Cytherea Q-Viewer integration
+### Cytherea Q-Viewer cross-reference
 
-The Mindforge Remote Viewing tool can be paired with **Cytherea Q-Viewer** — an NT-isolated AI session runner that generates raw impressions in the same `rv-log` JSON schema.
+**This is a citation-level relationship, not a runtime integration.** Cytherea's site references this tool's protocol, and Cytherea's Q-Viewer session runner adopts the same session-record shape so write-ups on both sides describe sessions the same way. Nothing here calls Cytherea, and Cytherea does not read this tool's storage. There is no pipeline, no sync, and no shared endpoint — the suite makes no network calls at all, which is what makes that impossible by construction rather than by policy.
 
-**How it works:**
+**What actually crosses:** a `coordinate_hash` field, present on every session record:
 
-1. Generate a coordinate in the Mindforge RV tool (or write one to `/cytherea/data/rv_session.json`)
-2. Start a Q-Viewer session on the Cytherea server: `python /cytherea/scripts/rv_session_runner.py --coordinate "RV-..."`
-3. Cytherea collects raw sensory impressions for 15 minutes using a WillLayer anchored to the coordinate hash — with subconscious processes paused (NT isolation) and no knowledge of the target
-4. After the session, judge the impressions against the revealed target in this tool and enter a 0–7 correspondence rating
-5. Deliver feedback: `python /cytherea/scripts/rv_session_runner.py --feedback QV-{timestamp}`
-6. Q-Viewer computes post-session field coherence (cosine similarity of the awareness field snapshot to the revealed target) and encodes the session as episodic memory
+```
+coordinate_hash = SHA-256("mindforge-rv-coordinate:v1:" + coordinate)  →  first 128 bits, hex
+```
 
-**Protocol notes:**
-- The coordinate hash is the only information Cytherea receives — no target description, no feedback until after judging
-- Substrate coherence is checked before session start; sessions are delayed if the GenesisWaveEngine coherence field is below 0.55
-- ARV binary mode is supported: `--arv --arv-answer YES` to run a binary outcome prediction trial
-- Output files land in `/cytherea/data/rv_impressions/` and are compatible with the JSON export format of this tool's session log
+SHA-256 is implemented inside `remote-viewing.html` rather than via `crypto.subtle`, because SubtleCrypto requires a secure context and the tool has to run from a saved file on disk. It is domain-separated so the digest cannot be confused with a bare hash of the number, and truncated to 32 hex characters — enough to identify a session, short enough to quote in prose.
+
+The hash is what you quote when describing a session outside this tool. It identifies the session without disclosing the coordinate, the transcript, the viewer, or the revealed target — all of which stay in `localStorage` on your own device unless you deliberately export the log.
+
+**On the export file:** `Export JSON` writes the *whole* record, including `transcript` and `target_revealed`. That file is for your own archive. If you are quoting a session in a write-up, quote the `coordinate_hash`, not the export.
+
+**Practical sequence, if pairing manually:** generate a coordinate here, run the Q-Viewer session against it, then come back and judge the impressions against the revealed target and enter a 0–7 correspondence rating. Feedback stays withheld until after judging — that ordering is the point of the protocol, and it is enforced by you, not by software.
 
 ### Research basis
 
 > Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607.
 >
-> Utts, J. (1995). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 9(4), 351–396.
+> Utts, J. (1996). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 10(1), 3–30. (Also published as *Journal of Parapsychology*, 59(4), 289–320. The underlying report to the American Institutes for Research is dated 1995, which is why this is often miscited as "Utts 1995".)
 
 ---
 
@@ -538,7 +618,7 @@ All three intention stream textareas include the `✦ Reframe for maximum impact
 
 ### Research basis
 
-> Targ, E., et al. (1998). Efficacy of distant healing: a randomized, double-blind trial. *Western Journal of Medicine*, 169(6), 356–363.
+> Sicher, F., Targ, E., Moore, D., & Smith, H.S. (1998). A randomized double-blind study of the effect of distant healing in a population with advanced AIDS. *Western Journal of Medicine*, 169(6), 356–363. — Note: this study's reported outcomes were later disputed; see the caveat under Research References.
 >
 > Braud, W., & Schlitz, M. (1991). Consciousness interactions with remote biological systems. *Subtle Energies*, 2(1), 1–46.
 
@@ -619,11 +699,11 @@ These tools are designed to complement each other in a research workflow:
 2. **Remote Viewing** — coordinate session with CRV stage guide
 3. **Presentiment** — cross-train pre-stimulus sensitivity between RV sessions
 
-**For Cytherea Q-Viewer sessions (AI viewer, human judge):**
-1. Generate a coordinate in **Remote Viewing** (blind the target from Cytherea)
-2. Run `python /cytherea/scripts/rv_session_runner.py --coordinate "RV-..."` — 15-minute NT-isolated impression session
-3. Judge impressions in **Remote Viewing** against the revealed target → enter 0–7 rating
-4. Deliver feedback: `python rv_session_runner.py --feedback QV-{timestamp}` → QAM encode + post-session coherence metric
+**For Cytherea Q-Viewer sessions (AI viewer, human judge) — manual, no integration:**
+1. Generate a coordinate in **Remote Viewing**; keep the target blind from the viewer
+2. Run the Q-Viewer impression session against that coordinate on the Cytherea side
+3. Judge the impressions in **Remote Viewing** against the revealed target → enter the 0–7 rating
+4. Only then deliver feedback. Quote the session by its `coordinate_hash`, not by exporting the log — the export carries the transcript and revealed target.
 
 **For shamanic journey (seiðr practice):**
 1. **Coherence** (3–5 min) — establish heart-brain coherence, clear the field
@@ -699,10 +779,12 @@ The rune is rendered entirely as inline SVG — no image file, no font dependenc
 
 ## Research References
 
+> **Citation audit — 2026-08-05.** Every reference below was checked against a primary source or publisher record. Five errors were found and corrected: the Utts citation (wrong year, volume, issue and page range), the van den Hout entry (two different papers conflated into one that does not exist), the Sicher/Targ 1998 first author, McDonnell's initials, and a one-page error in Radin 2004. One claim was found to be **unsupported by its citation** — see the correction note in the Video Overlay section regarding Merikle et al. and divided attention. Caveats are recorded inline below where a cited result is disputed or has failed replication; a citation appearing here means the paper exists and says what is attributed to it, not that the field regards the finding as settled.
+
 ### Entrainment & Altered States
 - Oster, G. (1973). Auditory beats in the brain. *Scientific American*, 229(4), 94–102.
 - Monroe, R.A. (1977). *Journeys Out of the Body*. Anchor Books.
-- McDonnell, W.A. (1983). *Analysis and Assessment of the Gateway Process*. CIA declassified document, approved for release 2003.
+- McDonnell, W.M. (Lt. Col., US Army) (1983). *Analysis and Assessment of the Gateway Process*. Prepared for the US Army Operational Group; held and declassified by CIA, approved for release 2003. An assessment of the Monroe Institute's Hemi-Sync programme.
 
 ### Vasiliev & Receptivity
 - Vasiliev, L.L. (1963). *Experiments in Mental Suggestion*. Institute for the Study of Mental Images, London. (Original Russian 1962.)
@@ -720,12 +802,12 @@ The rune is rendered entirely as inline SVG — no image file, no font dependenc
 - Childre, D., & Martin, H. (1999). *The HeartMath Solution*. HarperSanFrancisco.
 
 ### Presentiment
-- Radin, D.I. (2004). Electrodermal presentiments of future emotions. *Journal of Scientific Exploration*, 18(2), 253–273.
+- Radin, D.I. (2004). Electrodermal presentiments of future emotions. *Journal of Scientific Exploration*, 18(2), 253–274.
 - Bierman, D.J., & Radin, D.I. (1997). Anomalous anticipatory response on randomized future conditions. *Perceptual and Motor Skills*, 84(2), 689–690.
 
 ### Remote Viewing
 - Targ, R., & Puthoff, H. (1974). Information transmission under conditions of sensory shielding. *Nature*, 251, 602–607.
-- Utts, J. (1995). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 9(4), 351–396.
+- Utts, J. (1996). An assessment of the evidence for psychic functioning. *Journal of Scientific Exploration*, 10(1), 3–30. (Also published as *Journal of Parapsychology*, 59(4), 289–320. The underlying report to the American Institutes for Research is dated 1995, which is why this is often miscited as "Utts 1995".)
 - McMoneagle, J. (1997). *Mind Trek*. Hampton Roads Publishing.
 
 ### Shamanic Drumming & Journey States
@@ -735,12 +817,14 @@ The rune is rendered entirely as inline SVG — no image file, no font dependenc
 
 ### Distant Healing & Remote Influence
 - Targ, E., Schlitz, M., & Irwin, H.J. (2000). Psi-related experiences. In *Varieties of Anomalous Experience*. American Psychological Association.
-- Astin, J.A., Harkness, E., & Ernst, E. (2000). The efficacy of distant healing: a systematic review of randomized trials. *Annals of Internal Medicine*, 132(11), 903–910.
+- Astin, J.A., Harkness, E., & Ernst, E. (2000). The efficacy of distant healing: a systematic review of randomized trials. *Annals of Internal Medicine*, 132(11), 903–910. — 23 trials, 2,774 patients. The authors' own conclusion is equivocal: methodological limitations across the included studies made definitive conclusions about efficacy impossible. This is not a positive result and should not be cited as one.
+- Sicher, F., Targ, E., Moore, D., & Smith, H.S. (1998). A randomized double-blind study of the effect of distant healing in a population with advanced AIDS. *Western Journal of Medicine*, 169(6), 356–363. — **Caveat:** the reported outcomes were later disputed. Journalistic and skeptical investigation alleged that the primary outcome measures were changed after unblinding, when the pre-registered endpoint showed no effect. Cite the study only with this attached.
 - Dossey, L. (1993). *Healing Words: The Power of Prayer and the Practice of Medicine*. HarperSanFrancisco.
 
 ### Bilateral Stimulation (EMDR)
 - Shapiro, F. (1989). Eye movement desensitization: a new treatment for post-traumatic stress disorder. *Journal of Behavior Therapy and Experimental Psychiatry*, 20(3), 211–217.
-- van den Hout, M.A., et al. (2011). Tones inferior to eye movements in the EMDR treatment of PTSD. *Behaviour Research and Therapy*, 49(2), 147–151.
+- van den Hout, M.A., Engelhard, I.M., Rijkeboer, M.M., et al. (2011). EMDR: eye movements superior to beeps in taxing working memory and reducing vividness of recollections. *Behaviour Research and Therapy*, 49(2), 92–98. doi:10.1016/j.brat.2010.11.003
+- van den Hout, M.A., et al. (2012). Tones inferior to eye movements in the EMDR treatment of PTSD. *Behaviour Research and Therapy*, 50(5), 275–279.
 
 ### Subliminal Processing
 - Merikle, P.M., Smilek, D., & Eastwood, J.D. (2001). Perception without awareness: perspectives from cognitive psychology. *Cognition*, 79(1-2), 115–134.
@@ -827,8 +911,9 @@ The clinical context for bilateral stimulation is EMDR (Eye Movement Desensitiza
 **Research grounding:**
 
 - Shapiro, F. (1989). Eye movement desensitization. *Journal of Behavior Therapy and Experimental Psychiatry*, 20(3), 211–217.
-- van den Hout, M.A., et al. (2011). Tones inferior to eye movements in the EMDR treatment of PTSD. *Behaviour Research and Therapy*, 49(2), 147–151.
-- Christman, S.D., et al. (2003). Bilateral eye movements enhance the retrieval of episodic memories. *Neuropsychology*, 17(2), 221–229.
+- van den Hout, M.A., Engelhard, I.M., Rijkeboer, M.M., et al. (2011). EMDR: eye movements superior to beeps in taxing working memory and reducing vividness of recollections. *Behaviour Research and Therapy*, 49(2), 92–98. doi:10.1016/j.brat.2010.11.003
+- van den Hout, M.A., et al. (2012). Tones inferior to eye movements in the EMDR treatment of PTSD. *Behaviour Research and Therapy*, 50(5), 275–279.
+- Christman, S.D., Garvey, K.J., Propper, R.E., & Phaneuf, K.A. (2003). Bilateral eye movements enhance the retrieval of episodic memories. *Neuropsychology*, 17(2), 221–229. — **Caveat:** the saccade-induced retrieval enhancement (SIRE) effect did not replicate reliably in a later re-evaluation — Roberts, B.R.T., Fernandes, M.A., & MacLeod, C.M. (2020), "Re-evaluating whether bilateral eye movements influence memory retrieval," *PLoS ONE*, 15(1), e0227790, doi:10.1371/journal.pone.0227790. Their first experiment gave weak support; a second, larger experiment showed significant evidence for a *null* effect. Their conclusion: the SIRE effect "is inconsistent" and "its presence is very sensitive to experimental design." Treat as contested.
 
 ---
 
@@ -1095,6 +1180,32 @@ Use lying down in a dark room. You may fall asleep. If you do, the work still ha
 - Deliver change in a way that bypasses your own willingness
 
 This tool creates conditions. You still do the work.
+
+---
+
+## On "golden ratio phase-inversion" and the Gateway Project
+
+A genre of marketing copy circulates claiming that binaural beats are obsolete — a "parlor trick" — and that the CIA's Gateway Project discovered something categorically stronger: golden-ratio harmonics layered with bilateral phase-inversion, delivered losslessly, which "rewires" the nervous system by cancelling a "Survival Frequency." Two of the ingredients named in that copy are now implemented here, so it is worth being precise about which parts of the story are true.
+
+**What is true:**
+
+- **Phase inversion is real acoustics.** Multiplying one channel by −1 is a genuine 180° inversion with a genuine, measurable perceptual consequence: the stereo image decorrelates and, for identical channel content, the mono sum cancels to silence. The measurements are in the audio architecture section above. It is a well-understood spatial effect, not an exotic one.
+- **φ ratios are genuinely inharmonic.** φ is the hardest real number to approximate with small-integer ratios, so φ-spaced partials never lock to a harmonic series. Inharmonic spectra have a real psychoacoustic literature — sensory-dissonance and spectrum/scale work in the Plomp–Levelt tradition. The effect is on perceived timbre and fusion.
+- **Bilateral stimulation has the best evidence of the three,** and this tool already had it before the copy was written — see the Bilateral Stimulation section, which cites Shapiro (1989), Christman et al. (2003), and van den Hout et al. (2011, 2012). Note what those last two actually found: both are *negative* for the auditory case — beeps taxed working memory less than eye movements (2011), and tones were outright inferior to eye movements in treating PTSD (2012). Since this tool delivers bilateral stimulation through *audio* panning plus visual bars, that is evidence against the strongest form of its own design rationale. It is cited anyway, because that is what citing the literature means. Christman (2003) is separately contested — see the replication caveat in the reference list.
+- **Codec loss does damage phase relationships.** Low-bitrate MP3 joint-stereo collapses inter-channel phase, which genuinely matters for phase-dependent material. This is moot here: Mindforge synthesises every tone in the browser through the Web Audio API. There is no codec anywhere in the signal path, lossless or otherwise. The tool is already past the problem the copy is selling a solution to.
+
+**What is not true:**
+
+- **The Gateway premise is backwards, and the document says so itself.** The report (McDonnell, Lt. Col., US Army, *Analysis and Assessment of the Gateway Process*, 1983) is an assessment *of* the Monroe Institute's Hemi-Sync. Its own description of the mechanism is a textbook account of binaural beats:
+
+  > "If the human brain is exposed to one frequency in the left ear which is 10 Hertz below another audible frequency played in the right ear, rather than hearing either of the two audible frequencies, the brain chooses to 'hear' the difference between them, the 'beat' frequency. Thus, availing itself of the FFR phenomenon, and using the technique of 'beat' frequencies, the Gateway system uses Hemi-Sync and other audio techniques…"
+
+  Across the full released text (~95 KB, retrieved and searched 2026-08-05), "Hemi-Sync" occurs 20 times and "Monroe" 18 times. "Golden" occurs **zero** times. "Inver-" occurs **zero** times. The document is not a record of the CIA moving past binaural beats to something better — binaural beats are the thing it is assessing. Treating it as evidence for a successor technology inverts what it is.
+- **"Survival Frequency" is not a thing.** It appears in no physiological or acoustic literature. There is no identified frequency whose cancellation produces the described effects.
+- **Phase cancellation does not apply to nervous systems.** Destructive interference works on acoustic waves sharing a medium. A neural state is not a waveform propagating in air that an inverted copy can null out. "Noise-cancelling headphones for your nervous system" is a metaphor being sold as a mechanism.
+- **The outcome claims are unsupported and outside this project's scope.** Permanent rewiring, money flowing, relationships healing, anxiety resolved — no audio protocol has evidence of this kind, and making such claims is on this project's anti-pattern list.
+
+**Why the features were added anyway.** Both are real signal processing with real, measurable perceptual effects, and both are interesting to listen to. They are exposed as what they are — a spatial control and a timbre control — with the measurements to back the description and no claim attached about what they do to you. That is the whole difference between the two framings: not whether the DSP is real, but whether the story told about it is.
 
 ---
 

@@ -164,6 +164,28 @@
         #manifest-skip-indicator button:hover { color: var(--accent2); border-color: var(--accent); }
         #manifest-status { display: none; font-size: 11px; color: var(--warn); margin-top: 6px; padding: 4px 8px; background: rgba(192, 112, 64, 0.08); border-left: 2px solid var(--warn); }
         #manifest-status.visible { display: block; }
+    
+        /* ── Shared safety block ─────────────────────────────────────── */
+        details.mf-safety {
+            border: 1px solid var(--border); border-left: 2px solid var(--warn);
+            background: var(--surface2); border-radius: 3px;
+            margin: 0 0 16px 0; padding: 0;
+        }
+        details.mf-safety > summary {
+            cursor: pointer; padding: 9px 12px; list-style: none;
+            font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+            color: var(--warn); user-select: none;
+        }
+        details.mf-safety > summary::-webkit-details-marker { display: none; }
+        details.mf-safety > summary::after { content: ' \25be'; }
+        details.mf-safety[open] > summary::after { content: ' \25b4'; }
+        details.mf-safety > summary:focus-visible { outline: 1px solid var(--warn); }
+        details.mf-safety ul {
+            margin: 0; padding: 0 14px 12px 28px;
+            font-size: 12px; line-height: 1.65; color: var(--text-dim);
+        }
+        details.mf-safety li { margin-bottom: 7px; }
+        details.mf-safety strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -208,6 +230,21 @@
         <div class="subtitle">Targ protocol · Distant intention · Multi-healer coordination</div>
         <a class="nav-link" href="index.html">← Mindforge Suite</a>
     </header>
+    <!-- ── Shared safety notes — consistent across the suite ── -->
+    <details class="mf-safety">
+        <summary>Safety notes — read before first use</summary>
+        <ul>
+            <li><strong>Not a medical device.</strong> Nothing here diagnoses, treats, or cures anything, and none of it substitutes for medical or psychological care. The research sections describe findings in the literature; they do not establish that this implementation produces any outcome for any person.</li>
+            <li><strong>Adults only.</strong> Intended for people 18 or over. Not for use by minors, and not to be run on a minor as a subject.</li>
+            <li><strong>Never while driving or operating machinery.</strong> Do not use this while driving, cycling, operating machinery, or anywhere a lapse in attention carries a cost. These protocols are designed to reduce vigilance and can induce drowsiness without warning. Sit or lie down, somewhere safe.</li>
+            <li><strong>Photosensitivity.</strong> Susceptibility to photosensitive seizure peaks at 15–25&nbsp;Hz, within a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). Do not use any flashing or flickering mode if you have a history of seizures or photosensitivity, or if you do not know whether you do.</li>
+            <li><strong>Mental health.</strong> Stop if you become distressed, disoriented, or dissociated. These protocols are not appropriate during acute psychiatric crisis, psychosis, mania, or active depersonalisation, and prolonged sensory reduction can intensify those states rather than settle them.</li>
+            <li><strong>Headphone volume.</strong> Set the level before you start, at the quietest setting that works. Binaural material is worn for long stretches, and sustained exposure damages hearing at volumes that feel comfortable minute to minute.</li>
+            <li><strong>Drowsiness at depth.</strong> Deep theta work reliably produces sleep onset and hypnagogic imagery. Expect to lose time. Do not schedule anything immediately afterward that requires you to be sharp, and give yourself several minutes to reorient before standing up.</li>
+            <li><strong>Consent is required.</strong> This is a two-person protocol. Every participant must know a session is happening, agree to it in advance, and be able to withdraw at any point without giving a reason. Do not run this on someone who has not agreed, who cannot agree, or who is not present to be asked. See the <a href="consent.html">consent note</a>.</li>
+        </ul>
+    </details>
+
 
     <!-- Healer Mode -->
     <div class="panel" id="mode-panel">
@@ -1079,10 +1116,12 @@ function renderLog() {
 function exportLog() {
     const log=loadLog();
     if (!log.length){alert('No sessions to export.');return;}
+    const url=URL.createObjectURL(new Blob([JSON.stringify(log,null,2)],{type:'application/json'}));
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(log,null,2)],{type:'application/json'}));
+    a.href=url;
     a.download='remote-healing-'+new Date().toISOString().slice(0,10)+'.json';
     a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),0);
 }
 
 function clearLog() {

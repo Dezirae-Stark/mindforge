@@ -292,6 +292,28 @@
             font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em;
             text-transform: uppercase; margin-bottom: 6px; display: block;
         }
+    
+        /* ── Shared safety block ─────────────────────────────────────── */
+        details.mf-safety {
+            border: 1px solid var(--border); border-left: 2px solid var(--warn);
+            background: var(--surface2); border-radius: 3px;
+            margin: 0 0 16px 0; padding: 0;
+        }
+        details.mf-safety > summary {
+            cursor: pointer; padding: 9px 12px; list-style: none;
+            font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+            color: var(--warn); user-select: none;
+        }
+        details.mf-safety > summary::-webkit-details-marker { display: none; }
+        details.mf-safety > summary::after { content: ' \25be'; }
+        details.mf-safety[open] > summary::after { content: ' \25b4'; }
+        details.mf-safety > summary:focus-visible { outline: 1px solid var(--warn); }
+        details.mf-safety ul {
+            margin: 0; padding: 0 14px 12px 28px;
+            font-size: 12px; line-height: 1.65; color: var(--text-dim);
+        }
+        details.mf-safety li { margin-bottom: 7px; }
+        details.mf-safety strong { color: var(--text); }
     </style>
 </head>
 <body>
@@ -314,6 +336,21 @@
             <a href="telehypnosis-pro.html">Telehypnosis</a>
         </div>
     </header>
+    <!-- ── Shared safety notes — consistent across the suite ── -->
+    <details class="mf-safety">
+        <summary>Safety notes — read before first use</summary>
+        <ul>
+            <li><strong>Not a medical device.</strong> Nothing here diagnoses, treats, or cures anything, and none of it substitutes for medical or psychological care. The research sections describe findings in the literature; they do not establish that this implementation produces any outcome for any person.</li>
+            <li><strong>Adults only.</strong> Intended for people 18 or over. Not for use by minors, and not to be run on a minor as a subject.</li>
+            <li><strong>Never while driving or operating machinery.</strong> Do not use this while driving, cycling, operating machinery, or anywhere a lapse in attention carries a cost. These protocols are designed to reduce vigilance and can induce drowsiness without warning. Sit or lie down, somewhere safe.</li>
+            <li><strong>Photosensitivity.</strong> Susceptibility to photosensitive seizure peaks at 15–25&nbsp;Hz, within a broader susceptible range of 1–65&nbsp;Hz (Fisher, Harding et&nbsp;al., Epilepsy Foundation of America Working Group, <em>Epilepsia</em> 46(9), 2005). Do not use any flashing or flickering mode if you have a history of seizures or photosensitivity, or if you do not know whether you do.</li>
+            <li><strong>Mental health.</strong> Stop if you become distressed, disoriented, or dissociated. These protocols are not appropriate during acute psychiatric crisis, psychosis, mania, or active depersonalisation, and prolonged sensory reduction can intensify those states rather than settle them.</li>
+            <li><strong>Headphone volume.</strong> Set the level before you start, at the quietest setting that works. Binaural material is worn for long stretches, and sustained exposure damages hearing at volumes that feel comfortable minute to minute.</li>
+            <li><strong>Drowsiness at depth.</strong> Deep theta work reliably produces sleep onset and hypnagogic imagery. Expect to lose time. Do not schedule anything immediately afterward that requires you to be sharp, and give yourself several minutes to reorient before standing up.</li>
+            <li><strong>Consent is required.</strong> This is a two-person protocol. Every participant must know a session is happening, agree to it in advance, and be able to withdraw at any point without giving a reason. Do not run this on someone who has not agreed, who cannot agree, or who is not present to be asked. See the <a href="consent.html">consent note</a>.</li>
+        </ul>
+    </details>
+
 
     <!-- ── Panel 1: Session Setup ─────────────────────────────────────── -->
     <div class="panel" id="setup-panel">
@@ -657,7 +694,7 @@ function resolveTargets() {
         // Fisher-Yates shuffle of BUILTIN_TARGETS, take first 4
         const pool = BUILTIN_TARGETS.slice();
         for (let i = pool.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = randBelow(i + 1);
             [pool[i], pool[j]] = [pool[j], pool[i]];
         }
         const four = pool.slice(0, 4);
@@ -686,10 +723,37 @@ function resolveTargets() {
     return texts.map((t, i) => ({ label: String.fromCharCode(65+i), img: null, text: t || `Target ${String.fromCharCode(65+i)} (blank)` }));
 }
 
+// ── Randomness ────────────────────────────────────────────────────────────────
+// Which of the four decoys becomes the target is the entire experiment, so it is
+// drawn from the CSPRNG rather than Math.random(). Math.random() is a seeded
+// xorshift variant: not reproducible for audit and not unpredictable either,
+// which is the worst combination for an instrument whose result is a hit rate.
+// Rejection sampling drops the tail of the byte range that would otherwise bias
+// the draw toward low indices.
+function randBelow(n) {
+    if (n <= 1) return 0;
+    const limit = Math.floor(256 / n) * n;
+    const b = new Uint8Array(1);
+    if (n <= 256) {
+        do { crypto.getRandomValues(b); } while (b[0] >= limit);
+        return b[0] % n;
+    }
+    const w = new Uint32Array(1);
+    const wLimit = Math.floor(4294967296 / n) * n;
+    do { crypto.getRandomValues(w); } while (w[0] >= wLimit);
+    return w[0] % n;
+}
+
+function randId() {
+    const b = new Uint8Array(9);
+    crypto.getRandomValues(b);
+    return Array.from(b, x => x.toString(16).padStart(2,'0')).join('');
+}
+
 // ── Fisher-Yates shuffle (in-place) ──────────────────────────────────────────
 function shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = randBelow(i + 1);
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
@@ -719,7 +783,7 @@ function beginSession() {
 
     sessionTargets = targets;
     // Randomly pick actual target
-    targetIdx = Math.floor(Math.random() * 4);
+    targetIdx = randBelow(4);
 
     // Prepare judging shuffle (indices 0-3 into sessionTargets)
     judgeOrder = shuffle([0, 1, 2, 3]);
@@ -928,7 +992,7 @@ function saveSession() {
     const t = sessionTargets[targetIdx];
 
     const entry = {
-        id:           Math.random().toString(36).slice(2),
+        id:           randId(),
         date:         new Date().toISOString(),
         receiver:     el('receiver-name').value.trim(),
         sender:       el('sender-name').value.trim(),
@@ -1069,12 +1133,50 @@ function renderLog() {
     updateStats(log);
 }
 
+// ── Exact binomial ────────────────────────────────────────────────────────────
+// A personal session log is small, and the normal approximation is badly wrong
+// there: two sessions with two direct hits gives z = 2.45, which the old code
+// reported as "p < 0.05" when the exact probability is 0.0625. Direct hits are
+// Binomial(N, 0.25) under the null, so the exact one-sided tail is used instead.
+function _logGamma(z) {
+    const C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+               771.32342877765313, -176.61502916214059, 12.507343278686905,
+               -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - _logGamma(1 - z);
+    z -= 1;
+    let x = C[0];
+    for (let i = 1; i < 9; i++) x += C[i] / (z + i);
+    const t = z + 7.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+function _logChoose(n, k) {
+    return _logGamma(n + 1) - _logGamma(k + 1) - _logGamma(n - k + 1);
+}
+function binomUpperTail(k, n, p) {
+    if (n <= 0 || k > n) return null;
+    if (k <= 0) return 1;
+    let sum = 0;
+    for (let i = k; i <= n; i++) {
+        sum += Math.exp(_logChoose(n, i) + i * Math.log(p) + (n - i) * Math.log(1 - p));
+    }
+    return Math.min(1, sum);
+}
+
+// Below this many sessions no p-value is shown. This is a judgment call, not a
+// mathematical threshold — three straight direct hits is already p = 0.0156. The
+// point is that at N = 3 a single lucky run clears 0.05 and will not replicate,
+// and each additional hit moves p by an order of magnitude, so the number is
+// noise dressed as a result. The ganzfeld series in the cited meta-analyses run
+// 20–50 sessions apiece (Honorton's autoganzfeld: 354). Eight is a floor for a
+// personal log, not an endorsement of eight as an adequate series.
+const MIN_SESSIONS_FOR_STATS = 8;
+
 function updateStats(log) {
     const N     = log.length;
     const hits  = log.filter(e => e.target_rank === 1).length;
     const rate  = N > 0 ? (hits / N * 100).toFixed(1) + '%' : '—';
     const z     = N > 0 ? ((hits - N * 0.25) / Math.sqrt(N * 0.25 * 0.75)).toFixed(2) : '—';
-    const zNum  = N > 0 ? parseFloat(z) : null;
+    const p     = N > 0 ? binomUpperTail(hits, N, 0.25) : null;
 
     el('stat-total').textContent = N;
     el('stat-hits').textContent  = hits;
@@ -1082,15 +1184,29 @@ function updateStats(log) {
     el('stat-z').textContent     = N > 0 ? z : '—';
 
     const sigLine = el('sig-line');
-    if (zNum !== null && zNum > 1.96) {
+    const sigEl   = el('stat-sig');
+    // Reset the colour every pass — it used to be set on the trend branch and
+    // never cleared, so a log that later reached p < 0.05 kept the amber styling.
+    sigEl.style.color = '';
+
+    if (p === null || N < MIN_SESSIONS_FOR_STATS) {
         sigLine.style.display = 'flex';
-        el('stat-sig').textContent = 'p < 0.05';
-    } else if (zNum !== null && zNum > 1.645) {
-        sigLine.style.display = 'flex';
-        el('stat-sig').textContent = 'p < 0.10 (trend)';
-        el('stat-sig').style.color = 'var(--warn)';
+        sigEl.textContent = `${N} of ${MIN_SESSIONS_FOR_STATS} sessions — too few to test`;
+        sigEl.style.color = 'var(--text-dim)';
+        return;
+    }
+
+    sigLine.style.display = 'flex';
+    const pStr = p < 0.0001 ? 'p < 0.0001' : 'p = ' + p.toFixed(4);
+    if (p < 0.05) {
+        sigEl.textContent = pStr + ' — exact binomial, one-sided';
+        sigEl.style.color = 'var(--on)';
+    } else if (p < 0.10) {
+        sigEl.textContent = pStr + ' — trend, not significant at 0.05';
+        sigEl.style.color = 'var(--warn)';
     } else {
-        sigLine.style.display = 'none';
+        sigEl.textContent = pStr + ' — within chance';
+        sigEl.style.color = 'var(--text-dim)';
     }
 }
 
@@ -1098,10 +1214,12 @@ function exportLog() {
     const log = loadLog();
     if (!log.length) { alert('No sessions to export.'); return; }
     const blob = new Blob([JSON.stringify(log, null, 2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'ganzfeld-sessions-' + new Date().toISOString().slice(0,10) + '.json';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function clearLog() {
